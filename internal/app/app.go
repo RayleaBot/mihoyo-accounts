@@ -1,0 +1,300 @@
+package app
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+	"sync"
+	"time"
+
+	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
+	"github.com/RayleaBot/game-plugin-kit/pluginmeta"
+	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+)
+
+type API interface {
+	CreateQR(context.Context) (mihoyo.QR, error)
+	PollQR(context.Context, mihoyo.QR) (mihoyo.Confirmation, error)
+	Refresh(context.Context, accounts.Tokens) (accounts.Tokens, error)
+	RolesForGame(context.Context, accounts.Tokens, string) ([]accounts.Role, error)
+	Fingerprint(context.Context, accounts.Tokens) (accounts.Tokens, error)
+	Execute(context.Context, accounts.Tokens, accounts.Role, string, map[string]any) (map[string]any, error)
+}
+
+type Policy struct {
+	AllowedPlugins []Caller `json:"allowed_plugins"`
+}
+type Caller struct {
+	PluginID string   `json:"plugin_id"`
+	Games    []string `json:"games"`
+}
+
+func (p Policy) Games(id string) []string {
+	for _, caller := range p.AllowedPlugins {
+		if caller.PluginID == id {
+			return caller.Games
+		}
+	}
+	return nil
+}
+func (p Policy) IDs() []string {
+	result := []string{}
+	for _, caller := range p.AllowedPlugins {
+		if caller.PluginID != "" && len(caller.Games) > 0 && !slices.Contains(result, caller.PluginID) {
+			result = append(result, caller.PluginID)
+		}
+	}
+	return result
+}
+
+type App struct {
+	Manifest     pluginmeta.Manifest
+	overseas     overseasImports
+	associations associationRequests
+	batches      accountBatches
+	transfers    vaultTransfers
+	Vault        *vault.Manager
+	Repo         accounts.Repository
+	API          API
+	ctx          context.Context
+	cancel       context.CancelFunc
+	vaultGate    sync.RWMutex
+	locksMu      sync.Mutex
+	locks        map[string]*accountLock
+	jobsMu       sync.Mutex
+	jobs         map[string]*login
+	owners       map[accounts.Subject]string
+	refreshMu    sync.Mutex
+	refreshes    map[string]*refreshFlight
+	pollInterval time.Duration
+}
+type accountLock struct {
+	permit chan struct{}
+	users  int
+}
+
+func New(directory string, api API) (*App, error) {
+	manager, err := vault.NewManager(directory)
+	if err != nil {
+		return nil, err
+	}
+	if api == nil {
+		api = mihoyo.New(nil, nil)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &App{Vault: manager, API: api, ctx: ctx, cancel: cancel, locks: map[string]*accountLock{}, jobs: map[string]*login{}, owners: map[accounts.Subject]string{}, refreshes: map[string]*refreshFlight{}, pollInterval: 5 * time.Second}, nil
+}
+func (a *App) Close() {
+	a.cancel()
+	a.cancelLogins()
+	a.transfers.clear()
+	a.batches.clear()
+	a.associations.clear()
+	a.overseas.clear()
+}
+
+func (a *App) acquire(ctx context.Context, ref string) (func(), error) {
+	a.locksMu.Lock()
+	lock := a.locks[ref]
+	if lock == nil {
+		lock = &accountLock{permit: make(chan struct{}, 1)}
+		a.locks[ref] = lock
+	}
+	lock.users++
+	a.locksMu.Unlock()
+	releaseRef := func() {
+		a.locksMu.Lock()
+		defer a.locksMu.Unlock()
+		lock.users--
+		if lock.users == 0 {
+			delete(a.locks, ref)
+		}
+	}
+	select {
+	case lock.permit <- struct{}{}:
+		return func() { <-lock.permit; releaseRef() }, nil
+	case <-ctx.Done():
+		releaseRef()
+		return nil, ctx.Err()
+	}
+}
+
+func decode(value any, out any) error {
+	raw, err := json.Marshal(value)
+	if err != nil || json.Unmarshal(raw, out) != nil {
+		return failure("plugin.account_input_invalid")
+	}
+	return nil
+}
+func object(value any) map[string]any {
+	result, _ := value.(map[string]any)
+	if result == nil {
+		return map[string]any{}
+	}
+	return result
+}
+func stringValue(value any) string { result, _ := value.(string); return result }
+
+func failure(code string) *rayleabot.ActionError {
+	return &rayleabot.ActionError{Code: code, Message: message(code)}
+}
+
+func publicError(err error) *rayleabot.ActionError {
+	var upstream *mihoyo.Error
+	var typed *rayleabot.ActionError
+	switch {
+	case errors.As(err, &upstream):
+		msg := message(upstream.Code)
+		if upstream.RetCode != 0 {
+			msg += fmt.Sprintf("（错误码 %d）", upstream.RetCode)
+		}
+		return &rayleabot.ActionError{Code: upstream.Code, Message: msg, Details: map[string]any{"operation": upstream.Operation, "retcode": upstream.RetCode, "http_status": upstream.HTTPStatus, "reason": upstream.Reason}}
+	case errors.As(err, &typed):
+		return failure(typed.Code)
+	case errors.Is(err, vault.ErrLocked):
+		return failure("plugin.vault_locked")
+	case errors.Is(err, vault.ErrMissingKey):
+		return failure("plugin.vault_missing")
+	case errors.Is(err, vault.ErrCiphertext):
+		return failure("plugin.vault_ciphertext_invalid")
+	case errors.Is(err, accounts.ErrNotFound):
+		return failure("plugin.account_not_found")
+	case errors.Is(err, accounts.ErrConflict):
+		return failure("plugin.account_changed")
+	case errors.Is(err, accounts.ErrAssociation):
+		return failure("plugin.account_association_invalid")
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return failure("plugin.account_operation_canceled")
+	default:
+		return failure("plugin.account_operation_failed")
+	}
+}
+
+func message(code string) string {
+	switch code {
+	case "plugin.account_overseas_missing":
+		return "海外授权流程不存在或已过期，请重新加密导入。"
+	case "plugin.account_overseas_sequence":
+		return "海外授权进度已变化，请使用当前步骤继续。"
+	case "plugin.account_association_invalid":
+		return "关联存在冲突：不允许环路、链式共享或同一附属身份连接多个主身份。"
+	case "plugin.account_association_missing":
+		return "关联申请不存在、已取消或超过5分钟，请重新发起。"
+	case "plugin.account_association_limit":
+		return "待确认的关联申请已达上限，请完成或取消其他申请。"
+	case "plugin.account_redeem_unavailable":
+		return "固定参考未提供可用的国服网页兑换接口，请在官方游戏内使用兑换码。"
+	case "plugin.upstream_billing_unavailable":
+		return "官方客服记录暂不接受此授权方式；普通游戏 CK 已保留，请稍后重试。"
+	case "plugin.upstream_redeem_unavailable":
+		return "官方暂未接受兑换请求，请在官方页面核对账号、区服及兑换码状态。"
+	case "plugin.redeem_expired":
+		return "兑换码已过期。"
+	case "plugin.redeem_invalid":
+		return "兑换码无效、未激活或已达使用上限。"
+	case "plugin.redeem_cooldown":
+		return "兑换操作过于频繁，请稍后再试。"
+	case "plugin.redeem_level_low":
+		return "游戏等级尚未达到兑换要求。"
+	case "plugin.upstream_community_unavailable":
+		return "社区认证暂不可用，请刷新账号凭据或在官方米游社完成验证；游戏 CK 状态已保留。"
+	case "plugin.account_cloud_unavailable":
+		return "此账号尚未配置相应的云游戏授权，请在账号管理中设置加密的云授权。"
+	case "plugin.upstream_cloud_unavailable":
+		return "云游戏授权暂不可用，请在官方云客户端检查授权或防沉迷状态；普通游戏 CK 已保留。"
+	case "plugin.account_refresh_unavailable":
+		return "此账号缺少可用的刷新材料，现有登录状态已保留；请在账号页重新授权。"
+	case "plugin.upstream_birthday_unavailable":
+		return "留影叙佳期活动认证暂不可用，请在官方活动页面核对；普通游戏登录状态已保留。"
+	case "plugin.account_auth_material_missing":
+		return "此业务需要海外 CookieToken v2 和 MID；普通账号登录状态已保留，请在账号页补充授权。"
+	case "plugin.account_batch_missing":
+		return "批量任务不存在或已过期，请重新选择账号开始。"
+	case "plugin.account_batch_limit":
+		return "批量任务或统计范围已达上限，请完成已有任务或缩小范围。"
+	case "plugin.account_batch_sequence":
+		return "批量任务进度已变化，请使用最新进度继续。"
+	case "plugin.account_input_invalid":
+		return "输入不完整或格式不正确。"
+	case "plugin.account_write_confirmation_required":
+		return "此操作需要明确确认后执行。"
+	case "plugin.account_public_unavailable":
+		return "暂无已获本人授权且有可用额度的公共查询账号，请稍后重试或使用自己的账号查询。"
+	case "plugin.upstream_first_sign_required":
+		return "请先在米游社官方应用完成首次签到，再使用此功能。"
+	case "plugin.upstream_sign_unavailable":
+		return "官方签到暂不接受此活动认证，账号绑定已保留。可稍后重试或在官方应用签到。"
+	case "plugin.account_delegation_denied":
+		return "定时委托不存在、已到期或与当前任务不匹配，请重新开启提醒。"
+	case "plugin.account_delegation_throttled":
+		return "定时委托尚未到下一次可查询时间。"
+	case "plugin.account_not_found":
+		return "账号不存在或已移除。"
+	case "plugin.account_changed":
+		return "账号已变更，请刷新页面后重试。"
+	case "plugin.account_caller_denied":
+		return "此插件未获准使用账号服务。"
+	case "plugin.account_subject_denied":
+		return "此请求无权使用该账号。"
+	case "plugin.account_role_denied":
+		return "所选角色不属于此账号或此游戏。"
+	case "plugin.account_operation_denied":
+		return "该游戏操作尚未开放。"
+	case "plugin.account_region_unsupported":
+		return "此业务暂未适配所选账号区服。"
+	case "plugin.upstream_gacha_expired":
+		return "抽卡记录授权暂不可用，请稍后继续同步。"
+	case "plugin.upstream_gacha_unavailable":
+		return "星铁官方暂不接受此抽卡授权方式，请导入 UIGF 或 SRGF 记录。现有 CK 仍可用于其他游戏查询。"
+	case "plugin.account_operation_canceled":
+		return "操作已取消或超时，可稍后重试。"
+	case "plugin.vault_locked":
+		return "账号库已锁定，请在账号管理页解锁。"
+	case "plugin.vault_missing":
+		return "缺少原密钥文件，请恢复密钥后重试。"
+	case "plugin.vault_ciphertext_invalid":
+		return "账号密文无法读取，请核对密钥与备份。"
+	case "plugin.vault_backup_invalid":
+		return "加密备份格式或内容无效，账号库未改变。"
+	case "plugin.vault_rotation_auth_failed":
+		return "未能验证现有密钥文件与口令，密钥未变更。"
+	case "plugin.vault_rotation_limit":
+		return "密钥已达到 128 代上限，可使用加密备份迁入新账号库。"
+	case "plugin.vault_restore_nonempty":
+		return "恢复只允许用于没有活动账号的目标库，请先处理当前账号。"
+	case "plugin.vault_transfer_limit":
+		return "迁移任务已达上限，请完成或取消已有任务。"
+	case "plugin.vault_transfer_missing":
+		return "迁移任务已失效，请重新选择文件或导出。"
+	case "plugin.vault_transfer_conflict":
+		return "迁移片段顺序或内容不一致，请重新导入。"
+	case "plugin.login_not_found":
+		return "登录任务已失效，请重新扫码。"
+	case "plugin.login_limit":
+		return "当前登录任务较多，请稍后重试。"
+	case "plugin.login_processing_timeout":
+		return "扫码已确认，但账号处理超时，请重新扫码。"
+	case "plugin.upstream_rejected":
+		return "米游社拒绝了本次请求，请稍后重试。"
+	case "plugin.upstream_auth_invalid":
+		return "米游社凭据已失效，请重新扫码。"
+	case "plugin.upstream_challenge_required":
+		return "米游社要求完成验证，请在官方应用处理后重试。"
+	case "plugin.upstream_device_required":
+		return "米游社需要设备验证，请在官方应用处理后重试。"
+	case "plugin.upstream_rate_limited":
+		return "米游社请求过于频繁，请稍后重试。"
+	case "plugin.upstream_unavailable":
+		return "暂时无法连接米游社，请稍后重试。"
+	case "plugin.upstream_response_invalid":
+		return "米游社返回的数据暂不兼容，请稍后重试。"
+	case "plugin.upstream_request_invalid":
+		return "查询参数无效。"
+	default:
+		return "操作未完成，请稍后重试。"
+	}
+}

@@ -1,0 +1,13 @@
+<script setup lang="ts">
+import{ref}from'vue'
+import type{Account}from'./model'
+import{sealCredentialInput}from'../../.rayleabot/credential-input'
+const props=defineProps<{account:Account;busy:boolean;invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>}>()
+const emit=defineEmits<{changed:[];working:[boolean]}>()
+const state=ref<{revision:number;device_label:string;has_fingerprint:boolean;fingerprint_expires_ms:number}|null>(null),working=ref(false),error=ref(''),notice=ref(''),value=ref(''),confirm=ref(false)
+async function run(work:()=>Promise<void>){if(working.value||props.busy)return;working.value=true;emit('working',true);error.value='';notice.value='';try{await work()}catch(e){error.value=e instanceof Error?e.message:'设备操作未完成。'}finally{value.value='';working.value=false;emit('working',false)}}
+async function load(){await run(async()=>{state.value=await props.invoke('accounts.device.status',{account_ref:props.account.ref});confirm.value=false})}
+async function reset(){if(!confirm.value||!state.value)return;await run(async()=>{let box;if(value.value.trim()){const {public_key}=await props.invoke<{public_key:JsonWebKey}>('vault.public_key');box=await sealCredentialInput(value.value.trim(),public_key,'account.device.reset');value.value=''}state.value=await props.invoke('accounts.device.reset',{account_ref:props.account.ref,revision:state.value!.revision,confirm:true,...(box?{box}:{})});confirm.value=false;notice.value='设备标识已更新，下次业务查询会重新获取官方指纹。';emit('changed')})}
+</script>
+<template><details class="device-settings"><summary>设备信息与重置</summary><div><p>显示脱敏标识；重置仅更新此账号插件使用的设备标识并清除缓存指纹，不撤销官方应用设备。官方设备验证仍需在官方应用处理。</p><button :disabled="busy||working" @click="load">读取设备状态</button><p v-if="error" class="danger-text" role="alert">{{error}}</p><p v-if="notice" role="status">{{notice}}</p><form v-if="state" @submit.prevent="reset"><p>设备：{{state.device_label||'未设置'}} · 指纹{{state.has_fingerprint?'已缓存':'未缓存'}}<span v-if="state.has_fingerprint"> · {{new Date(state.fingerprint_expires_ms).toLocaleString()}} 到期</span></p><label>自定义设备标识（留空自动生成）<input v-model="value" type="password" autocomplete="off" maxlength="64" :disabled="busy||working"></label><label class="check"><input v-model="confirm" type="checkbox" :disabled="busy||working">确认更新此账号的设备标识并清除指纹</label><button :disabled="busy||working||!confirm">重置设备信息</button></form></div></details></template>
+<style scoped>.device-settings{border-top:1px solid var(--raylea-color-border);padding-top:16px}.device-settings summary{cursor:pointer;font-weight:600}.device-settings>div,.device-settings form{display:grid;gap:14px;margin-top:14px}.device-settings label:not(.check){display:grid;gap:8px}</style>
