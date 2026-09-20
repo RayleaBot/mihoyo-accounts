@@ -1,6 +1,6 @@
 # 米游社账号插件
 
-独立的 RayleaBot 原生 Go/Vue 插件，提供米游社扫码登录、加密账号库、三游戏角色发现和 `accounts` v1 服务。要求包含通用插件服务能力的 RayleaBot Core 0.7.1。
+独立的 RayleaBot 原生 Go/Vue 插件，提供米游社扫码登录、加密账号库、三游戏角色发现和 `accounts` v1 服务。要求包含通用插件服务能力的 RayleaBot Core。
 
 ## 使用
 
