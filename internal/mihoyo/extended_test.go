@@ -20,6 +20,7 @@ func TestExtendedOperationsPinIdentityAndValidateMonth(t *testing.T) {
 		{"zzz.deadly", "zzz", "uid", "region", "/event/game_record_zzz/api/zzz/hadal_mem_detail_v2", map[string]any{"schedule_type": 2}},
 		{"starrail.rogue", "starrail", "role_id", "server", "/game_record/app/hkrpg/api/rogue", nil},
 		{"starrail.peak", "starrail", "role_id", "server", "/game_record/app/hkrpg/api/challenge_peak", map[string]any{"schedule_type": 2}},
+		{"genshin.hard_challenge_popularity", "genshin", "role_id", "server", "/game_record/app/genshin/api/hard_challenge/popularity", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
