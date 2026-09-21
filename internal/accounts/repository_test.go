@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 type memorySecrets struct {

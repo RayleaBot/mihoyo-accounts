@@ -12,5 +12,4 @@ await fs.mkdir(destination, { recursive: true })
 for (const name of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json']) {
   await fs.cp(path.join(source, name), path.join(destination, name), { recursive: true })
 }
-await fs.copyFile(path.resolve(root,'../game-plugin-kit/ui/src/credential-input.ts'),path.join(root,'.rayleabot/credential-input.ts'))
 process.stdout.write('Prepared the local Vue SDK for the plugin build.\n')

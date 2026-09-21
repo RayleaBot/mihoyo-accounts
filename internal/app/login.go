@@ -11,7 +11,7 @@ import (
 
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 	qrcode "github.com/skip2/go-qrcode"
 )
 

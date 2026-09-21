@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref } from 'vue'
 import { usePluginHost } from '@rayleabot/plugin-ui'
-import VaultMaintenance from './VaultMaintenance.vue'
+import KeyProtection from './KeyProtection.vue'
 import AccountMaintenance from './AccountMaintenance.vue'
 import CloudAuthorizations from './CloudAuthorizations.vue'
 import DeviceSettings from './DeviceSettings.vue'
@@ -180,7 +180,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           <label v-if="status.vault_state === 'uninitialized' && status.native_key_available">密钥保护方式
             <select v-model="protection" :disabled="busy"><option value="dpapi">当前 Windows 用户</option><option value="password">恢复口令</option></select>
           </label>
-          <p v-if="!needsPassword" class="muted">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要跨设备恢复时，请在首次初始化时选择恢复口令。</p>
+          <p v-if="!needsPassword" class="muted">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要换机或更强的隔离时，可在解锁后改用恢复口令。</p>
           <label v-if="needsPassword">恢复口令
             <input v-model="password" type="password" :disabled="busy" :autocomplete="status.vault_state === 'uninitialized' ? 'new-password' : 'current-password'" required aria-describedby="password-help">
             <span id="password-help" class="hint">至少 12 字节。请妥善保存；丢失口令后无法恢复账号。</span>
@@ -250,7 +250,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
         </section>
         <OverseasAuthorization :bots="status.bots" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
         <AccountAssociations :invoke="invoke" :disabled="busy"/>
-        <VaultMaintenance :invoke="invoke" :protection="status.key_protection" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+        <KeyProtection :invoke="invoke" :protection="status.key_protection" :native-available="status.native_key_available" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
       </template>
     </template>
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 	"regexp"
 	"slices"
 	"strconv"

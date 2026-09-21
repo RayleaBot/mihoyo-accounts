@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 func TestInvalidCleanupAndRebindShareAtomicVersionCheck(t *testing.T) {

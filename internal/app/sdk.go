@@ -97,10 +97,10 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		return a.associationCommand(ctx, event, store, owner, command)
 	}
 	if event.Event.Command() == "扫码登录" {
+		// Only an administrator initializes the account store and chooses how its
+		// key is protected; a chat user must not decide that by logging in first.
 		if a.Vault.State() == "uninitialized" {
-			if _, err := a.Manage(ctx, store, policy, "vault.initialize", map[string]any{}); err != nil {
-				return event.SendText("请先在米游社账号管理页初始化或解锁账号库。")
-			}
+			return event.SendText(message("plugin.vault_uninitialized"))
 		}
 		result, err := a.Manage(ctx, store, policy, "login.start", map[string]any{"subject": owner})
 		if err != nil {

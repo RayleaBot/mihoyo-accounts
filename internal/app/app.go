@@ -10,10 +10,10 @@ import (
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/game-plugin-kit/pluginmeta"
-	"github.com/RayleaBot/game-plugin-kit/vault"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/pluginmeta"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 type API interface {
@@ -56,7 +56,6 @@ type App struct {
 	overseas     overseasImports
 	associations associationRequests
 	batches      accountBatches
-	transfers    vaultTransfers
 	Vault        *vault.Manager
 	Repo         accounts.Repository
 	API          API
@@ -91,7 +90,6 @@ func New(directory string, api API) (*App, error) {
 func (a *App) Close() {
 	a.cancel()
 	a.cancelLogins()
-	a.transfers.clear()
 	a.batches.clear()
 	a.associations.clear()
 	a.overseas.clear()
@@ -159,6 +157,10 @@ func publicError(err error) *rayleabot.ActionError {
 		return failure("plugin.vault_locked")
 	case errors.Is(err, vault.ErrMissingKey):
 		return failure("plugin.vault_missing")
+	case errors.Is(err, vault.ErrPassword):
+		return failure("plugin.vault_password_invalid")
+	case errors.Is(err, vault.ErrNativeUnavailable):
+		return failure("plugin.vault_native_unavailable")
 	case errors.Is(err, vault.ErrCiphertext):
 		return failure("plugin.vault_ciphertext_invalid")
 	case errors.Is(err, accounts.ErrNotFound):
@@ -258,20 +260,12 @@ func message(code string) string {
 		return "缺少原密钥文件，请恢复密钥后重试。"
 	case "plugin.vault_ciphertext_invalid":
 		return "账号密文无法读取，请核对密钥与备份。"
-	case "plugin.vault_backup_invalid":
-		return "加密备份格式或内容无效，账号库未改变。"
-	case "plugin.vault_rotation_auth_failed":
-		return "未能验证现有密钥文件与口令，密钥未变更。"
-	case "plugin.vault_rotation_limit":
-		return "密钥已达到 128 代上限，可使用加密备份迁入新账号库。"
-	case "plugin.vault_restore_nonempty":
-		return "恢复只允许用于没有活动账号的目标库，请先处理当前账号。"
-	case "plugin.vault_transfer_limit":
-		return "迁移任务已达上限，请完成或取消已有任务。"
-	case "plugin.vault_transfer_missing":
-		return "迁移任务已失效，请重新选择文件或导出。"
-	case "plugin.vault_transfer_conflict":
-		return "迁移片段顺序或内容不一致，请重新导入。"
+	case "plugin.vault_uninitialized":
+		return "账号库尚未初始化，请管理员在米游社账号管理页完成初始化。"
+	case "plugin.vault_password_invalid":
+		return "口令需为 12 到 128 字节。"
+	case "plugin.vault_native_unavailable":
+		return "当前系统不支持用系统账户保护密钥，请使用恢复口令。"
 	case "plugin.login_not_found":
 		return "登录任务已失效，请重新扫码。"
 	case "plugin.login_limit":

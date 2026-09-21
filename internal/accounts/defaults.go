@@ -3,7 +3,7 @@ package accounts
 import (
 	"context"
 
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 type Selection struct {

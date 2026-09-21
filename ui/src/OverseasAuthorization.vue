@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import{computed,onUnmounted,ref}from'vue'
 import{subjectFor,type Bot,type Account}from'./model'
-import{sealCredentialInput}from'../../.rayleabot/credential-input'
+import{sealCredentialInput}from'./credential-input'
 interface Job{ref:string;state:string;sequence:number;role_states:Record<string,string>;account?:Account}
 const props=defineProps<{bots:Bot[];busy:boolean;invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>}>()
 const emit=defineEmits<{changed:[];working:[boolean]}>()

@@ -62,9 +62,6 @@ func TestOverseasImportEncryptsStagesAndSeparatesMatchingChinaID(t *testing.T) {
 			}
 		}
 	}
-	if _, err = a.Repo.Snapshot(t.Context(), store, cipher); err != nil {
-		t.Fatal("mixed realm backup rejected", err)
-	}
 }
 func TestOverseasImportAuthenticationFailureAndCancelKeepOnlyOldAccount(t *testing.T) {
 	api := &fakeAPI{roles: func(context.Context, accounts.Tokens, string) ([]accounts.Role, error) {

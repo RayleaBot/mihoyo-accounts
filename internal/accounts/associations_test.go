@@ -1,8 +1,7 @@
 package accounts
 
 import (
-	"encoding/json"
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 	"strings"
 	"testing"
 )
@@ -43,18 +42,6 @@ func TestAssociationsShareOneRecordSeparateDefaultsAndRestoreClears(t *testing.T
 	if strings.Contains(store.values[associationsKey], secondary.ActorID) {
 		t.Fatal("association stored plaintext")
 	}
-	snapshot, err := repo.Snapshot(t.Context(), store, cipher)
-	if err != nil {
-		t.Fatal(err)
-	}
-	target := &memorySecrets{values: map[string]string{}}
-	if err = repo.Restore(t.Context(), target, cipher, snapshot); err != nil {
-		t.Fatal(err)
-	}
-	restored, _ := repo.List(t.Context(), target, cipher, secondary)
-	if len(restored) != 0 {
-		t.Fatal("restored association without confirmation")
-	}
 	if err = repo.Dissociate(t.Context(), store, cipher, link.Ref, &secondary); err != nil {
 		t.Fatal(err)
 	}
@@ -65,9 +52,5 @@ func TestAssociationsShareOneRecordSeparateDefaultsAndRestoreClears(t *testing.T
 	values, _ = repo.Defaults(t.Context(), store, cipher, secondary)
 	if len(values) != 0 {
 		t.Fatal("linked defaults survived removal")
-	}
-	raw, _ := json.Marshal(snapshot)
-	if strings.Contains(string(raw), secondary.ActorID) {
-		t.Fatal("backup persisted linked identity")
 	}
 }

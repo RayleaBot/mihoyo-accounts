@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/game-plugin-kit/vault"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 // Explicit local acceptance check. The database is opened read-only; encrypted

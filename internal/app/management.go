@@ -50,10 +50,6 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	if _, exists := input["password"]; exists {
 		return nil, failure("plugin.account_input_invalid")
 	}
-	if action == "vault.rotate" || action == "vault.reencrypt" || strings.HasPrefix(action, "vault.export.") || strings.HasPrefix(action, "vault.import.") || action == "vault.transfer.cancel" {
-		result, err := a.manageVault(ctx, store, action, input)
-		return result, vaultPublicFailure(err)
-	}
 	switch action {
 	case "vault.public_key":
 		return map[string]any{"public_key": a.Vault.PublicKey()}, nil
@@ -61,11 +57,27 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		a.vaultGate.Lock()
 		defer a.vaultGate.Unlock()
 		a.cancelLogins()
-		a.transfers.clear()
 		a.associations.clear()
 		a.overseas.clear()
 		a.Vault.Lock()
 		return map[string]any{"state": "locked"}, nil
+	case "vault.mode":
+		// Management actions come from the authenticated host management page,
+		// so only an administrator can change how the key is protected.
+		a.vaultGate.Lock()
+		defer a.vaultGate.Unlock()
+		current, next := "", ""
+		for field, target := range map[string]*string{"password_ciphertext": &current, "new_password_ciphertext": &next} {
+			if value := stringValue(input[field]); value != "" {
+				if *target, err = a.Vault.DecodePassword(value); err != nil {
+					return nil, err
+				}
+			}
+		}
+		if err = a.Vault.SwitchMode(stringValue(input["mode"]), current, next); err != nil {
+			return nil, err
+		}
+		return map[string]any{"key_protection": a.Vault.Mode()}, nil
 	case "vault.initialize", "vault.unlock":
 		a.vaultGate.Lock()
 		defer a.vaultGate.Unlock()

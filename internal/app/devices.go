@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/RayleaBot/game-plugin-kit/vault"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 	"regexp"
 )
 

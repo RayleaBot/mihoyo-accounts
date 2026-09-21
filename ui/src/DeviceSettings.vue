@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import{ref}from'vue'
 import type{Account}from'./model'
-import{sealCredentialInput}from'../../.rayleabot/credential-input'
+import{sealCredentialInput}from'./credential-input'
 const props=defineProps<{account:Account;busy:boolean;invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>}>()
 const emit=defineEmits<{changed:[];working:[boolean]}>()
 const state=ref<{revision:number;device_label:string;has_fingerprint:boolean;fingerprint_expires_ms:number}|null>(null),working=ref(false),error=ref(''),notice=ref(''),value=ref(''),confirm=ref(false)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import type {Account} from './model'
-import {sealCredentialInput} from '../../.rayleabot/credential-input'
+import {sealCredentialInput} from './credential-input'
 const props=defineProps<{account:Account;busy:boolean;invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>}>()
 const emit=defineEmits<{changed:[];working:[boolean]}>()
 const game=ref('genshin'),value=ref(''),working=ref(false),error=ref(''),notice=ref(''),clearing=ref(false)
