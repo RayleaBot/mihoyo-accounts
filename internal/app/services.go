@@ -59,6 +59,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "public.execute" {
 		return a.publicExecute(ctx, store, cipher, request, games)
 	}
+	if request.Method == "ark.request" {
+		return a.arkRequest(ctx, store, cipher, request, games)
+	}
 	if request.Method == "list" {
 		var items []accounts.Summary
 		var next *int

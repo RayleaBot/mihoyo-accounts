@@ -59,6 +59,7 @@ type App struct {
 	Vault        *vault.Manager
 	Repo         accounts.Repository
 	API          API
+	ArkHTTP      HTTPDoer
 	ctx          context.Context
 	cancel       context.CancelFunc
 	vaultGate    sync.RWMutex
@@ -139,6 +140,11 @@ func stringValue(value any) string { result, _ := value.(string); return result 
 
 func failure(code string) *rayleabot.ActionError {
 	return &rayleabot.ActionError{Code: code, Message: message(code)}
+}
+
+func isFailure(err error, code string) bool {
+	var actual *rayleabot.ActionError
+	return errors.As(err, &actual) && actual.Code == code
 }
 
 func publicError(err error) *rayleabot.ActionError {
@@ -236,6 +242,14 @@ func message(code string) string {
 		return "定时委托尚未到下一次可查询时间。"
 	case "plugin.account_not_found":
 		return "账号不存在或已移除。"
+	case "plugin.account_ark_unconfigured":
+		return "尚未在账号插件管理页配置 ark 授权令牌。"
+	case "plugin.account_ark_rejected":
+		return "ark 拒绝了授权令牌，请检查令牌及权限。"
+	case "plugin.account_ark_rate_limited":
+		return "ark 查询额度已用尽或请求过于频繁，请稍后再试。"
+	case "plugin.account_ark_unavailable":
+		return "ark 云服务暂不可用或返回了无法读取的数据。"
 	case "plugin.account_changed":
 		return "账号已变更，请刷新页面后重试。"
 	case "plugin.account_caller_denied":

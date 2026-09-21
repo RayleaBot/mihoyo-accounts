@@ -23,6 +23,7 @@ CK、SToken、LToken、Cookie Token、AuthKey、登录会话材料不出现在�
 | `select` | `account_ref`、`role_ref` | 为账号主体选择该游戏的默认角色 |
 | `execute` | `account_ref`、`role_ref`、`operation`、对象 `input` | 指定操作的无凭据业务结果 |
 | `delegation.create` | `account_ref`、`role_ref`、`task_id`、`operation`、`days`（1–90） | 显式创建只读定时委托，返回 `delegation` |
+| `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
 
 定时委托开放三游戏 `note`、`sign` 和原神/绝区零 `gacha`；签到委托创建还必须带 `write_confirmed=true`。每个账号最多 16 项有效委托，同一调用插件及 task_id 更新同一委托。创建继续校验聊天主体或正式管理来源，不能从调度事件创建。委托把调用插件、task_id、角色、操作、到期时间一起加密保存在账号记录中。
@@ -81,9 +82,18 @@ statistics 从加密账号目录分页汇总保存账号数、完整聊天主体
 - `login.start`、`login.poll`、`login.cancel`：创建、轮询和取消登录任务；任务引用不是凭据，任务绑定到创建主体。
 - `accounts.refresh`、`accounts.remove`、`accounts.roles`：显式更新或删除账号。`accounts.roles` 每次选择一个 `game`；刷新重新换取 LToken 与 Cookie Token。
 - `accounts.permissions`：提交 `account_ref`、当前 `revision` 与 `callers`；代次不匹配返回 `plugin.account_changed`。
+- `ark.status`、`ark.save`、`ark.clear`：ark 令牌是否已配置、保存与清除。`ark.save` 只接收用途为 `ark.token.save` 的加密输入 `box`，不接受明文令牌字段。
 - `vault.public_key`、`vault.initialize`、`vault.unlock`、`vault.lock`：密钥状态与口令包装。口令输入必须使用插件会话公钥加密的 `password_ciphertext`，不接受明文 password 字段。
 
 管理请求由宿主管理会话认证。为聊天用户绑定时必须显式选择主体；聊天扫码默认绑定事件原始主体。主体由 `source_protocol`、`source_adapter`、`bot_id`、`actor_id` 共同构成，不能按相同字符串 ID 自动跨协议合并。
+
+## ark 令牌
+
+ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，授权查询需要机器人所有者的 ark 令牌。令牌与账号记录一样由本插件加密保存，不写入宿主明文的 secret 存储，也不交给游戏插件。
+
+`ark.request` 只接受允许使用原神或星铁的调用插件。`route` 必须是固定清单中的路径：`auth/usage`、`panel/data`、`panel/download`、`panel/upload`、`panel/refresh`、`rank/data`、`rank/specific`、`rank/custom`、`rank/custom/specific`、`rank/self`、`rank/group`、`rank/stygian`、`pos`、`verify`、`verify/code`、`verify/user`、`ocr/profilechange/gs`、`ocr/profilechange/sr`；`body` 编码后不超过 256 KiB。本插件以 `Authorization: Bearer` 向 `https://ark.ivny.cn/<route>` 发送 POST，不跟随重定向；响应不超过 2 MiB（面板数据与下载为 8 MiB）。返回前删除所有包含令牌的字符串值与字段名。
+
+未配置令牌返回 `plugin.account_ark_unconfigured`；ark 拒绝授权返回 `plugin.account_ark_rejected`，额度用尽或过于频繁返回 `plugin.account_ark_rate_limited`，其他失败返回 `plugin.account_ark_unavailable`。
 
 ## 状态与失败
 

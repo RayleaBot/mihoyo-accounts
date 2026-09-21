@@ -2,6 +2,7 @@
 import { computed, nextTick, onUnmounted, ref } from 'vue'
 import { usePluginHost } from '@rayleabot/plugin-ui'
 import KeyProtection from './KeyProtection.vue'
+import ArkToken from './ArkToken.vue'
 import AccountMaintenance from './AccountMaintenance.vue'
 import CloudAuthorizations from './CloudAuthorizations.vue'
 import DeviceSettings from './DeviceSettings.vue'
@@ -251,6 +252,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
         <OverseasAuthorization :bots="status.bots" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
         <AccountAssociations :invoke="invoke" :disabled="busy"/>
         <KeyProtection :invoke="invoke" :protection="status.key_protection" :native-available="status.native_key_available" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+        <ArkToken :invoke="invoke" :busy="busy" />
       </template>
     </template>
 

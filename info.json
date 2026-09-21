@@ -27,7 +27,8 @@
         "execute",
         "delegation.create",
         "delegation.revoke",
-        "public.execute"
+        "public.execute",
+        "ark.request"
       ]
     }
   ],

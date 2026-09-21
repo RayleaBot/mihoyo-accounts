@@ -62,6 +62,16 @@ func readEncrypted(ctx context.Context, store SecretStore, cipher *vault.Cipher,
 	return true, nil
 }
 
+// ReadSetting and WriteSetting keep plugin-level secrets, such as the ark
+// token, encrypted in the same way as account records.
+func (r *Repository) ReadSetting(ctx context.Context, store SecretStore, cipher *vault.Cipher, key string, out any) (bool, error) {
+	return readEncrypted(ctx, store, cipher, "setting."+key, out)
+}
+
+func (r *Repository) WriteSetting(ctx context.Context, store SecretStore, cipher *vault.Cipher, key string, value any) error {
+	return writeEncrypted(ctx, store, cipher, map[string]any{"setting." + key: value})
+}
+
 func writeEncrypted(ctx context.Context, store SecretStore, cipher *vault.Cipher, records map[string]any) error {
 	values := make(map[string]string, len(records))
 	for key, record := range records {

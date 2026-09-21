@@ -120,6 +120,9 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	if err != nil {
 		return nil, err
 	}
+	if strings.HasPrefix(action, "ark.") {
+		return a.manageArk(ctx, store, cipher, action, input)
+	}
 	switch action {
 	case "accounts.list":
 		if raw, exists := input["subject"]; exists {
