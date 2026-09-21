@@ -1,0 +1,7 @@
+# Text files use LF everywhere, independent of core.autocrlf.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.zip binary
+*.woff2 binary
