@@ -39,8 +39,10 @@ func TestOperationsPinRoleAndRejectCredentialResponses(t *testing.T) {
 	if _, err := client.Execute(t.Context(), tokens, role, "genshin.note", nil); err == nil {
 		t.Fatal("credential value crossed service boundary")
 	}
-	response = map[string]any{"daily_task": map[string]any{"authkey": "synthetic-authkey"}}
-	if _, err := client.Execute(t.Context(), tokens, role, "genshin.note", nil); err == nil {
-		t.Fatal("nested auth material crossed service boundary")
+	// Fields named like credentials are dropped; the rest of the page stays.
+	response = map[string]any{"daily_task": map[string]any{"authkey": "synthetic-authkey", "finished_num": 4}}
+	result, err = client.Execute(t.Context(), tokens, role, "genshin.note", nil)
+	if err != nil || object(result["daily_task"])["authkey"] != nil || object(result["daily_task"])["finished_num"] == nil {
+		t.Fatal("nested auth material crossed service boundary or the page was dropped")
 	}
 }

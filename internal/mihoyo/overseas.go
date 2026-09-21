@@ -254,15 +254,6 @@ func (c *Client) refreshOverseasLegacy(ctx context.Context, tokens accounts.Toke
 	return next, nil
 }
 func asArray(v any) []any { items, _ := v.([]any); return items }
-func overseasTimezone(role accounts.Role) int {
-	if strings.HasSuffix(role.Region, "usa") || role.Region == "prod_gf_us" {
-		return -5
-	}
-	if strings.HasSuffix(role.Region, "euro") || strings.HasSuffix(role.Region, "_eur") || role.Region == "prod_gf_eu" {
-		return 1
-	}
-	return 8
-}
 func decodeAuthKey(value string) string {
 	if strings.Contains(value, "%") {
 		if decoded, err := url.PathUnescape(value); err == nil {

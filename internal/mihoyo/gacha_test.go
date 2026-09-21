@@ -2,6 +2,7 @@ package mihoyo
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -51,13 +52,12 @@ func TestGachaUsesFixedEndpointsAndKeepsAuthorizationInsideProvider(t *testing.T
 				if err != nil {
 					t.Fatal(err)
 				}
+				// The page is forwarded as returned, minus credential fields; the
+				// game plugin checks records and converts the timezone.
 				wire, _ := json.Marshal(result)
-				expectedZone := tc.zone
-				if tc.game == "zzz" {
-					expectedZone += 8
-				}
-				if strings.Contains(string(wire), "synthetic-") || result["timezone"] != expectedZone || result["has_more"] != false {
-					t.Fatal("gacha DTO leaked credentials or changed timezone")
+				list, _ := result["list"].([]any)
+				if strings.Contains(string(wire), "synthetic-") || len(list) != 1 || fmt.Sprint(result["region_time_zone"]) != fmt.Sprint(tc.zone) {
+					t.Fatalf("gacha page leaked credentials or lost official fields: %s", wire)
 				}
 			}
 			if authCalls != 1 || pages != 2 {
@@ -90,8 +90,8 @@ func TestGachaExpiredKeyRetriesOnceAndDoesNotInvalidateCookie(t *testing.T) {
 	}
 }
 
-func TestGachaRejectsWrongRoleRepeatedCursorAndSecretEcho(t *testing.T) {
-	for _, mutation := range []func(map[string]any){func(r map[string]any) { r["uid"] = "other" }, func(r map[string]any) { r["id"] = "100" }, func(r map[string]any) { r["name"] = "synthetic-key" }} {
+func TestGachaRejectsAuthKeyEcho(t *testing.T) {
+	for _, mutation := range []func(map[string]any){func(r map[string]any) { r["name"] = "synthetic-key" }, func(r map[string]any) { r["item_type"] = "prefix synthetic-key suffix" }} {
 		client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path == "/binding/api/genAuthKey" {
 				return reply(map[string]any{"retcode": 0, "data": map[string]any{"authkey": "synthetic-key"}}), nil

@@ -79,7 +79,7 @@ func TestOverseasRefreshUsesSTokenAndReturnsBothV2Tokens(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-func TestOverseasGachaCookieAuthorizationAndZZZTimezoneOffset(t *testing.T) {
+func TestOverseasGachaCookieAuthorization(t *testing.T) {
 	for _, game := range []string{"genshin", "starrail", "zzz"} {
 		t.Run(game, func(t *testing.T) {
 			tokens := osTokens()
@@ -109,7 +109,7 @@ func TestOverseasGachaCookieAuthorizationAndZZZTimezoneOffset(t *testing.T) {
 				return reply(map[string]any{"retcode": 0, "data": data}), nil
 			}), nil)
 			out, err := c.Execute(t.Context(), tokens, role, game+".gacha", map[string]any{"gacha_type": p.pools[0]})
-			if err != nil || out["timezone"] != -5 {
+			if err != nil || game != "genshin" && out["region_time_zone"] == nil {
 				t.Fatal(out, err)
 			}
 			raw, _ := json.Marshal(out)

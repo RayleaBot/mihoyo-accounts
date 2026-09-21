@@ -35,13 +35,13 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 
 原神/星铁 `growth_detail` 读取养成计算器的角色/技能详情，输入为 `character_id`；`growth_compute` 为只读材料试算，输入为 `character_id`、`current_level`、`target_level`，可选 `weapon_id/current_weapon_level/target_weapon_level` 及 `skills`（最多 32 项 `id/current_level/target_level`）。等级必须为合法整数且目标不低于当前；角色/武器上限原神 90、星铁 80，技能上限原神 10、星铁 15。详情身份使用已授权角色的 UID/区服，计算参数按固定结构重新组装，只返回材料与计算业务字段；不接受任意 body，不执行升级或消耗材料，也未授予定时委托此操作。
 
-只读业务还包括三游戏 `monthly`，原神 `theater`、`hard_challenge`、`tcg`、`tcg_cards`、`tcg_decks`，星铁 `peak`、`rogue`、`swarm`、`gears`、`unknowable`、`divergent`、`currency_wars`，绝区零 `deadly`、`holo_boss`、`tower`、`void_front`、`hollow_zero`、`hollow_zero_detail`、`lost_void`、`zenkov`、`zenkov_detail`、`exploration`。每项只返回已登记业务字段，并继续递归拒绝凭据字段和值。
+只读业务还包括三游戏 `monthly`，原神 `theater`、`hard_challenge`、`tcg`、`tcg_cards`、`tcg_decks`，星铁 `peak`、`rogue`、`swarm`、`gears`、`unknowable`、`divergent`、`currency_wars`，绝区零 `deadly`、`holo_boss`、`tower`、`void_front`、`hollow_zero`、`hollow_zero_detail`、`lost_void`、`zenkov`、`zenkov_detail`、`exploration`。这些查询返回官方响应的 data：账号插件递归删除名称含 token、cookie、password、authkey、authorization、ticket 的字段，值中出现当前账号的凭据或凭据片段时拒绝整个响应。字段选择、期数整理与只保留所查角色等业务处理由游戏插件完成。
 
 `monthly` 可选 `month`：原神为 1–12，星铁/绝区零为 YYYYMM，省略读取接口默认月份。期数型挑战使用 `schedule_type=1/2`；星铁 `rogue` 使用 1/2/3（默认 3）。七圣牌库固定读取角色牌及行动牌的可用列表。身份查询参数按官方端点固定选择 `role_id/server`、`uid/region` 或 `bind_uid/bind_region`，调用方不能覆盖。原神札记固定访问 `https://hk4e-api.mihoyo.com/event/ys_ledger/monthInfo`，其他扩展端点仍位于已限定的官方主机。
 
-`genshin.gacha`、`starrail.gacha`、`zzz.gacha` 是国服抽卡记录分页读取，input 为 `gacha_type`、可选 `end_id`（默认字符串 `0`）及 `page`（默认 1）。每页最多 20 条；返回 data 的 `list`、`next_end_id`、`has_more`、`timezone`、`lang`。列表只含标准抽卡记录字段，不含链接或 AuthKey；返回 UID 必须与所选角色一致。原神支持 100/200/301/302/400/500，星铁支持 1/2/11/12/21/22，绝区零支持 1001/2001/3001/5001/12001/13001，并转换为档案池类型 1/2/3/5/102/103。
+`genshin.gacha`、`starrail.gacha`、`zzz.gacha` 是国服抽卡记录分页读取，input 为 `gacha_type`、可选 `end_id`（默认字符串 `0`）及 `page`（默认 1）。返回官方分页 data（含 `list`、`region`、`region_time_zone` 等），按上一段删除凭据字段，值中出现 AuthKey 或账号凭据时拒绝。原神支持 100/200/301/302/400/500，星铁支持 1/2/11/12/21/22，绝区零支持 1001/2001/3001/5001/12001/13001。记录校验（每页最多 20 条、UID 与所选角色一致、游标递减、池类型一致、时间与 ID 格式）、池类型转换（绝区零转为档案池类型 1/2/3/5/102/103，原神 400 归入 301）与时区换算由游戏插件完成。
 
-账号插件通过固定官方端点换取 AuthKey，最多在内存缓存 128 项、每项 30 分钟，不落盘、不跨插件传输。分页端点不发送 CK/SToken。明确 AuthKey 失效时重新换取并重试一次，仍失败返回 `plugin.upstream_gacha_expired`；星铁在官方仍拒绝新换取 AuthKey 时返回 `plugin.upstream_gacha_unavailable`。两者均不使 CK 失效；海外角色返回 `plugin.account_region_unsupported`。返回官方时区值，包括绝区零当前返回的 0，不强制按国服改为 8 或转换时间字符串。
+账号插件通过固定官方端点换取 AuthKey，最多在内存缓存 128 项、每项 30 分钟，不落盘、不跨插件传输。分页端点不发送 CK/SToken。明确 AuthKey 失效时重新换取并重试一次，仍失败返回 `plugin.upstream_gacha_expired`；星铁在官方仍拒绝新换取 AuthKey 时返回 `plugin.upstream_gacha_unavailable`。两者均不使 CK 失效；海外角色返回 `plugin.account_region_unsupported`。
 
 调用者须同时出现在全局 `allowed_plugins` 与账号 `allowed_callers` 中；其 `games` 进一步限制可用角色和操作。聊天来源必须与账号四字段主体完全相同，不能提交 `subject` 替换。由宿主认证的 `management.action` 来源可管理已授权账号；计划任务仅可按前述有期委托使用指定角色和操作。业务 DTO 使用操作级顶层字段名单，递归拒绝凭据字段与已知凭据值；上游结构不兼容时返回失败。
 

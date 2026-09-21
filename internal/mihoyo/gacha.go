@@ -195,84 +195,13 @@ func (c *Client) gachaPage(ctx context.Context, tokens accounts.Tokens, role acc
 	if err != nil {
 		return nil, err
 	}
-	items, ok := data["list"].([]any)
-	if !ok || len(items) > 20 {
-		return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_list_invalid"}
+	// Record checks, pool conversion and the business timezone belong to the
+	// game plugin; the page leaves here without credentials only.
+	clean, ok := sanitizeBusinessValue(data, tokens, 0)
+	result, isObject := clean.(map[string]any)
+	encoded, _ := json.Marshal(result)
+	if !ok || !isObject || strings.Contains(string(encoded), key) {
+		return nil, invalid(name)
 	}
-	if region := text(data["region"]); region != "" && region != role.Region {
-		return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_region_mismatch"}
-	}
-	timezone := 8
-	if tokens.Realm == "os" {
-		timezone = overseasTimezone(role)
-	}
-	if zone, exists := data["region_time_zone"]; exists {
-		var err error
-		timezone, err = strconv.Atoi(text(zone))
-		if role.Game == "zzz" {
-			timezone += 8
-		}
-		if err != nil || timezone < -12 || timezone > 14 {
-			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_timezone_invalid"}
-		}
-	}
-	list := make([]any, 0, len(items))
-	last := endID
-	for _, raw := range items {
-		item := object(raw)
-		if text(item["uid"]) != role.UID {
-			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_uid_mismatch"}
-		}
-		id := text(item["id"])
-		if !recordDigits.MatchString(id) || id == "0" || last != "0" && !decimalLess(id, last) {
-			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_cursor_invalid"}
-		}
-		selected := map[string]any{}
-		for _, field := range []string{"id", "gacha_type", "gacha_id", "item_id", "count", "time", "name", "item_type", "rank_type"} {
-			if value, exists := item[field]; exists {
-				selected[field] = text(value)
-			}
-		}
-		actual := text(selected["gacha_type"])
-		expected := pool
-		if role.Game == "zzz" {
-			expected = zzzPools[pool]
-			if zzzPools[actual] != "" {
-				actual = zzzPools[actual]
-				selected["gacha_type"] = actual
-			}
-		}
-		if actual != expected && !(role.Game == "genshin" && (pool == "301" || pool == "400") && (actual == "301" || actual == "400")) {
-			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "gacha_pool_mismatch"}
-		}
-		if role.Game == "genshin" {
-			normalized := actual
-			if normalized == "400" {
-				normalized = "301"
-			}
-			selected["uigf_gacha_type"] = normalized
-		}
-		if !recordDigits.MatchString(text(selected["item_id"])) {
-			return nil, invalid(name)
-		}
-		if _, err := time.Parse("2006-01-02 15:04:05", text(selected["time"])); err != nil {
-			return nil, invalid(name)
-		}
-		if role.Game == "starrail" && !recordDigits.MatchString(text(selected["gacha_id"])) {
-			return nil, invalid(name)
-		}
-		encoded, _ := json.Marshal(selected)
-		if !safeBusinessValue(selected, tokens, 0) || strings.Contains(string(encoded), key) {
-			return nil, invalid(name)
-		}
-		list = append(list, selected)
-		last = id
-	}
-	return map[string]any{"list": list, "next_end_id": last, "has_more": len(list) == 20, "timezone": timezone, "lang": "zh-cn"}, nil
-}
-func decimalLess(a, b string) bool {
-	if len(a) != len(b) {
-		return len(a) < len(b)
-	}
-	return a < b
+	return result, nil
 }
