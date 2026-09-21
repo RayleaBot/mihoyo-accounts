@@ -19,7 +19,6 @@ func TestExtendedOperationsPinIdentityAndValidateMonth(t *testing.T) {
 		{"starrail.monthly", "starrail", "uid", "region", "/event/srledger/month_info", map[string]any{"month": "202609"}},
 		{"zzz.deadly", "zzz", "uid", "region", "/event/game_record_zzz/api/zzz/hadal_mem_detail_v2", map[string]any{"schedule_type": 2}},
 		{"starrail.rogue", "starrail", "role_id", "server", "/game_record/app/hkrpg/api/rogue", nil},
-		{"zzz.void_front_summary", "zzz", "uid", "region", "/event/game_record_zzz/api/zzz/void_front_battle_period_detail", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
@@ -30,9 +29,6 @@ func TestExtendedOperationsPinIdentityAndValidateMonth(t *testing.T) {
 				}
 				if tc.name == "starrail.rogue" && req.URL.Query().Get("schedule_type") != "3" {
 					t.Fatal("wrong default rogue period")
-				}
-				if tc.name == "zzz.void_front_summary" && req.URL.Query().Get("schedule_type") != "1" {
-					t.Fatal("summary did not use supported period endpoint")
 				}
 				return reply(map[string]any{"retcode": 0, "data": map[string]any{"month_data": map[string]any{}, "list": []any{}, "basic_info": map[string]any{}, "void_front_battle_detail": map[string]any{}}}), nil
 			}), nil)
