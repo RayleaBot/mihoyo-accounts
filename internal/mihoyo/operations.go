@@ -137,12 +137,20 @@ func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accou
 				value = 3
 				maximum = 3
 			}
+			if name == "starrail.peak" {
+				maximum = 3
+			}
 			if raw, ok := input[key]; ok {
 				parsed, err := strconv.Atoi(stringNumber(raw))
 				if err != nil || parsed < 1 || parsed > maximum {
 					return nil, invalidInput(name)
 				}
 				value = parsed
+			}
+			// Anomaly Arbitration answers only the current run (1) or the three
+			// most recent (3); the last run is the second of those.
+			if name == "starrail.peak" && value == 2 {
+				value = 3
 			}
 			query.Set(key, strconv.Itoa(value))
 		case "month":

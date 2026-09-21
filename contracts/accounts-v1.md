@@ -38,7 +38,7 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 
 只读业务还包括三游戏 `monthly`，原神 `theater`、`hard_challenge`、`tcg`、`tcg_cards`、`tcg_decks`，星铁 `peak`、`rogue`、`swarm`、`gears`、`unknowable`、`divergent`、`currency_wars`，绝区零 `deadly`、`holo_boss`、`tower`、`void_front`、`hollow_zero`、`hollow_zero_detail`、`lost_void`、`zenkov`、`zenkov_detail`、`exploration`。这些查询返回官方响应的 data：账号插件递归删除名称含 token、cookie、password、authkey、authorization、ticket 的字段，值中出现当前账号的凭据或凭据片段时拒绝整个响应。字段选择、期数整理与只保留所查角色等业务处理由游戏插件完成。
 
-`monthly` 可选 `month`：原神为 1–12，星铁/绝区零为 YYYYMM，省略读取接口默认月份。期数型挑战使用 `schedule_type=1/2`；星铁 `rogue` 使用 1/2/3（默认 3）。七圣牌库固定读取角色牌及行动牌的可用列表。身份查询参数按官方端点固定选择 `role_id/server`、`uid/region` 或 `bind_uid/bind_region`，调用方不能覆盖。原神札记固定访问 `https://hk4e-api.mihoyo.com/event/ys_ledger/monthInfo`，其他扩展端点仍位于已限定的官方主机。
+`monthly` 可选 `month`：原神为 1–12，星铁/绝区零为 YYYYMM，省略读取接口默认月份。期数型挑战使用 `schedule_type=1/2`；星铁 `rogue` 使用 1/2/3（默认 3）；星铁 `peak` 接受 1/2/3，官方只按 1（本期）或 3（最近三期）作答，2 与 3 都以 3 请求，上期是其中第二条。七圣牌库固定读取角色牌及行动牌的可用列表。身份查询参数按官方端点固定选择 `role_id/server`、`uid/region` 或 `bind_uid/bind_region`，调用方不能覆盖。原神札记固定访问 `https://hk4e-api.mihoyo.com/event/ys_ledger/monthInfo`，其他扩展端点仍位于已限定的官方主机。
 
 `genshin.gacha`、`starrail.gacha`、`zzz.gacha` 是国服抽卡记录分页读取，input 为 `gacha_type`、可选 `end_id`（默认字符串 `0`）及 `page`（默认 1）。返回官方分页 data（含 `list`、`region`、`region_time_zone` 等），按上一段删除凭据字段，值中出现 AuthKey 或账号凭据时拒绝。原神支持 100/200/301/302/400/500，星铁支持 1/2/11/12/21/22，绝区零支持 1001/2001/3001/5001/12001/13001。记录校验（每页最多 20 条、UID 与所选角色一致、游标递减、池类型一致、时间与 ID 格式）、池类型转换（绝区零转为档案池类型 1/2/3/5/102/103，原神 400 归入 301）与时区换算由游戏插件完成。
 
