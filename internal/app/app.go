@@ -53,7 +53,7 @@ func (p Policy) IDs() []string {
 
 type App struct {
 	Manifest     pluginmeta.Manifest
-	overseas     overseasImports
+	imports      cookieImports
 	associations associationRequests
 	batches      accountBatches
 	Vault        *vault.Manager
@@ -93,7 +93,7 @@ func (a *App) Close() {
 	a.cancelLogins()
 	a.batches.clear()
 	a.associations.clear()
-	a.overseas.clear()
+	a.imports.clear()
 }
 
 func (a *App) acquire(ctx context.Context, ref string) (func(), error) {

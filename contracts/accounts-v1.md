@@ -157,9 +157,9 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 ### 海外 HoYoLab 账号
 
-账号增加 `realm=cn/os`，旧记录缺省cn；相同数字通行证ID在不同地区不合并。国服继续米游社扫码。海外管理页使用浏览器混合加密输入本人 HoYoLab Cookie（`account.overseas.import`用途），仅接收白名单账号ID、LToken、CookieToken、可选SToken/MID；凭据字段在账号进程内解析，其他字段不保存，普通管理响应和游戏插件不接收原文。
+账号增加 `realm=cn/os`，旧记录缺省cn；相同数字通行证ID在不同地区不合并。国服可用米游社扫码，也可与海外一样在管理页用浏览器混合加密输入本人 Cookie（`account.cookie.import` 用途，选择国服或海外），仅接收白名单账号ID、LToken、CookieToken、SToken 与 MID；国服需要 SToken，或 LToken 与 CookieToken，海外需要 LToken，或 SToken v2 与 MID。凭据字段在账号进程内解析，其他字段不保存，普通管理响应和游戏插件不接收原文；国服导入与扫码得到的同一通行证合并为一个账号。
 
-`accounts.overseas.start/step/cancel` 保存五分钟进程内导入会话，每一步发现一个游戏的官方海外角色，三步结束后加密绑定。未完成流程不写账号库；认证失败明确停止，短暂不可用可重试当前步骤。锁库、重启清除会话。正常业务使用各游戏固定海外战绩、签到、月报、养成/家具、兑换与抽卡端点，地区不匹配不发送凭据；社区米游币与国服云游戏不跨区混用。
+`accounts.import.start/step/cancel`（start 带 `realm=cn/os`）保存五分钟进程内导入会话，缺少可用凭据时先用 SToken 换取，之后每一步发现一个游戏的官方角色，三步结束后加密绑定。未完成流程不写账号库；认证失败明确停止，短暂不可用可重试当前步骤。锁库、重启清除会话。正常业务使用各游戏固定海外战绩、签到、月报、养成/家具、兑换与抽卡端点，地区不匹配不发送凭据；社区米游币与国服云游戏不跨区混用。
 
 海外 Cookie 的 v1/v2字段分别记录，SToken v2与MID可经固定官方端点刷新LToken/CookieToken，旧SToken使用固定旧版账号接口；逐抽AuthKey用CookieToken v2和MID在账号插件内换取。只有存在已验证源路径的操作才接入，未提供地区路径保持明确不支持。接口和签名参考固定 `genshin.py` 075f0e1e332f9452e544aa7dfdf265678889d6ab 与既有 Yunzai；海外真人扫码/账号/设备验证保留实测条件，不把合成验证写成真人登录成功。
 

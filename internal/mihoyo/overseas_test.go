@@ -12,7 +12,7 @@ func osTokens() accounts.Tokens {
 	return accounts.Tokens{Realm: "os", AccountID: "123456789", LToken: "synthetic-os-ltoken", LTokenV2: true, CookieToken: "synthetic-os-cookie", CookieTokenV2: true, SToken: "v2_synthetic-os-stoken", STokenV2: true, MID: "synthetic-os-mid", DeviceID: "synthetic-os-device"}
 }
 func TestOverseasCookieVersionsAndMismatchedIDs(t *testing.T) {
-	tokens, err := ParseOverseasCookie("Cookie: ltuid_v2=123456789; account_id_v2=123456789; ltoken_v2=synthetic-os-ltoken; cookie_token_v2=synthetic-os-cookie; stoken=v2_synthetic-os-stoken; ltmid_v2=synthetic-os-mid; analytics=ignored")
+	tokens, err := ParseCookie("Cookie: ltuid_v2=123456789; account_id_v2=123456789; ltoken_v2=synthetic-os-ltoken; cookie_token_v2=synthetic-os-cookie; stoken=v2_synthetic-os-stoken; ltmid_v2=synthetic-os-mid; analytics=ignored", "os")
 	if err != nil || tokens.Realm != "os" || !tokens.LTokenV2 || !tokens.CookieTokenV2 || !tokens.STokenV2 || tokens.MID == "" {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestOverseasCookieVersionsAndMismatchedIDs(t *testing.T) {
 		t.Fatal("wrong OS refresh cookie")
 	}
 	for _, raw := range []string{"ltuid=1; account_id=2; ltoken=value", "ltuid=1; ltoken=value\r\nInjected=x", "https://example.com?ltoken=bad"} {
-		if _, err = ParseOverseasCookie(raw); err == nil {
+		if _, err = ParseCookie(raw, "os"); err == nil {
 			t.Fatal("invalid authorization accepted")
 		}
 	}

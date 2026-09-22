@@ -38,8 +38,8 @@ func (a *App) Manage(ctx context.Context, store accounts.SecretStore, policy Pol
 }
 
 func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Policy, action string, input map[string]any) (result map[string]any, err error) {
-	if strings.HasPrefix(action, "accounts.overseas.") {
-		return a.manageOverseas(ctx, store, policy, action, input)
+	if strings.HasPrefix(action, "accounts.import.") {
+		return a.manageCookieImport(ctx, store, policy, action, input)
 	}
 	if strings.HasPrefix(action, "accounts.associations.") {
 		return a.manageAssociations(ctx, store, action, input)
@@ -58,7 +58,7 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		defer a.vaultGate.Unlock()
 		a.cancelLogins()
 		a.associations.clear()
-		a.overseas.clear()
+		a.imports.clear()
 		a.Vault.Lock()
 		return map[string]any{"state": "locked"}, nil
 	case "vault.mode":

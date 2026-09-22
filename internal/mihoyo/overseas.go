@@ -128,8 +128,12 @@ func overseasCookie(tokens accounts.Tokens, session bool) string {
 
 var overseasAccountID = regexp.MustCompile(`^[0-9]{1,20}$`)
 
-func ParseOverseasCookie(raw string) (accounts.Tokens, error) {
-	bad := func() (accounts.Tokens, error) { return accounts.Tokens{}, invalidInput("overseas.import") }
+// ParseCookie reads the whitelisted credential fields of a pasted cookie for
+// a realm: "os" for HoYoLab, "" for miyoushe. An overseas cookie needs an
+// LToken or an SToken v2 with its MID; a China cookie an SToken, or an
+// LToken with its CookieToken.
+func ParseCookie(raw, realm string) (accounts.Tokens, error) {
+	bad := func() (accounts.Tokens, error) { return accounts.Tokens{}, invalidInput("cookie.import") }
 	if len(raw) < 1 || len(raw) > 8192 || strings.ContainsAny(raw, "\r\n") {
 		return bad()
 	}
@@ -156,7 +160,7 @@ func ParseOverseasCookie(raw string) (accounts.Tokens, error) {
 		}
 		values[key] = value
 	}
-	tokens := accounts.Tokens{Realm: "os", DeviceID: RandomDeviceID()}
+	tokens := accounts.Tokens{Realm: realm, DeviceID: RandomDeviceID()}
 	for _, key := range words("ltuid ltuid_v2 account_id account_id_v2 stuid stuid_v2") {
 		if id := values[key]; id != "" {
 			if !overseasAccountID.MatchString(id) || tokens.AccountID != "" && tokens.AccountID != id {
@@ -183,7 +187,13 @@ func ParseOverseasCookie(raw string) (accounts.Tokens, error) {
 	tokens.CookieToken, tokens.CookieTokenV2 = pick("cookie_token")
 	tokens.SToken, tokens.STokenV2 = pick("stoken")
 	tokens.STokenV2 = tokens.STokenV2 || strings.HasPrefix(tokens.SToken, "v2_")
-	if tokens.AccountID == "" || tokens.LToken == "" && (!tokens.STokenV2 || tokens.SToken == "" || tokens.MID == "") {
+	if tokens.AccountID == "" {
+		return bad()
+	}
+	if realm == "os" && tokens.LToken == "" && (!tokens.STokenV2 || tokens.SToken == "" || tokens.MID == "") {
+		return bad()
+	}
+	if realm != "os" && tokens.SToken == "" && (tokens.LToken == "" || tokens.CookieToken == "") {
 		return bad()
 	}
 	return tokens, nil

@@ -7,7 +7,7 @@ import AccountMaintenance from './AccountMaintenance.vue'
 import CloudAuthorizations from './CloudAuthorizations.vue'
 import DeviceSettings from './DeviceSettings.vue'
 import AccountAssociations from './AccountAssociations.vue'
-import OverseasAuthorization from './OverseasAuthorization.vue'
+import CookieAuthorization from './CookieAuthorization.vue'
 import { accountNames, checkNames, encryptPassword, errorText, finished, gameNames, loginLabel, subjectFor, vaultNames, type Account, type Login, type Status } from './model'
 
 const host = usePluginHost()
@@ -249,7 +249,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           </ul>
           <div v-if="page > 0 || nextPage !== null" class="pagination"><button :disabled="busy || page === 0" @click="changePage(page - 1)">上一页</button><span>第 {{ page + 1 }} 页</span><button :disabled="busy || nextPage === null" @click="changePage(nextPage!)">下一页</button></div>
         </section>
-        <OverseasAuthorization :bots="status.bots" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
+        <CookieAuthorization :bots="status.bots" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
         <AccountAssociations :invoke="invoke" :disabled="busy"/>
         <KeyProtection :invoke="invoke" :protection="status.key_protection" :native-available="status.native_key_available" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
         <ArkToken :invoke="invoke" :busy="busy" />
