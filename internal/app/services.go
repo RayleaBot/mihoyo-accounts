@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 func management(origin rayleabot.ServiceOrigin) bool {
@@ -62,6 +64,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "ark.request" {
 		return a.arkRequest(ctx, store, cipher, request, games)
 	}
+	if request.Method == "uids.bind" || request.Method == "uids.remove" || request.Method == "uids.use" {
+		return a.changeUIDBinding(ctx, store, cipher, owner, request, games)
+	}
 	if request.Method == "list" {
 		var items []accounts.Summary
 		var next *int
@@ -111,7 +116,19 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 				delete(defaults, game)
 			}
 		}
-		return map[string]any{"items": visible, "next_page": next, "default_roles": defaults}, nil
+		bindings := map[string]accounts.UIDBinding{}
+		if owner.Validate() == nil {
+			all, err := a.Repo.UIDBindings(ctx, store, cipher, owner)
+			if err != nil {
+				return nil, err
+			}
+			for game, binding := range all {
+				if slices.Contains(games, game) {
+					bindings[game] = binding
+				}
+			}
+		}
+		return map[string]any{"items": visible, "next_page": next, "default_roles": defaults, "uid_bindings": bindings}, nil
 	}
 	ref := stringValue(request.Params["account_ref"])
 	release, err := a.acquire(ctx, ref)
@@ -257,4 +274,25 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		}
 	}
 	return map[string]any{"operation": name, "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli()}, nil
+}
+
+// uidPattern is a game UID as upstream's 绑定uid reads it; ZZZ also has
+// eight-digit UIDs.
+var uidPattern = regexp.MustCompile(`^(?:(?:1[0-9]|[1-9])[0-9]{8}|[1-9][0-9]{7})$`)
+
+// changeUIDBinding binds, removes or picks a UID of the caller's own for a
+// game the calling plugin may use, without any account credential.
+func (a *App) changeUIDBinding(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, owner accounts.Subject, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
+	game, uid := stringValue(request.Params["game"]), stringValue(request.Params["uid"])
+	if owner.Validate() != nil {
+		return nil, failure("plugin.account_subject_denied")
+	}
+	if !slices.Contains(games, game) || !uidPattern.MatchString(uid) || game != "zzz" && len(uid) != 9 && len(uid) != 10 {
+		return nil, failure("plugin.account_input_invalid")
+	}
+	binding, err := a.Repo.ChangeUIDBinding(ctx, store, cipher, owner, game, strings.TrimPrefix(request.Method, "uids."), uid)
+	if errors.Is(err, accounts.ErrBindingLimit) {
+		return nil, failure("plugin.account_binding_limit")
+	}
+	return map[string]any{"game": game, "binding": binding}, err
 }

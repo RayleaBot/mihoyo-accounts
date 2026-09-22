@@ -21,6 +21,7 @@ CK、SToken、LToken、Cookie Token、AuthKey、登录会话材料不出现在�
 | `list` | 空对象；管理来源可选 `subject` 或 `page` | 当前主体可用的账号摘要、角色和凭据状态；管理页按账号页返回 `next_page` |
 | `roles` | `account_ref`，可选 `game` | 该主体有权使用的绑定角色 |
 | `select` | `account_ref`、`role_ref` | 为账号主体选择该游戏的默认角色 |
+| `uids.bind` / `uids.remove` / `uids.use` | `game`、`uid` | 不需要账号：为调用主体绑定、删除或选用该游戏的 UID |
 | `execute` | `account_ref`、`role_ref`、`operation`、对象 `input` | 指定操作的无凭据业务结果 |
 | `delegation.create` | `account_ref`、`role_ref`、`task_id`、`operation`、`days`（1–90） | 显式创建只读定时委托，返回 `delegation` |
 | `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
@@ -47,6 +48,8 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 调用者须同时出现在全局 `allowed_plugins` 与账号 `allowed_callers` 中；其 `games` 进一步限制可用角色和操作。聊天来源必须与账号四字段主体完全相同，不能提交 `subject` 替换。由宿主认证的 `management.action` 来源可管理已授权账号；计划任务仅可按前述有期委托使用指定角色和操作。业务 DTO 使用操作级顶层字段名单，递归拒绝凭据字段与已知凭据值；上游结构不兼容时返回失败。
 
 默认角色由账号插件按主体与游戏加密保存。主体查询 `list` 时通过 `default_roles` 返回仍有权限且仍存在的选择；删除、撤销或角色变化后不返回过时选择。游戏插件不保存另一份 CK 默认角色状态。
+
+没有 CK 的用户可按上游“绑定uid”绑定任意 UID：账号插件按主体与游戏加密保存绑定的 UID 列表（每个游戏最多 20 个）与当前使用的 UID，`list` 通过 `uid_bindings` 只返回调用插件可用游戏的绑定。`uids.bind` 加入并选用一个 UID，`uids.remove` 删除，`uids.use` 选用一个已绑定或账号角色的 UID；只接受上游格式的 UID（绝区零另有 8 位），调用方只能改自己的绑定。绑定不含凭据，不授予查询该 UID 私有数据的权限；游戏插件用它作为公开展柜与本地面板的默认 UID。
 
 扫码凭据解析支持明确名称的 SToken/LToken，以及 app 扫码接口的单个无名称根 token；后者只作为候选，必须经固定官方 SToken 换取接口验证后才可绑定。未知的明确 token 名称与多 token 歧义不使用首项回退。已知 Set-Cookie 凭据字段只在账号插件内消费，账号 ID 不一致时拒绝保存。
 

@@ -185,9 +185,11 @@ func publicError(err error) *rayleabot.ActionError {
 func message(code string) string {
 	switch code {
 	case "plugin.account_overseas_missing":
-		return "海外授权流程不存在或已过期，请重新加密导入。"
+		return "Cookie 导入流程不存在或已过期，请重新加密导入。"
 	case "plugin.account_overseas_sequence":
-		return "海外授权进度已变化，请使用当前步骤继续。"
+		return "Cookie 导入进度已变化，请使用当前步骤继续。"
+	case "plugin.account_binding_limit":
+		return "每个游戏最多绑定 20 个 UID，请先删除不用的 UID。"
 	case "plugin.account_association_invalid":
 		return "关联存在冲突：不允许环路、链式共享或同一附属身份连接多个主身份。"
 	case "plugin.account_association_missing":
