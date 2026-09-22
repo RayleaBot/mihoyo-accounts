@@ -159,6 +159,8 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 `accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。reset 清除导入的设备。聊天“绑定设备”只指向管理页，不在聊天中接收设备信息；“绑定设备帮助”给出获取方法；“解绑设备”把本人账号恢复为自动生成的设备。出现 10041 时提示发送“绑定设备帮助”。
 
+插件订阅聊天消息，但从不在聊天中读取或保存凭据：消息中出现 ltoken、cookie_token、stoken（含 _v2）、login_ticket、ltuid、_MHYUUID 或抽卡链接的 authkey 时，回复请撤回并改用扫码登录或管理页加密导入；群聊中另提醒凭据已公开，需退出登录或修改密码使其失效。
+
 `accounts.gacha_link.save` 接收账号、星铁角色、版本号与浏览器加密输入（`account.gacha.link` 用途）的游戏内跃迁记录链接，只接受 miHoYo 域名的 HTTPS 链接，取出 authkey 随账号加密保存一天。国服星铁翻页时优先使用该 authkey，按 StarRail-plugin 的链接形态请求 `api-takumi.mihoyo.com`（不带 auth_appid 与 sign_type）；过期时提示重新导入，没有链接时仍按原方式换取授权。链接与 authkey 不返回管理页或游戏插件。
 
 

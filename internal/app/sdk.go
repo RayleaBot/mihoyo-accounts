@@ -78,6 +78,9 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if event.Event.EventType != "message.private" && event.Event.EventType != "message.group" {
 		return event.Result(map[string]any{"handled": false})
 	}
+	if pastedCredential.MatchString(event.Event.Message.PlainText) {
+		return event.SendText(credentialWarning(event.Event.Target.Type != "private"))
+	}
 	command := ckCommand(event.Event.Command())
 	if command == "账号帮助" || command == "账号版本" {
 		return a.helpCommand(event, command)
