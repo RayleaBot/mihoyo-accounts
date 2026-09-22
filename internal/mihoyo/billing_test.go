@@ -75,3 +75,33 @@ func TestRedeemExactRegionsAndAlreadyClaimed(t *testing.T) {
 		t.Fatal("CN unexpectedly redeemed")
 	}
 }
+
+func TestStarRailBillingPageSize(t *testing.T) {
+	tokens := accounts.Tokens{SToken: "synthetic-token"}
+	role := accounts.Role{Game: "starrail", UID: "100000001", Region: "prod_gf_cn"}
+	sizes := []string{}
+	c := New(doerFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path == "/binding/api/genAuthKey" {
+			return reply(map[string]any{"retcode": 0, "data": map[string]any{"authkey": "synthetic-csc-key"}}), nil
+		}
+		sizes = append(sizes, r.URL.Query().Get("page_size"))
+		return reply(map[string]any{"retcode": 0, "data": map[string]any{"list": []any{}}}), nil
+	}), nil)
+	for _, input := range []map[string]any{{"category": "power"}, {"category": "power", "page_size": 50}} {
+		if _, err := c.Execute(t.Context(), tokens, role, "starrail.billing", input); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if strings.Join(sizes, ",") != "10,50" {
+		t.Fatal(sizes)
+	}
+	for _, size := range []any{9, 51, "x"} {
+		if _, err := c.Execute(t.Context(), tokens, role, "starrail.billing", map[string]any{"category": "power", "page_size": size}); err == nil {
+			t.Fatal("page size accepted:", size)
+		}
+	}
+	genshin := accounts.Role{Game: "genshin", UID: "100000001", Region: "cn_gf01"}
+	if _, err := c.Execute(t.Context(), tokens, genshin, "genshin.billing", map[string]any{"category": "crystal", "page_size": 20}); err == nil {
+		t.Fatal("genshin page size accepted")
+	}
+}

@@ -139,7 +139,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 三游戏 `redeem` 只接受 `code` 和已绑定角色，必须 `write_confirmed=true`。固定参考仅提供海外 `webExchangeCdkeyHyl`，国服返回 `plugin.account_redeem_unavailable` 并提示在官方游戏内兑换；不猜测国服接口、不把该限制当成 CK 失效。实际使用固定游戏 HTTPS 主机、角色 UID/区服和 Cookie，凭据不离开账号插件，写入不自动重放。
 
-原神/星铁 `billing` 只读代理固定客服资产记录：原神 `crystal/primogem` 使用字符串 `end_id`，星铁 `dreams/stellar/power/relic/cone` 使用整数 `page`。`direction=produce/consume/all` 筛选变动方向。账号插件用 SToken 换取独立 `csc` AuthKey，仅在内存短期缓存；按账号、角色及用途隔离，AuthKey/原始链接不回传。原神先校验客服返回 UID 与所选角色一致。返回最多 20 条无凭据记录、下一游标/页码及覆盖边界；授权拒绝使用 `plugin.upstream_billing_unavailable`，不会判定普通游戏 CK 失效。
+原神/星铁 `billing` 只读代理固定客服资产记录：原神 `crystal/primogem` 使用字符串 `end_id`，星铁 `dreams/stellar/power/relic/cone` 使用整数 `page`，可选 `page_size` 为 10–50（默认 10）。`direction=produce/consume/all` 筛选变动方向。账号插件用 SToken 换取独立 `csc` AuthKey，仅在内存短期缓存；按账号、角色及用途隔离，AuthKey/原始链接不回传。原神先校验客服返回 UID 与所选角色一致。返回一页无凭据记录（原神 20 条，星铁按页长）、下一游标/页码及覆盖边界；授权拒绝使用 `plugin.upstream_billing_unavailable`，不会判定普通游戏 CK 失效。
 
 
 `genshin.blueprint_read/blueprint_compute` 为本人角色读取尘歌壶10–15位分享码和计算摆设材料。仅固定官方家具 blueprint/compute 端点，国服及原神海外明确区服；read 输入 share_code，compute 输入1–500项 {id,cnt}、ID正整数且数量1–9999。计算为只读业务，不执行游戏内放置或消耗。凭据、原始头和URL不返回调用方。

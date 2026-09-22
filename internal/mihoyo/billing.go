@@ -44,7 +44,7 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 		return nil, &Error{Code: "plugin.account_region_unsupported", Operation: name}
 	}
 	for key := range input {
-		if !slices.Contains([]string{"category", "direction", "end_id", "page"}, key) {
+		if !slices.Contains([]string{"category", "direction", "end_id", "page", "page_size"}, key) {
 			return nil, invalidInput(name)
 		}
 	}
@@ -72,6 +72,15 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 	if !recordDigits.MatchString(end) {
 		return nil, invalidInput(name)
 	}
+	// 星铁的开拓力记录很多，StarRail-plugin 的在线时长按每页 50 条读取。
+	pageSize := 10
+	if raw, ok := input["page_size"]; ok {
+		n, err := strconv.Atoi(stringNumber(raw))
+		if err != nil || n < 10 || n > 50 || role.Game != "starrail" {
+			return nil, invalidInput(name)
+		}
+		pageSize = n
+	}
 	key, err := c.businessAuthKey(ctx, tokens, role, "csc", "billing.authorize", false)
 	if err != nil {
 		var upstream *Error
@@ -86,8 +95,8 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 		q.Set("bbs_game_role_required", overseasBiz(role.Game))
 	}
 	host := webHost
-	pageSize := 20
 	if role.Game == "genshin" {
+		pageSize = 20
 		host = ledgerHost
 		if os {
 			host = "https://hk4e-api-os.hoyoverse.com"
@@ -107,11 +116,10 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 			q.Set("add_type", direction)
 		}
 	} else {
-		pageSize = 10
 		path = "/common/hkrpg_self_help_inquiry/" + path + "/GetList"
 		q.Set("page_id", "4")
 		q.Set("page", strconv.Itoa(page))
-		q.Set("page_size", "10")
+		q.Set("page_size", strconv.Itoa(pageSize))
 	}
 	data, err := c.request(ctx, name, host, path, "billing", q, nil, accounts.Tokens{})
 	if err != nil {
