@@ -58,7 +58,7 @@
     {
       "id": "login",
       "name": "扫码登录",
-      "description": "使用米游社扫码绑定三游戏账号",
+      "description": "米游社 App 扫码登录，绑定原神、星铁、绝区零账号",
       "usage": "#扫码登录",
       "permission": "everyone",
       "trigger": {
@@ -193,7 +193,7 @@
     {
       "id": "association-start",
       "name": "关联账号",
-      "description": "本人跨聊天关联账号",
+      "description": "在主聊天身份发起关联，获得五分钟有效的编号",
       "usage": "#关联账号",
       "permission": "everyone",
       "trigger": {
@@ -206,7 +206,7 @@
     {
       "id": "association-join",
       "name": "申请关联",
-      "description": "本人跨聊天申请关联",
+      "description": "在另一聊天身份用编号申请关联",
       "usage": "#申请关联 编号",
       "permission": "everyone",
       "trigger": {
@@ -219,7 +219,7 @@
     {
       "id": "association-status",
       "name": "关联进度",
-      "description": "本人跨聊天关联进度",
+      "description": "在发起的聊天查看申请方，核对是否本人",
       "usage": "#关联进度 编号",
       "permission": "everyone",
       "trigger": {
@@ -232,7 +232,7 @@
     {
       "id": "association-confirm",
       "name": "完成关联",
-      "description": "本人跨聊天完成关联",
+      "description": "确认申请方，让它共用本身份的账号",
       "usage": "#完成关联 编号 目标用户ID",
       "permission": "everyone",
       "trigger": {
@@ -245,7 +245,7 @@
     {
       "id": "association-cancel",
       "name": "取消关联",
-      "description": "本人跨聊天取消关联",
+      "description": "取消本次关联申请",
       "usage": "#取消关联 编号",
       "permission": "everyone",
       "trigger": {
@@ -258,7 +258,7 @@
     {
       "id": "associations",
       "name": "关联列表",
-      "description": "本人跨聊天关联列表",
+      "description": "查看已关联的聊天身份",
       "usage": "#关联列表",
       "permission": "everyone",
       "trigger": {
@@ -271,7 +271,7 @@
     {
       "id": "association-remove",
       "name": "解除关联",
-      "description": "本人跨聊天解除关联",
+      "description": "按序号解除关联",
       "usage": "#解除关联 序号",
       "permission": "everyone",
       "trigger": {
@@ -297,7 +297,7 @@
     {
       "id": "version",
       "name": "账号版本",
-      "description": "查看账号插件说明",
+      "description": "查看账号插件版本",
       "usage": "#账号版本",
       "permission": "everyone",
       "trigger": {
@@ -310,27 +310,45 @@
   ],
   "command_groups": [
     {
-      "id": "accounts",
-      "title": "统一账号",
+      "id": "login",
+      "title": "扫码登录与 CK",
       "commands": [
         "login",
         "login-status",
         "login-cancel",
         "accounts",
+        "check",
         "refresh",
         "remove",
+        "public-query"
+      ]
+    },
+    {
+      "id": "device",
+      "title": "设备绑定",
+      "commands": [
         "device-bind",
         "device-help",
-        "device-unbind",
-        "public-query",
-        "check",
+        "device-unbind"
+      ]
+    },
+    {
+      "id": "association",
+      "title": "跨聊天账号关联",
+      "commands": [
         "association-start",
         "association-join",
         "association-status",
         "association-confirm",
         "association-cancel",
         "associations",
-        "association-remove",
+        "association-remove"
+      ]
+    },
+    {
+      "id": "manage",
+      "title": "帮助",
+      "commands": [
         "help",
         "version"
       ]
