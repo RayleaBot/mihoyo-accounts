@@ -238,7 +238,8 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		record.Revision++
 		return nil
 	}
-	cachedFingerprint := record.Tokens.DeviceFP != "" && record.Tokens.DeviceFPExpiresAtMS > time.Now().UnixMilli()
+	// An imported fingerprint is the owner's own and is not renewed.
+	cachedFingerprint := record.Tokens.DeviceFP != "" && (record.Tokens.DeviceFPImported || record.Tokens.DeviceFPExpiresAtMS > time.Now().UnixMilli())
 	if !cachedFingerprint && !strings.Contains(name, ".cloud_") {
 		if err := refreshFingerprint(); err != nil {
 			return nil, err
@@ -248,7 +249,7 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	// Only reads may renew a rejected cached fingerprint and retry once.
 	// Explicit writes are never automatically replayed.
 	var upstream *mihoyo.Error
-	if !mihoyo.OperationMutates(name) && cachedFingerprint && errors.As(err, &upstream) && upstream.Code == "plugin.upstream_device_required" {
+	if !mihoyo.OperationMutates(name) && cachedFingerprint && !record.Tokens.DeviceFPImported && errors.As(err, &upstream) && upstream.Code == "plugin.upstream_device_required" {
 		if err := refreshFingerprint(); err != nil {
 			return nil, err
 		}

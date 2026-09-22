@@ -84,6 +84,9 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	}
 	switch command {
 	case "关联账号", "申请关联", "关联进度", "完成关联", "取消关联", "关联列表", "解除关联", "扫码登录", "登录状态", "取消登录", "我的CK", "刷新CK", "检查CK", "删除CK", "共享查询账号":
+	case "绑定设备帮助":
+		return event.SendText(deviceHelp)
+	case "绑定设备", "解绑设备":
 	default:
 		return event.Result(map[string]any{"handled": false})
 	}
@@ -139,6 +142,27 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	items := listed["items"].([]accounts.Summary)
 	if len(items) == 0 {
 		return event.SendText("还没有绑定米游社账号，请发送“扫码登录”。")
+	}
+	if command == "绑定设备" {
+		// ZZZ-Plugin takes the device information in chat; here it is only
+		// accepted encrypted in the management page.
+		return event.SendText("请在账号管理页该账号的“设备信息与重置”中加密导入设备信息，不要在聊天中发送。发送“绑定设备帮助”查看如何获取。")
+	}
+	if command == "解绑设备" {
+		count := 0
+		for _, item := range items {
+			if item.Owner != owner {
+				continue
+			}
+			if _, err := a.Manage(ctx, store, policy, "accounts.device.reset", map[string]any{"account_ref": item.Ref, "revision": item.Revision, "confirm": true}); err != nil {
+				return event.SendText(publicError(err).Message)
+			}
+			count++
+		}
+		if count == 0 {
+			return event.SendText("没有可解绑设备的本人账号。")
+		}
+		return event.SendText("解绑设备成功")
 	}
 	if command == "我的CK" {
 		var lines []string
@@ -258,6 +282,25 @@ func ckCommand(word string) string {
 	}
 	return strings.ToUpper(word)
 }
+
+// deviceHelp is ZZZ-Plugin's 绑定设备帮助, with the management page in place
+// of pasting the information into chat.
+const deviceHelp = `[绑定设备]
+用于尝试解决10041报错等问题（无法100%解决）。
+方法一：
+1. 使用抓包软件抓取米游社APP的请求
+2. 在请求头内找到【x-rpc-device_id】和【x-rpc-device_fp】
+3. 自行构造如下格式的信息：
+    {"device_id": "x-rpc-device_id的内容", "device_fp": "x-rpc-device_fp的内容"}
+4. 在账号管理页该账号的“设备信息与重置”中粘贴并加密导入
+--------------------------------
+方法二（仅适用于安卓设备）：
+1. 在常用米游社的手机上安装 forchannot/get_device_info 的设备信息工具
+2. 打开后点击按钮复制
+3. 在账号管理页该账号的“设备信息与重置”中粘贴并加密导入
+--------------------------------
+[解绑设备]
+私聊发送“解绑设备”即可`
 
 // loginTask sends chat logins their result once a minute while any is open.
 const loginTask = "mihoyo.accounts.login"

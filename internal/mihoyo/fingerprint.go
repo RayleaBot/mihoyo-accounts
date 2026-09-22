@@ -29,6 +29,16 @@ func (c *Client) Fingerprint(ctx context.Context, tokens accounts.Tokens) (accou
 		"ramCapacity": "224845", "ramRemain": "218344", "appMemory": "768",
 		"isRoot": 0, "isTablet": 0, "emulatorStatus": 0, "proxyStatus": 1,
 	})
+	if device := tokens.Device; device != nil {
+		// An imported device registers as itself, as ZZZ-Plugin's bound
+		// device does.
+		ext, _ = json.Marshal(map[string]any{
+			"deviceName": device.Name, "productName": device.Product, "model": device.Model, "brand": device.Brand(), "manufacturer": device.Brand(),
+			"deviceType": device.Name, "deviceInfo": device.Fingerprint, "display": device.Display(), "osVersion": device.AndroidVersion, "board": device.Board,
+			"packageName": "com.mihoyo.hyperion", "packageVersion": "2.73.1", "aaid": device.OAID, "vaid": device.OAID, "oaid": device.OAID,
+			"networkType": "WiFi", "isRoot": 0, "isTablet": 0, "emulatorStatus": 0, "proxyStatus": 0,
+		})
+	}
 	body := map[string]any{
 		"app_name": "bbs_cn", "platform": "2", "device_id": tokens.DeviceID,
 		"bbs_device_id": tokens.DeviceID, "seed_id": strings.ToLower(RandomDeviceID()[:16]),

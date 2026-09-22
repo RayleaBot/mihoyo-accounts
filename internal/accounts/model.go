@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 )
 
 type Subject struct {
@@ -45,6 +46,33 @@ type Tokens struct {
 	DeviceID            string `json:"device_id"`
 	DeviceFP            string `json:"device_fp,omitempty"`
 	DeviceFPExpiresAtMS int64  `json:"device_fp_expires_at_ms,omitempty"`
+	// Device is an Android device the owner imported for device checks, as
+	// ZZZ-Plugin's 绑定设备 takes it. DeviceFPImported marks a fingerprint
+	// the owner imported with its device ID, kept rather than renewed.
+	Device           *Device `json:"device,omitempty"`
+	DeviceFPImported bool    `json:"device_fp_imported,omitempty"`
+}
+
+// Device is the device information ZZZ-Plugin's 绑定设备 reads, with its
+// upstream field names.
+type Device struct {
+	Name           string `json:"deviceName"`
+	Board          string `json:"deviceBoard"`
+	Model          string `json:"deviceModel"`
+	OAID           string `json:"oaid"`
+	AndroidVersion string `json:"androidVersion"`
+	Fingerprint    string `json:"deviceFingerprint"`
+	Product        string `json:"deviceProduct"`
+}
+
+// Brand and Display are parts of the build fingerprint, as brand/product/
+// device:version/display/...
+func (d Device) Brand() string { return strings.Split(d.Fingerprint, "/")[0] }
+func (d Device) Display() string {
+	if parts := strings.Split(d.Fingerprint, "/"); len(parts) > 3 {
+		return parts[3]
+	}
+	return ""
 }
 
 type Role struct {

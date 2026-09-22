@@ -157,6 +157,8 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 `accounts.device.status/reset` 面向管理，状态只显示设备标识的掩码、指纹是否存在及到期时间；reset 要求账号版本号和 confirm，可自动生成新标识或使用有效的设备标识，清除旧指纹。下次需要指纹的业务从官方重新获取。现有 CK 不回显，不自动重试游戏写操作。
 
+`accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。reset 清除导入的设备。聊天“绑定设备”只指向管理页，不在聊天中接收设备信息；“绑定设备帮助”给出获取方法；“解绑设备”把本人账号恢复为自动生成的设备。出现 10041 时提示发送“绑定设备帮助”。
+
 
 ### 海外 HoYoLab 账号
 

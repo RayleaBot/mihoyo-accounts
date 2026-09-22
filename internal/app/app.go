@@ -295,7 +295,7 @@ func message(code string) string {
 	case "plugin.upstream_challenge_required":
 		return "米游社要求完成验证，请在官方应用处理后重试。"
 	case "plugin.upstream_device_required":
-		return "米游社需要设备验证，请在官方应用处理后重试。"
+		return "米游社账号异常，暂时无法查询，请发送“绑定设备帮助”查看如何绑定设备。"
 	case "plugin.upstream_rate_limited":
 		return "米游社请求过于频繁，请稍后重试。"
 	case "plugin.upstream_unavailable":

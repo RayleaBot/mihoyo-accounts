@@ -106,6 +106,11 @@ func (c *Client) requestWithSession(ctx context.Context, operation, host, path, 
 	req.Header.Set("x-rpc-device_id", tokens.DeviceID)
 	req.Header.Set("x-rpc-device_name", "RayleaBot")
 	req.Header.Set("x-rpc-device_model", "RayleaBot")
+	if device := tokens.Device; device != nil {
+		// An imported device is named as ZZZ-Plugin names a bound one.
+		req.Header.Set("x-rpc-device_name", device.Brand()+" "+device.Model)
+		req.Header.Set("x-rpc-device_model", device.Model)
+	}
 	req.Header.Set("x-rpc-client_type", "5")
 	req.Header.Set("x-rpc-sys_version", "11")
 	if tokens.DeviceFP != "" {
@@ -195,6 +200,10 @@ func (c *Client) requestWithSession(ctx context.Context, operation, host, path, 
 			req.Header.Set("x-rpc-sys_version", "12")
 			req.Header.Set("x-rpc-channel", "mihoyo")
 			req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android 13; XQ-BC52 Build/61.2.A.0.472A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/111.0.5563.116 Mobile Safari/537.36 miHoYoBBS/2.73.1")
+			if device := tokens.Device; device != nil {
+				req.Header.Set("x-rpc-csm_source", "myself")
+				req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android "+device.AndroidVersion+"; "+device.Model+" Build/"+device.Display()+"; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/111.0.5563.116 Mobile Safari/537.36 miHoYoBBS/2.73.1")
+			}
 			req.Header.Set("Origin", "https://act.mihoyo.com")
 			req.Header.Set("Referer", "https://act.mihoyo.com/")
 		}

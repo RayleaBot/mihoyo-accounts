@@ -128,6 +128,45 @@
       }
     },
     {
+      "id": "device-bind",
+      "name": "绑定设备",
+      "description": "出现 10041 时绑定设备（在管理页加密导入）",
+      "usage": "#绑定设备",
+      "permission": "everyone",
+      "trigger": {
+        "type": "exact",
+        "names": [
+          "绑定设备"
+        ]
+      }
+    },
+    {
+      "id": "device-help",
+      "name": "绑定设备帮助",
+      "description": "如何获取与导入设备信息",
+      "usage": "#绑定设备帮助",
+      "permission": "everyone",
+      "trigger": {
+        "type": "exact",
+        "names": [
+          "绑定设备帮助"
+        ]
+      }
+    },
+    {
+      "id": "device-unbind",
+      "name": "解绑设备",
+      "description": "恢复本人账号的默认设备",
+      "usage": "#解绑设备",
+      "permission": "everyone",
+      "trigger": {
+        "type": "exact",
+        "names": [
+          "解绑设备"
+        ]
+      }
+    },
+    {
       "id": "public-query",
       "name": "共享查询账号",
       "description": "本人私聊主动开启或关闭公共资料查询用途",
@@ -280,6 +319,9 @@
         "accounts",
         "refresh",
         "remove",
+        "device-bind",
+        "device-help",
+        "device-unbind",
         "public-query",
         "check",
         "association-start",
