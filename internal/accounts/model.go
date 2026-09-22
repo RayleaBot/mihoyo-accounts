@@ -51,6 +51,15 @@ type Tokens struct {
 	// the owner imported with its device ID, kept rather than renewed.
 	Device           *Device `json:"device,omitempty"`
 	DeviceFPImported bool    `json:"device_fp_imported,omitempty"`
+	// GachaLinks are the authkeys of in-game gacha links the owner imported,
+	// by game UID, as StarRail-plugin binds one.
+	GachaLinks map[string]GachaLink `json:"gacha_links,omitempty"`
+}
+
+// GachaLink is an in-game gacha link's authkey, valid for a day.
+type GachaLink struct {
+	AuthKey     string `json:"authkey"`
+	ExpiresAtMS int64  `json:"expires_at_ms"`
 }
 
 // Device is the device information ZZZ-Plugin's 绑定设备 reads, with its

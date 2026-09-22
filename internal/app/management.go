@@ -44,6 +44,9 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	if strings.HasPrefix(action, "accounts.associations.") {
 		return a.manageAssociations(ctx, store, action, input)
 	}
+	if action == "accounts.gacha_link.save" {
+		return a.saveGachaLink(ctx, store, input)
+	}
 	if strings.HasPrefix(action, "accounts.device.") {
 		return a.manageDevice(ctx, store, action, input)
 	}

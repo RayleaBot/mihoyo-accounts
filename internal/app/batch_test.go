@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -52,7 +53,7 @@ func TestAccountCheckDistinguishesAuthenticationFromOtherFailures(t *testing.T) 
 			}
 			cipher, _ := a.Vault.Cipher()
 			saved, e := a.Repo.Get(t.Context(), store, cipher, record.Ref)
-			if e != nil || saved.Tokens != record.Tokens || len(saved.Roles) != 3 || saved.LastCheck == nil || !saved.LastCheck.Valid() || api.refreshCalls.Load() != 0 {
+			if e != nil || !reflect.DeepEqual(saved.Tokens, record.Tokens) || len(saved.Roles) != 3 || saved.LastCheck == nil || !saved.LastCheck.Valid() || api.refreshCalls.Load() != 0 {
 				t.Fatal("check changed credentials or roles", e)
 			}
 			if (saved.Status == "invalid") != (code == "plugin.upstream_auth_invalid") {
@@ -271,7 +272,7 @@ func TestBatchMissingRefreshMaterialPreservesUsableCookie(t *testing.T) {
 		t.Fatal(v)
 	}
 	saved, err := a.Repo.Get(t.Context(), s, cipher, r.Ref)
-	if err != nil || saved.Status != "valid" || saved.Revision != r.Revision || saved.Tokens != r.Tokens {
+	if err != nil || saved.Status != "valid" || saved.Revision != r.Revision || !reflect.DeepEqual(saved.Tokens, r.Tokens) {
 		t.Fatal("refresh material missing invalidated account", err)
 	}
 	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.start", map[string]any{"mode": "statistics", "password": "synthetic-plaintext"})
