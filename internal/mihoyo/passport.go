@@ -69,12 +69,23 @@ func (c *Client) PollQR(ctx context.Context, qr QR) (Confirmation, error) {
 			id = text(info["uid"])
 		}
 		tokens := accounts.Tokens{AccountID: id, MID: text(info["mid"]), DeviceID: qr.DeviceID}
+		// The app QR endpoint names each token by token_type (1 SToken, 2
+		// LToken, 4 CookieToken), as the passport's token exchanges do; named
+		// tokens are read as well. The SToken is still exchanged at the fixed
+		// official endpoints before encrypted Bind can succeed.
 		list, _ := data["tokens"].([]any)
 		for _, raw := range list {
 			item := object(raw)
-			name := strings.ToLower(text(item["name"]))
 			value, _ := item["token"].(string)
-			switch name {
+			switch {
+			case integer(item["token_type"]) == 1:
+				tokens.SToken = value
+			case integer(item["token_type"]) == 2:
+				tokens.LToken = value
+			case integer(item["token_type"]) == 4:
+				tokens.CookieToken = value
+			}
+			switch strings.ToLower(text(item["name"])) {
 			case "stoken_v2":
 				tokens.SToken = value
 			case "stoken":
@@ -87,17 +98,6 @@ func (c *Client) PollQR(ctx context.Context, qr QR) (Confirmation, error) {
 				if tokens.LToken == "" {
 					tokens.LToken = value
 				}
-			}
-		}
-		// The app QR endpoint also returns a single unnamed root token. Treat
-		// it as a candidate only: the login worker must exchange it at the
-		// fixed official SToken endpoints before encrypted Bind can succeed.
-		// Explicitly unknown names and ambiguous arrays never use this path.
-		if tokens.SToken == "" && len(list) == 1 {
-			item := object(list[0])
-			name, present := item["name"]
-			if !present || name == nil || name == "" {
-				tokens.SToken, _ = item["token"].(string)
 			}
 		}
 		if tokens.SToken == "" {

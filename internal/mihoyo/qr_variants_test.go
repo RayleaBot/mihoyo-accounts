@@ -7,11 +7,11 @@ import (
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 )
 
-func TestSingleUnnamedQRTokenMustPassOfficialExchange(t *testing.T) {
+func TestQRTokenTypeMustPassOfficialExchange(t *testing.T) {
 	client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
 		switch req.URL.Path {
 		case "/account/ma-cn-passport/app/queryQRLoginStatus":
-			return reply(map[string]any{"retcode": 0, "data": map[string]any{"status": "Confirmed", "user_info": map[string]any{"aid": "123456789", "mid": "synthetic-mid"}, "tokens": []any{map[string]any{"token": "synthetic-unnamed-stoken"}}}}), nil
+			return reply(map[string]any{"retcode": 0, "data": map[string]any{"status": "Confirmed", "user_info": map[string]any{"aid": "123456789", "mid": "synthetic-mid"}, "tokens": []any{map[string]any{"token_type": 1, "token": "synthetic-typed-stoken"}}}}), nil
 		case "/account/auth/api/getLTokenBySToken":
 			return reply(map[string]any{"retcode": 0, "data": map[string]any{"ltoken": "synthetic-ltoken"}}), nil
 		case "/account/auth/api/getCookieAccountInfoBySToken":
@@ -25,8 +25,8 @@ func TestSingleUnnamedQRTokenMustPassOfficialExchange(t *testing.T) {
 		}
 	}), nil)
 	confirmation, err := client.PollQR(t.Context(), QR{Ticket: "synthetic-ticket", DeviceID: "synthetic-device"})
-	if err != nil || confirmation.Tokens.SToken != "synthetic-unnamed-stoken" {
-		t.Fatal("unnamed app token was rejected")
+	if err != nil || confirmation.Tokens.SToken != "synthetic-typed-stoken" {
+		t.Fatal("the app token of type 1 was not read as the SToken")
 	}
 	verified, err := client.Refresh(t.Context(), confirmation.Tokens)
 	if err != nil || verified.CookieToken != "synthetic-cookie" || verified.LToken != "synthetic-ltoken" {
@@ -34,7 +34,7 @@ func TestSingleUnnamedQRTokenMustPassOfficialExchange(t *testing.T) {
 	}
 }
 
-func TestAmbiguousUnnamedQRTokensAreRejected(t *testing.T) {
+func TestUntypedUnnamedQRTokensAreRejected(t *testing.T) {
 	client := New(doerFunc(func(*http.Request) (*http.Response, error) {
 		return reply(map[string]any{"retcode": 0, "data": map[string]any{"status": "Confirmed", "user_info": map[string]any{"aid": "123456789"}, "tokens": []any{map[string]any{"token": "synthetic-one"}, map[string]any{"token": "synthetic-two"}}}}), nil
 	}), nil)
