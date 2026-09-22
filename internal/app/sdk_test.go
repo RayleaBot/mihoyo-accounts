@@ -138,3 +138,11 @@ func TestSDKTranscriptSharesLoginWithoutPlaintextCredentials(t *testing.T) {
 		}
 	}
 }
+
+func TestCKCommandWordsFollowUpstream(t *testing.T) {
+	for word, want := range map[string]string{"我的ck": "我的CK", "原神我的Cookie": "我的CK", "删除cookie": "删除CK", "刷新Ck": "刷新CK", "检查ck": "检查CK", "ck": "检查CK", "我的ck状态": "检查CK", "扫码登录": "扫码登录"} {
+		if got := ckCommand(word); got != want {
+			t.Errorf("%s = %s, want %s", word, got, want)
+		}
+	}
+}

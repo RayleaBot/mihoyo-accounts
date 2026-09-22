@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -77,7 +78,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if event.Event.EventType != "message.private" && event.Event.EventType != "message.group" {
 		return event.Result(map[string]any{"handled": false})
 	}
-	command := strings.ToUpper(event.Event.Command())
+	command := ckCommand(event.Event.Command())
 	if command == "账号帮助" || command == "账号版本" {
 		return a.helpCommand(event, command)
 	}
@@ -232,6 +233,30 @@ func loginText(view LoginView) string {
 	default:
 		return "等待米游社扫码确认。"
 	}
+}
+
+var (
+	ckMine    = regexp.MustCompile(`(?i)^(?:原神|星铁|绝区零)?我的c(?:oo)?k(?:ie)?$`)
+	ckRemove  = regexp.MustCompile(`(?i)^(?:原神|星铁|绝区零)?删除c(?:oo)?k(?:ie)?$`)
+	ckRefresh = regexp.MustCompile(`(?i)^刷新c(?:oo)?k(?:ie)?$`)
+	ckCheck   = regexp.MustCompile(`(?i)^(?:检查|我的)*c(?:oo)?k(?:ie)?(?:状态)*$`)
+)
+
+// ckCommand names a CK command word the way the upstream user commands read
+// it: any case, cookie for CK, a game name before 我的 and 删除, and 检查,
+// 我的 or 状态 around CK for the check.
+func ckCommand(word string) string {
+	switch {
+	case ckMine.MatchString(word):
+		return "我的CK"
+	case ckRemove.MatchString(word):
+		return "删除CK"
+	case ckRefresh.MatchString(word):
+		return "刷新CK"
+	case ckCheck.MatchString(word):
+		return "检查CK"
+	}
+	return strings.ToUpper(word)
 }
 
 // loginTask sends chat logins their result once a minute while any is open.

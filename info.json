@@ -101,13 +101,8 @@
       "usage": "#我的CK",
       "permission": "everyone",
       "trigger": {
-        "type": "exact",
-        "names": [
-          "我的CK",
-          "我的ck",
-          "我的Ck",
-          "我的cK"
-        ]
+        "type": "pattern",
+        "pattern": "^(?i:(?:原神|星铁|绝区零)?我的c(?:oo)?k(?:ie)?)$"
       }
     },
     {
@@ -117,13 +112,8 @@
       "usage": "#刷新CK [序号]",
       "permission": "everyone",
       "trigger": {
-        "type": "exact",
-        "names": [
-          "刷新CK",
-          "刷新ck",
-          "刷新Ck",
-          "刷新cK"
-        ]
+        "type": "pattern",
+        "pattern": "^(?i:刷新c(?:oo)?k(?:ie)?)$"
       }
     },
     {
@@ -133,13 +123,8 @@
       "usage": "#删除CK [序号]",
       "permission": "everyone",
       "trigger": {
-        "type": "exact",
-        "names": [
-          "删除CK",
-          "删除ck",
-          "删除Ck",
-          "删除cK"
-        ]
+        "type": "pattern",
+        "pattern": "^(?i:(?:原神|星铁|绝区零)?删除c(?:oo)?k(?:ie)?)$"
       }
     },
     {
@@ -162,10 +147,8 @@
       "usage": "#检查CK [序号]",
       "permission": "everyone",
       "trigger": {
-        "type": "exact",
-        "names": [
-          "检查CK"
-        ]
+        "type": "pattern",
+        "pattern": "^(?i:(?:检查|我的)*c(?:oo)?k(?:ie)?(?:状态)*)$"
       }
     },
     {
