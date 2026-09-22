@@ -111,7 +111,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		job.mu.Lock()
 		job.chat = true
 		job.mu.Unlock()
-		if _, err := event.Actions().SchedulerCreate(ctx, rayleabot.SchedulerCreateRequest{TaskID: "mihoyo.accounts.login", Cron: "* * * * *", LogLabel: "米游社扫码结果", Payload: map[string]any{"kind": "login_notifications"}}); err != nil {
+		if _, err := event.Actions().SchedulerCreate(ctx, rayleabot.SchedulerCreateRequest{TaskID: loginTask, Cron: "* * * * *", LogLabel: "米游社扫码结果", Payload: map[string]any{"kind": "login_notifications"}}); err != nil {
 			_, _ = a.cancelLogin(view.Ref)
 			return event.SendText("扫码任务未能创建，请稍后重试。")
 		}
@@ -234,6 +234,9 @@ func loginText(view LoginView) string {
 	}
 }
 
+// loginTask sends chat logins their result once a minute while any is open.
+const loginTask = "mihoyo.accounts.login"
+
 func (a *App) notifyLogins(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy) error {
 	a.jobsMu.Lock()
 	jobs := make([]*login, 0, len(a.jobs))
@@ -274,6 +277,19 @@ func (a *App) notifyLogins(ctx context.Context, event *rayleabot.EventContext, s
 			s.mu.Unlock()
 			return event.Fail("plugin.account_notification_failed", "扫码结果通知未发送，将在下次任务中重试。")
 		}
+	}
+	// With every chat login answered, the per-minute task is no longer needed;
+	// the next 扫码登录 creates it again.
+	a.jobsMu.Lock()
+	pending := false
+	for _, s := range a.jobs {
+		s.mu.Lock()
+		pending = pending || s.chat && !s.notified
+		s.mu.Unlock()
+	}
+	a.jobsMu.Unlock()
+	if !pending {
+		_, _ = event.Actions().SchedulerDelete(ctx, loginTask)
 	}
 	return event.Result(map[string]any{"handled": true})
 }
