@@ -257,3 +257,44 @@ func TestAccountCommunityDelegationKeepsTaskScopeAndWriteConfirmation(t *testing
 	_, err = a.Service(t.Context(), store, policy(), req)
 	assertCode(t, err, "plugin.account_delegation_throttled")
 }
+
+func TestOneTaskHoldsADelegationPerOperation(t *testing.T) {
+	a, store, record := setup(t, &fakeAPI{})
+	grants := map[string]accounts.Delegation{}
+	for _, operation := range []string{"zzz.challenge", "zzz.deadly", "zzz.challenge"} {
+		create := request("zzz", record.Ref)
+		create.Method = "delegation.create"
+		create.Params["operation"] = operation
+		create.Params["task_id"] = "game.challenge.pair"
+		create.Params["days"] = 30
+		result, err := a.Service(t.Context(), store, policy(), create)
+		if err != nil {
+			t.Fatal(err)
+		}
+		grant := result["delegation"].(accounts.Delegation)
+		// Creating again for the same operation keeps its delegation.
+		if previous, ok := grants[operation]; ok && previous.Ref != grant.Ref {
+			t.Fatal("the same operation got a second delegation")
+		}
+		grants[operation] = grant
+	}
+	cipher, _ := a.Vault.Cipher()
+	saved, _ := a.Repo.Get(t.Context(), store, cipher, record.Ref)
+	if len(saved.Delegations) != 2 {
+		t.Fatalf("delegations = %+v", saved.Delegations)
+	}
+	for operation, grant := range grants {
+		req := request("zzz", record.Ref)
+		req.Params["operation"] = operation
+		req.Params["delegation_ref"] = grant.Ref
+		req.Origin = rayleabot.ServiceOrigin{EventID: "tick", EventType: "scheduler.trigger", SourceProtocol: "scheduler", SourceAdapter: "scheduler.internal", TaskID: "game.challenge.pair"}
+		if _, err := a.Service(t.Context(), store, policy(), req); err != nil {
+			t.Fatalf("%s: %v", operation, err)
+		}
+		// A delegation admits only its own operation.
+		req.Params["operation"] = map[string]string{"zzz.challenge": "zzz.deadly", "zzz.deadly": "zzz.challenge"}[operation]
+		req.Origin.EventID = "tick-2"
+		_, err := a.Service(t.Context(), store, policy(), req)
+		assertCode(t, err, "plugin.account_delegation_denied")
+	}
+}

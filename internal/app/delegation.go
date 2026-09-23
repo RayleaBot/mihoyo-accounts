@@ -67,7 +67,11 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 		return nil, failure("plugin.account_operation_denied")
 	}
 	next := accounts.Delegation{Owner: owner, Ref: rand.Text(), Caller: req.CallerPluginID, TaskID: input.TaskID, RoleRef: input.RoleRef, Operation: input.Operation, ExpiresAtMS: now + int64(time.Duration(input.Days)*24*time.Hour/time.Millisecond)}
-	index := slices.IndexFunc(active, func(d accounts.Delegation) bool { return d.Caller == next.Caller && d.TaskID == next.TaskID })
+	// A task keeps one delegation per operation, as a pair of challenge
+	// reminders checked together.
+	index := slices.IndexFunc(active, func(d accounts.Delegation) bool {
+		return d.Caller == next.Caller && d.TaskID == next.TaskID && d.Operation == next.Operation
+	})
 	if index >= 0 {
 		previousOwner := active[index].Owner
 		if previousOwner.Validate() != nil {
