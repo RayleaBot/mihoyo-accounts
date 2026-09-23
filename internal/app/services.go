@@ -67,6 +67,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "uids.bind" || request.Method == "uids.remove" || request.Method == "uids.use" {
 		return a.changeUIDBinding(ctx, store, cipher, owner, request, games)
 	}
+	if request.Method == "uids.current" {
+		return a.currentUID(ctx, store, cipher, request, games)
+	}
 	if request.Method == "list" {
 		var items []accounts.Summary
 		var next *int
@@ -301,6 +304,56 @@ var uidPattern = regexp.MustCompile(`^(?:(?:1[0-9]|[1-9])[0-9]{8}|[1-9][0-9]{7})
 
 // changeUIDBinding binds, removes or picks a UID of the caller's own for a
 // game the calling plugin may use, without any account credential.
+// currentUID answers a mention, as upstream reads the mentioned user's UID:
+// the UID another user of the same chat uses for a game, their bound current
+// UID first, then their default account role still visible to the caller, or
+// their only role. Only the UID, a public game identifier, is returned.
+func (a *App) currentUID(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
+	game, userID := stringValue(request.Params["game"]), strings.TrimSpace(stringValue(request.Params["user_id"]))
+	target := originSubject(request.Origin)
+	target.ActorID = userID
+	if !strings.HasPrefix(request.Origin.EventType, "message.") || target.Validate() != nil {
+		return nil, failure("plugin.account_subject_denied")
+	}
+	if !slices.Contains(games, game) {
+		return nil, failure("plugin.account_input_invalid")
+	}
+	bindings, err := a.Repo.UIDBindings(ctx, store, cipher, target)
+	if err != nil {
+		return nil, err
+	}
+	if uid := bindings[game].Current; uid != "" {
+		return map[string]any{"uid": uid}, nil
+	}
+	items, err := a.Repo.List(ctx, store, cipher, target)
+	if err != nil {
+		return nil, err
+	}
+	defaults, err := a.Repo.Defaults(ctx, store, cipher, target)
+	if err != nil {
+		return nil, err
+	}
+	roles := []accounts.Role{}
+	for _, item := range items {
+		if !slices.Contains(item.AllowedCallers, request.CallerPluginID) {
+			continue
+		}
+		for _, role := range item.Roles {
+			if role.Game != game {
+				continue
+			}
+			if selected, ok := defaults[game]; ok && selected.AccountRef == item.Ref && selected.RoleRef == role.Ref {
+				return map[string]any{"uid": role.UID}, nil
+			}
+			roles = append(roles, role)
+		}
+	}
+	if len(roles) == 1 {
+		return map[string]any{"uid": roles[0].UID}, nil
+	}
+	return map[string]any{"uid": ""}, nil
+}
+
 func (a *App) changeUIDBinding(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, owner accounts.Subject, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
 	game, uid := stringValue(request.Params["game"]), stringValue(request.Params["uid"])
 	if owner.Validate() != nil {

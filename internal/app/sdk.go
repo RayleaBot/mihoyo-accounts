@@ -57,7 +57,7 @@ func (a *App) Services() []rayleabot.Service {
 }
 
 // serviceMethods are the accounts v1 methods; info.json declares the same.
-var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "uids.bind", "uids.remove", "uids.use", "gacha.link"}
+var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "uids.bind", "uids.remove", "uids.use", "uids.current", "gacha.link"}
 
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	// Ordinary event deadlines are owned by the host; keep local HTTP work

@@ -32,6 +32,7 @@
         "uids.bind",
         "uids.remove",
         "uids.use",
+        "uids.current",
         "gacha.link"
       ]
     }
