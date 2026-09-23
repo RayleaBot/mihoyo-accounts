@@ -26,6 +26,7 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 | `execute` | `account_ref`、`role_ref`、`operation`、对象 `input` | 指定操作的无凭据业务结果；宿主超级管理员（OneBot11）的聊天来源可对任一允许调用插件的账号执行只读的 `<game>.monthly`，对应上游主人的“原石任务”“星琼任务” |
 | `delegation.create` | `account_ref`、`role_ref`、`task_id`、`operation`、`days`（1–90） | 显式创建只读定时委托，返回 `delegation` |
 | `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
+| `ark.status` | 空对象 | ark 令牌是否已配置：`configured` |
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
 | `gacha.link` | `account_ref`、`role_ref` | 绝区零国服角色的抽卡记录链接 `url`，只接受私聊消息来源 |
 | `device.bind` | 空对象 | 为调用主体开始“绑定设备”：两分钟内等待本人私聊发送设备信息，返回将绑定的 `uid`（按账号查到时可为空）与掩码 `account_label`；只接受私聊消息来源 |
@@ -104,6 +105,8 @@ statistics 从加密账号目录分页汇总保存账号数、完整聊天主体
 ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，授权查询需要机器人所有者的 ark 令牌。令牌与账号记录一样由本插件加密保存，不写入宿主明文的 secret 存储，也不交给游戏插件。
 
 `ark.request` 只接受允许使用原神或星铁的调用插件。`route` 必须是固定清单中的路径：`auth/usage`、`panel/data`、`panel/download`、`panel/upload`、`panel/refresh`、`rank/data`、`rank/specific`、`rank/custom`、`rank/custom/specific`、`rank/self`、`rank/group`、`rank/stygian`、`pos`、`verify`、`verify/code`、`verify/user`、`ocr/profilechange/gs`、`ocr/profilechange/sr`；`body` 编码后不超过 256 KiB。本插件以 `Authorization: Bearer` 向 `https://ark.ivny.cn/<route>` 发送 POST，不跟随重定向；响应不超过 2 MiB（面板数据与下载为 8 MiB）。返回前删除所有包含令牌的字符串值与字段名。
+
+`ark.status` 同样只接受允许使用原神或星铁的调用插件，只返回令牌是否已配置，不访问 ark；游戏插件据此决定是否提供需要令牌的功能（如 ark-plugin 的自定义排行高级筛选与帮助），未配置时它们的匿名请求直接发往 ark。
 
 未配置令牌返回 `plugin.account_ark_unconfigured`；ark 拒绝授权返回 `plugin.account_ark_rejected`，额度用尽或过于频繁返回 `plugin.account_ark_rate_limited`，其他失败返回 `plugin.account_ark_unavailable`。
 

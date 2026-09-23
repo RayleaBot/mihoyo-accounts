@@ -29,6 +29,7 @@
         "delegation.revoke",
         "public.execute",
         "ark.request",
+        "ark.status",
         "uids.bind",
         "uids.remove",
         "uids.use",

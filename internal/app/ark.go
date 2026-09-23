@@ -46,6 +46,28 @@ func (a *App) arkToken(ctx context.Context, store accounts.SecretStore, cipher *
 	return token, nil
 }
 
+// arkConfigured is whether an ark token is saved.
+func (a *App) arkConfigured(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher) (bool, error) {
+	_, err := a.arkToken(ctx, store, cipher)
+	if err != nil && !isFailure(err, "plugin.account_ark_unconfigured") {
+		return false, err
+	}
+	return err == nil, nil
+}
+
+// arkStatus tells a game plugin whether its ark requests carry the token, as
+// ark-plugin's commands check the token before offering what needs it.
+func (a *App) arkStatus(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, games []string) (map[string]any, error) {
+	if !slices.Contains(games, "genshin") && !slices.Contains(games, "starrail") {
+		return nil, failure("plugin.account_caller_denied")
+	}
+	configured, err := a.arkConfigured(ctx, store, cipher)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"configured": configured}, nil
+}
+
 func (a *App) arkRequest(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
 	if !slices.Contains(games, "genshin") && !slices.Contains(games, "starrail") {
 		return nil, failure("plugin.account_caller_denied")
@@ -139,11 +161,11 @@ func (a *App) manageArk(ctx context.Context, store accounts.SecretStore, cipher 
 	value := ""
 	switch action {
 	case "ark.status":
-		_, err := a.arkToken(ctx, store, cipher)
-		if err != nil && !isFailure(err, "plugin.account_ark_unconfigured") {
+		configured, err := a.arkConfigured(ctx, store, cipher)
+		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"configured": err == nil}, nil
+		return map[string]any{"configured": configured}, nil
 	case "ark.save":
 		var q struct {
 			Box vault.InputBox `json:"box"`

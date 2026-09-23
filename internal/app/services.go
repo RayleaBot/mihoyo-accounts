@@ -70,6 +70,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "ark.request" {
 		return a.arkRequest(ctx, store, cipher, request, games)
 	}
+	if request.Method == "ark.status" {
+		return a.arkStatus(ctx, store, cipher, games)
+	}
 	if request.Method == "uids.bind" || request.Method == "uids.remove" || request.Method == "uids.use" {
 		return a.changeUIDBinding(ctx, store, cipher, owner, request, games)
 	}

@@ -32,8 +32,16 @@ func TestArkTokenStaysEncryptedAndOnlyThisPluginSendsIt(t *testing.T) {
 		req.Params = map[string]any{"route": route, "body": map[string]any{"version": "0.1.0"}}
 		return a.Service(t.Context(), store, policy(), req)
 	}
+	arkStatus := func(caller string) (map[string]any, error) {
+		req := request("genshin", "")
+		req.CallerPluginID, req.Method, req.Params = caller, "ark.status", map[string]any{}
+		return a.Service(t.Context(), store, policy(), req)
+	}
 	_, err := arkRequest("raylea.genshin", "auth/usage")
 	assertCode(t, err, "plugin.account_ark_unconfigured")
+	if status, err := arkStatus("raylea.genshin"); err != nil || status["configured"] != false {
+		t.Fatal(status, err)
+	}
 
 	if _, err = a.Manage(t.Context(), store, policy(), "ark.save", map[string]any{"token": token}); err == nil {
 		t.Fatal("plaintext token accepted")
@@ -47,6 +55,11 @@ func TestArkTokenStaysEncryptedAndOnlyThisPluginSendsIt(t *testing.T) {
 			t.Fatal("ark token stored in plaintext")
 		}
 	}
+	if status, err := arkStatus("raylea.starrail"); err != nil || status["configured"] != true {
+		t.Fatal(status, err)
+	}
+	_, err = arkStatus("raylea.zzz")
+	assertCode(t, err, "plugin.account_caller_denied")
 	result, err := arkRequest("raylea.starrail", "auth/usage")
 	if err != nil {
 		t.Fatal(err)
