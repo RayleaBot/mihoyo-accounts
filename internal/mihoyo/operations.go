@@ -174,8 +174,17 @@ func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accou
 				}
 				query.Set(key, strconv.Itoa(month))
 			}
-		case "need_detail", "need_all", "need_wiki":
+		case "need_detail", "need_wiki":
 			query.Set(key, "true")
+		case "need_all":
+			// StarRail-plugin's 简易 records are asked without it.
+			switch input[key] {
+			case nil, true:
+				query.Set(key, "true")
+			case false:
+			default:
+				return nil, invalidInput(name)
+			}
 		case "character_ids", "id_list":
 			if name == "starrail.character" && input[key] == nil {
 				continue

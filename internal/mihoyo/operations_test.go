@@ -46,3 +46,27 @@ func TestOperationsPinRoleAndRejectCredentialResponses(t *testing.T) {
 		t.Fatal("nested auth material crossed service boundary or the page was dropped")
 	}
 }
+
+func TestStarRailChallengeRecordsAskDetailUnlessSimple(t *testing.T) {
+	role := accounts.Role{Game: "starrail", UID: "100000001", Region: "prod_gf_cn"}
+	for _, name := range []string{"starrail.challenge", "starrail.story", "starrail.boss", "starrail.peak"} {
+		asked := []string{}
+		client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
+			asked = append(asked, req.URL.Query().Get("need_all"))
+			return reply(map[string]any{"retcode": 0, "data": map[string]any{"star_num": 12}}), nil
+		}), nil)
+		// The detailed record is the default; StarRail-plugin's 简易 record
+		// leaves need_all out.
+		for _, input := range []map[string]any{nil, {"need_all": true}, {"need_all": false, "schedule_type": 2}} {
+			if _, err := client.Execute(t.Context(), accounts.Tokens{}, role, name, input); err != nil {
+				t.Fatalf("%s %v: %v", name, input, err)
+			}
+		}
+		if _, err := client.Execute(t.Context(), accounts.Tokens{}, role, name, map[string]any{"need_all": "false"}); err == nil {
+			t.Fatalf("%s accepted a need_all that is not a boolean", name)
+		}
+		if strings.Join(asked, ",") != "true,true," {
+			t.Errorf("%s need_all = %q", name, asked)
+		}
+	}
+}
