@@ -88,10 +88,7 @@ func (a *App) manageDevice(ctx context.Context, store accounts.SecretStore, acti
 				return nil, failure("plugin.account_input_invalid")
 			}
 		}
-		record.Tokens.DeviceID = id
-		record.Tokens.DeviceFP = ""
-		record.Tokens.DeviceFPExpiresAtMS = 0
-		record.Tokens.Device, record.Tokens.DeviceFPImported = nil, false
+		resetTokens(&record.Tokens, id)
 		if err = a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
 			return nil, err
 		}

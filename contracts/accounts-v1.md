@@ -28,6 +28,8 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 | `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
 | `gacha.link` | `account_ref`、`role_ref` | 绝区零国服角色的抽卡记录链接 `url`，只接受私聊消息来源 |
+| `device.bind` | 空对象 | 为调用主体开始“绑定设备”：两分钟内等待本人私聊发送设备信息，返回将绑定的 `uid`（按账号查到时可为空）与掩码 `account_label`；只接受私聊消息来源 |
+| `device.unbind` | 空对象 | 把“绑定设备”所选账号恢复为自动生成的设备，返回 `uid` 与 `account_label`；只接受聊天消息来源 |
 
 `gacha.link` 对应 ZZZ-Plugin 的“获取抽卡链接”：以账号 SToken 换取 `authkey`，按上游格式拼出独家频段的抽卡记录链接交给绝区零插件，由它在原私聊中发出。`authkey` 只能读取抽卡记录、一天后失效，不是账号凭据；这是它离开本插件的唯一途径。群聊、管理页与定时来源一律拒绝，国际服角色返回 `plugin.account_region_unsupported`，与上游不支持国际服一致。
 
@@ -158,7 +160,9 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 `accounts.device.status/reset` 面向管理，状态只显示设备标识的掩码、指纹是否存在及到期时间；reset 要求账号版本号和 confirm，可自动生成新标识或使用有效的设备标识，清除旧指纹。下次需要指纹的业务从官方重新获取。现有 CK 不回显，不自动重试游戏写操作。
 
-`accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。reset 清除导入的设备。聊天“绑定设备”只指向管理页，不在聊天中接收设备信息；“绑定设备帮助”给出获取方法；“解绑设备”把本人账号恢复为自动生成的设备。出现 10041 时提示发送“绑定设备帮助”。
+`accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。reset 清除导入的设备。
+
+聊天按 ZZZ-Plugin 绑定设备：本人私聊“绑定设备”（本插件的命令或绝区零插件经 `device.bind` 转来的命令）后，两分钟内私聊发送的第一条以 `{` 开头的消息按上述两种格式导入，“取消”结束等待，其他消息不受影响；格式错误回复“设备信息格式错误”。设备信息不是账号凭据，但只在私聊中接收，群聊中的“绑定设备”提示改为私聊。绑定的账号是持有本人当前绝区零 UID 的账号，没有时取本人唯一的账号；本人有多个账号且没有当前绝区零 UID 时要求先切换 UID。国际服角色返回 `plugin.account_region_unsupported`，与上游“国际服不需要绑定设备”一致。“解绑设备”（本插件或 `device.unbind`）把同一账号恢复为自动生成的设备；“绑定设备帮助”给出获取方法。出现 10041 时提示发送“绑定设备帮助”。
 
 插件订阅聊天消息，但从不在聊天中读取或保存账号凭据：消息中出现 ltoken、cookie_token、stoken（含 _v2）、login_ticket、ltuid 或 _MHYUUID 时，回复请撤回并改用扫码登录或管理页加密导入；群聊中另提醒凭据已公开，需退出登录或修改密码使其失效。抽卡链接不是账号凭据，由各游戏插件在聊天中按上游读取。
 

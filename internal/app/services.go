@@ -70,6 +70,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "uids.current" {
 		return a.currentUID(ctx, store, cipher, request, games)
 	}
+	if request.Method == "device.bind" || request.Method == "device.unbind" {
+		return a.deviceService(ctx, store, cipher, owner, request, games)
+	}
 	if request.Method == "list" {
 		var items []accounts.Summary
 		var next *int

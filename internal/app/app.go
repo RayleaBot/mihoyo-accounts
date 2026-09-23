@@ -65,6 +65,7 @@ type App struct {
 	vaultGate    sync.RWMutex
 	locksMu      sync.Mutex
 	locks        map[string]*accountLock
+	devices      deviceWaits
 	jobsMu       sync.Mutex
 	jobs         map[string]*login
 	owners       map[accounts.Subject]string
@@ -244,6 +245,8 @@ func message(code string) string {
 		return "定时委托尚未到下一次可查询时间。"
 	case "plugin.account_not_found":
 		return "账号不存在或已移除。"
+	case "plugin.account_device_ambiguous":
+		return "有多个米游社账号，请先切换到要绑定设备的绝区零 UID。"
 	case "plugin.account_ark_unconfigured":
 		return "尚未在账号插件管理页配置 ark 授权令牌。"
 	case "plugin.account_ark_rejected":

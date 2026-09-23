@@ -57,7 +57,7 @@ func (a *App) Services() []rayleabot.Service {
 }
 
 // serviceMethods are the accounts v1 methods; info.json declares the same.
-var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "uids.bind", "uids.remove", "uids.use", "uids.current", "gacha.link"}
+var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "uids.bind", "uids.remove", "uids.use", "uids.current", "gacha.link", "device.bind", "device.unbind"}
 
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	// Ordinary event deadlines are owned by the host; keep local HTTP work
@@ -87,6 +87,9 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	}
 	if pastedCredential.MatchString(event.Event.Message.PlainText) {
 		return event.SendText(credentialWarning(event.Event.Target.Type != "private"))
+	}
+	if handled, err := a.deviceMessage(ctx, event, store); handled {
+		return err
 	}
 	command := ckCommand(event.Event.Command())
 	if command == "账号帮助" || command == "账号版本" {
@@ -153,26 +156,8 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if len(items) == 0 {
 		return event.SendText("还没有绑定米游社账号，请发送“扫码登录”。")
 	}
-	if command == "绑定设备" {
-		// ZZZ-Plugin takes the device information in chat; here it is only
-		// accepted encrypted in the management page.
-		return event.SendText("请在账号管理页该账号的“设备信息与重置”中加密导入设备信息，不要在聊天中发送。发送“绑定设备帮助”查看如何获取。")
-	}
-	if command == "解绑设备" {
-		count := 0
-		for _, item := range items {
-			if item.Owner != owner {
-				continue
-			}
-			if _, err := a.Manage(ctx, store, policy, "accounts.device.reset", map[string]any{"account_ref": item.Ref, "revision": item.Revision, "confirm": true}); err != nil {
-				return event.SendText(publicError(err).Message)
-			}
-			count++
-		}
-		if count == 0 {
-			return event.SendText("没有可解绑设备的本人账号。")
-		}
-		return event.SendText("解绑设备成功")
+	if command == "绑定设备" || command == "解绑设备" {
+		return a.deviceCommand(ctx, event, store, owner, command)
 	}
 	if command == "我的CK" {
 		var lines []string
@@ -293,8 +278,7 @@ func ckCommand(word string) string {
 	return strings.ToUpper(word)
 }
 
-// deviceHelp is ZZZ-Plugin's 绑定设备帮助, with the management page in place
-// of pasting the information into chat.
+// deviceHelp is ZZZ-Plugin's 绑定设备帮助; the information is sent in private.
 const deviceHelp = `[绑定设备]
 用于尝试解决10041报错等问题（无法100%解决）。
 方法一：
@@ -302,15 +286,21 @@ const deviceHelp = `[绑定设备]
 2. 在请求头内找到【x-rpc-device_id】和【x-rpc-device_fp】
 3. 自行构造如下格式的信息：
     {"device_id": "x-rpc-device_id的内容", "device_fp": "x-rpc-device_fp的内容"}
-4. 在账号管理页该账号的“设备信息与重置”中粘贴并加密导入
+4. 私聊给机器人发送“绑定设备”指令
+5. 机器人会提示发送设备信息
+6. 粘贴自行构造的信息发送
+7. 提示绑定成功
 --------------------------------
 方法二（仅适用于安卓设备）：
 1. 在常用米游社的手机上安装 forchannot/get_device_info 的设备信息工具
 2. 打开后点击按钮复制
-3. 在账号管理页该账号的“设备信息与重置”中粘贴并加密导入
+3. 私聊给机器人发送“绑定设备”指令
+4. 机器人会提示发送设备信息
+5. 粘贴设备信息发送
+6. 提示绑定成功
 --------------------------------
 [解绑设备]
-私聊发送“解绑设备”即可`
+发送“解绑设备”即可`
 
 // loginTask sends chat logins their result once a minute while any is open.
 const loginTask = "mihoyo.accounts.login"

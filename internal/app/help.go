@@ -29,6 +29,6 @@ func (a *App) helpCommand(event *rayleabot.EventContext, command string) error {
 			lines = append(lines, c.Usage+" · "+c.Description)
 		}
 	}
-	lines = append(lines, "密钥、授权插件、云授权、设备、关联和加密备份在账号管理页。请勿在聊天发送CK原文。")
+	lines = append(lines, "密钥、授权插件、云授权、关联和加密备份在账号管理页。请勿在聊天发送CK原文。")
 	return event.SendText(strings.Join(lines, "\n"))
 }
