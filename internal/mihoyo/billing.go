@@ -21,6 +21,15 @@ func init() {
 
 var billingPaths = map[string]map[string]string{"genshin": {"crystal": "GetCrystalLog", "primogem": "GetPrimogemLog"}, "starrail": {"dreams": "Dreams", "stellar": "Stellar", "power": "Power", "relic": "Relic", "cone": "Cone"}}
 
+// ValidBillingDelegation admits only the paging Yunzai's 充值记录 needs: the
+// produced crystal and primogem records from a string cursor.
+func ValidBillingDelegation(input map[string]any) bool {
+	category, _ := input["category"].(string)
+	direction, _ := input["direction"].(string)
+	end, _ := input["end_id"].(string)
+	return len(input) == 3 && (category == "crystal" || category == "primogem") && direction == "produce" && recordDigits.MatchString(end)
+}
+
 func allowedBillingEndpoint(host, path, profile string) bool {
 	if profile != "billing" {
 		return false

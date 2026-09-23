@@ -134,6 +134,8 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 三游戏 `monthly` 也可创建只读定时委托，仅空输入读取官方默认月份，仍遵守五分钟准入间隔及角色/任务/有效期绑定。
 
+原神 `billing` 也可创建只读定时委托，供“更新充值记录”没有客服链接时按 Yunzai 在调度任务中逐页读取：`input` 只接受 `category=crystal/primogem`、`direction=produce` 与字符串 `end_id`（1–19 位数字），至少一秒间隔，仍绑定角色、操作、调用插件、宿主 task_id 和有效期；星铁 `billing` 不开放委托。
+
 ## 社区与云游戏账号操作
 
 三游戏 `community_status/community_posts/community_sign/community_read/community_like/community_unlike/community_share` 是账号级操作：`execute` 仅需 `account_ref`，`role_ref` 留空；仍校验原主体、账号调用者名单及调用插件的游戏范围。帖子列表固定本游戏讨论区，读帖/点赞/取消/分享只接受数字 `post_id`。签到、读帖计数、点赞/取消与分享属于显式操作，均要求 `write_confirmed=true`；状态和列表只读。所有认证请求由账号插件发送，游戏只得到米游币、任务、帖子摘要或完成结果。

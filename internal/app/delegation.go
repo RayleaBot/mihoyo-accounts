@@ -59,7 +59,7 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 	}
 	for _, role := range record.Roles {
 		gacha := input.Operation == role.Game+".gacha" && (role.Game == "genshin" || role.Game == "zzz" || role.Game == "starrail" && record.Tokens.Realm == "os")
-		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || gacha || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
+		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || gacha || input.Operation == "genshin.billing" && role.Game == "genshin" || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
 			valid = true
 		}
 	}
@@ -115,14 +115,15 @@ func (a *App) admitDelegation(ctx context.Context, store accounts.SecretStore, c
 			return failure("plugin.account_delegation_denied")
 		}
 		gacha := d.Operation == "genshin.gacha" || d.Operation == "zzz.gacha" || d.Operation == "starrail.gacha" && record.Tokens.Realm == "os"
+		billing := d.Operation == "genshin.billing"
 		community := strings.HasSuffix(d.Operation, ".community_run")
-		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || gacha && !mihoyo.ValidGachaDelegation(d.Operation, object(req.Params["input"])) || !gacha && !community && len(object(req.Params["input"])) != 0 {
+		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || gacha && !mihoyo.ValidGachaDelegation(d.Operation, object(req.Params["input"])) || billing && !mihoyo.ValidBillingDelegation(object(req.Params["input"])) || !gacha && !billing && !community && len(object(req.Params["input"])) != 0 {
 			return failure("plugin.account_delegation_denied")
 		}
 		if community {
 			interval = 3000
 		}
-		if gacha {
+		if gacha || billing {
 			interval = 1000
 		}
 		if d.LastUsedAtMS > now-interval {

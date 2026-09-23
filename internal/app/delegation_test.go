@@ -224,6 +224,48 @@ func TestMonthlyDelegationAllowsOnlyDefaultMonth(t *testing.T) {
 	assertCode(t, err, "plugin.account_operation_denied")
 }
 
+func TestBillingDelegationAllowsOnlyProducedPaging(t *testing.T) {
+	a, store, record := setup(t, &fakeAPI{})
+	create := request("genshin", record.Ref)
+	create.Method = "delegation.create"
+	create.Params["operation"] = "genshin.billing"
+	create.Params["task_id"] = "game.pay.test"
+	create.Params["days"] = 1
+	result, err := a.Service(t.Context(), store, policy(), create)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant := result["delegation"].(accounts.Delegation)
+	req := request("genshin", record.Ref)
+	req.Params["operation"] = "genshin.billing"
+	req.Params["delegation_ref"] = grant.Ref
+	req.Origin = rayleabot.ServiceOrigin{EventID: "tick", EventType: "scheduler.trigger", SourceProtocol: "scheduler", SourceAdapter: "scheduler.internal", TaskID: grant.TaskID}
+	for _, input := range []map[string]any{
+		{"category": "crystal", "direction": "consume", "end_id": "0"},
+		{"category": "crystal", "direction": "all", "end_id": "0"},
+		{"category": "dreams", "direction": "produce", "end_id": "0"},
+		{"category": "crystal", "direction": "produce", "end_id": 0},
+		{"category": "primogem", "direction": "produce", "end_id": "0", "page_size": 50},
+	} {
+		req.Params["input"] = input
+		_, err = a.Service(t.Context(), store, policy(), req)
+		assertCode(t, err, "plugin.account_delegation_denied")
+	}
+	req.Params["input"] = map[string]any{"category": "primogem", "direction": "produce", "end_id": "0"}
+	if _, err = a.Service(t.Context(), store, policy(), req); err != nil {
+		t.Fatal(err)
+	}
+	_, err = a.Service(t.Context(), store, policy(), req)
+	assertCode(t, err, "plugin.account_delegation_throttled")
+	sr := request("starrail", record.Ref)
+	sr.Method = "delegation.create"
+	sr.Params["operation"] = "starrail.billing"
+	sr.Params["task_id"] = "game.pay.sr"
+	sr.Params["days"] = 1
+	_, err = a.Service(t.Context(), store, policy(), sr)
+	assertCode(t, err, "plugin.account_operation_denied")
+}
+
 func TestAccountCommunityDelegationKeepsTaskScopeAndWriteConfirmation(t *testing.T) {
 	api := &fakeAPI{}
 	a, store, record := setup(t, api)
