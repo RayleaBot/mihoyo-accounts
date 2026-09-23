@@ -28,7 +28,10 @@
         "delegation.create",
         "delegation.revoke",
         "public.execute",
-        "ark.request"
+        "ark.request",
+        "uids.bind",
+        "uids.remove",
+        "uids.use"
       ]
     }
   ],

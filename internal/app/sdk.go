@@ -49,8 +49,15 @@ func (a *App) Services() []rayleabot.Service {
 		}
 		return result, err
 	}
-	return []rayleabot.Service{{Name: "accounts", Version: 1, Methods: map[string]rayleabot.ServiceHandler{"list": handler, "roles": handler, "select": handler, "execute": handler, "delegation.create": handler, "delegation.revoke": handler, "public.execute": handler}}}
+	methods := map[string]rayleabot.ServiceHandler{}
+	for _, method := range serviceMethods {
+		methods[method] = handler
+	}
+	return []rayleabot.Service{{Name: "accounts", Version: 1, Methods: methods}}
 }
+
+// serviceMethods are the accounts v1 methods; info.json declares the same.
+var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "uids.bind", "uids.remove", "uids.use"}
 
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	// Ordinary event deadlines are owned by the host; keep local HTTP work
