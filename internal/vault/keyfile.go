@@ -88,17 +88,6 @@ func CreateKeyFile(directory, password string) (Key, error) {
 	return key, nil
 }
 
-func LoadKeyFile(directory, password string) (Key, error) {
-	keys, err := LoadKeyRing(directory, password)
-	if err != nil {
-		return Key{}, err
-	}
-	for _, key := range keys[1:] {
-		clear(key.Value)
-	}
-	return keys[0], nil
-}
-
 func loadKeyPayload(directory, password string) ([]byte, error) {
 	data, err := readKeyFile(directory)
 	if errors.Is(err, os.ErrNotExist) {

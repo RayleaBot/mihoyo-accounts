@@ -13,8 +13,8 @@ func TestWindowsProtectedKeyRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := LoadKeyFile(directory, "")
-	if err != nil || !bytes.Equal(key.Value, loaded.Value) {
+	loaded, err := LoadKeyRing(directory, "")
+	if err != nil || !bytes.Equal(key.Value, loaded[0].Value) {
 		t.Fatalf("DPAPI round trip failed: %v", err)
 	}
 }

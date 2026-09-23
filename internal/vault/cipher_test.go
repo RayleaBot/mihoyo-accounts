@@ -55,11 +55,11 @@ func TestPasswordKeyFilePreservesExistingKey(t *testing.T) {
 	if bytes.Contains(data, key.Value) || bytes.Contains(data, []byte(password)) {
 		t.Fatal("key file contains plaintext material")
 	}
-	loaded, err := LoadKeyFile(directory, password)
-	if err != nil || !bytes.Equal(loaded.Value, key.Value) || loaded.ID != key.ID {
+	loaded, err := LoadKeyRing(directory, password)
+	if err != nil || !bytes.Equal(loaded[0].Value, key.Value) || loaded[0].ID != key.ID {
 		t.Fatalf("load key: %v", err)
 	}
-	if _, err := LoadKeyFile(directory, "wrong-passphrase"); !errors.Is(err, ErrLocked) {
+	if _, err := LoadKeyRing(directory, "wrong-passphrase"); !errors.Is(err, ErrLocked) {
 		t.Fatal("wrong passphrase accepted")
 	}
 	if _, err := CreateKeyFile(directory, password); err == nil {
@@ -69,7 +69,7 @@ func TestPasswordKeyFilePreservesExistingKey(t *testing.T) {
 	if !bytes.Equal(data, after) {
 		t.Fatal("existing key changed")
 	}
-	if _, err := LoadKeyFile(t.TempDir(), password); !errors.Is(err, ErrMissingKey) {
+	if _, err := LoadKeyRing(t.TempDir(), password); !errors.Is(err, ErrMissingKey) {
 		t.Fatal("missing key was not distinguished")
 	}
 }
