@@ -13,9 +13,9 @@ var pastedCredential = regexp.MustCompile(`(?i)\b(?:ltoken(?:_v2)?|cookie_token(
 // send cookies privately; one posted in a group is public and has to be made
 // invalid.
 func credentialWarning(group bool) string {
-	text := "检测到米游社凭据（Cookie 或 SToken）。机器人不从聊天读取账号凭据，请撤回这条消息。绑定账号请私聊发送“扫码登录”，或在米游社账号管理页的加密表单中导入。"
+	text := "检测到米游社凭据（Cookie 或 SToken）。机器人不从聊天读取账号凭据，请撤回这条消息。绑定账号请私聊发送“扫码登录”，或请机器人管理员在管理页的加密表单中导入。"
 	if group {
-		text = "这条消息把米游社凭据公开在了群里，请立即撤回，并在米游社退出登录或修改密码，让这份凭据失效。机器人不从聊天读取账号凭据：绑定账号请私聊发送“扫码登录”，或在米游社账号管理页的加密表单中导入。"
+		text = "这条消息把米游社凭据公开在了群里，请立即撤回，并在米游社退出登录或修改密码，让这份凭据失效。机器人不从聊天读取账号凭据：绑定账号请私聊发送“扫码登录”，或请机器人管理员在管理页的加密表单中导入。"
 	}
 	return text
 }

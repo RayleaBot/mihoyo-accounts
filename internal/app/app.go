@@ -248,7 +248,7 @@ func message(code string) string {
 	case "plugin.account_device_ambiguous":
 		return "有多个米游社账号，请先切换到要绑定设备的绝区零 UID。"
 	case "plugin.account_ark_unconfigured":
-		return "尚未在账号插件管理页配置 ark 授权令牌。"
+		return "尚未配置 ark 授权令牌，请机器人管理员在账号插件管理页配置。"
 	case "plugin.account_ark_rejected":
 		return "ark 拒绝了授权令牌，请检查令牌及权限。"
 	case "plugin.account_ark_rate_limited":
@@ -274,7 +274,7 @@ func message(code string) string {
 	case "plugin.account_operation_canceled":
 		return "操作已取消或超时，可稍后重试。"
 	case "plugin.vault_locked":
-		return "账号库已锁定，请在账号管理页解锁。"
+		return "账号库已锁定，请机器人管理员在账号管理页解锁。"
 	case "plugin.vault_missing":
 		return "缺少原密钥文件，请恢复密钥后重试。"
 	case "plugin.vault_ciphertext_invalid":
