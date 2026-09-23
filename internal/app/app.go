@@ -27,6 +27,9 @@ type API interface {
 
 type Policy struct {
 	AllowedPlugins []Caller `json:"allowed_plugins"`
+	// SuperAdmins are the host's super administrators, whom only
+	// 设置默认设备 needs; they are never read from the configuration.
+	SuperAdmins []string `json:"-"`
 }
 type Caller struct {
 	PluginID string   `json:"plugin_id"`

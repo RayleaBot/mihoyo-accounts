@@ -35,7 +35,8 @@
         "uids.current",
         "gacha.link",
         "device.bind",
-        "device.unbind"
+        "device.unbind",
+        "device.default"
       ]
     }
   ],

@@ -70,8 +70,8 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "uids.current" {
 		return a.currentUID(ctx, store, cipher, request, games)
 	}
-	if request.Method == "device.bind" || request.Method == "device.unbind" {
-		return a.deviceService(ctx, store, cipher, owner, request, games)
+	if request.Method == "device.bind" || request.Method == "device.unbind" || request.Method == "device.default" {
+		return a.deviceService(ctx, store, cipher, owner, request, games, policy.SuperAdmins)
 	}
 	if request.Method == "list" {
 		var items []accounts.Summary
@@ -200,7 +200,11 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 				if record.Status == "invalid" {
 					return nil, failure("plugin.upstream_auth_invalid")
 				}
-				return a.API.Execute(ctx, record.Tokens, role, mihoyo.ZZZGachaLink, nil)
+				tokens, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
+				if err != nil {
+					return nil, err
+				}
+				return a.API.Execute(ctx, tokens, role, mihoyo.ZZZGachaLink, nil)
 			}
 		}
 		return nil, failure("plugin.account_role_denied")
@@ -251,10 +255,16 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		}
 	}
 	refreshFingerprint := func() error {
-		tokens, err := a.API.Fingerprint(ctx, record.Tokens)
+		lent, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
 		if err != nil {
 			return err
 		}
+		tokens, err := a.API.Fingerprint(ctx, lent)
+		if err != nil {
+			return err
+		}
+		// A lent default device is registered but not kept.
+		tokens.Device = record.Tokens.Device
 		record.Tokens = tokens
 		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
 			return err
@@ -269,7 +279,14 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 			return nil, err
 		}
 	}
-	data, err := a.API.Execute(ctx, record.Tokens, role, name, object(request.Params["input"]))
+	execute := func() (map[string]any, error) {
+		tokens, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
+		if err != nil {
+			return nil, err
+		}
+		return a.API.Execute(ctx, tokens, role, name, object(request.Params["input"]))
+	}
+	data, err := execute()
 	// Only reads may renew a rejected cached fingerprint and retry once.
 	// Explicit writes are never automatically replayed.
 	var upstream *mihoyo.Error
@@ -277,7 +294,7 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		if err := refreshFingerprint(); err != nil {
 			return nil, err
 		}
-		data, err = a.API.Execute(ctx, record.Tokens, role, name, object(request.Params["input"]))
+		data, err = execute()
 	}
 	if err != nil {
 		if publicError(err).Code == "plugin.upstream_auth_invalid" {

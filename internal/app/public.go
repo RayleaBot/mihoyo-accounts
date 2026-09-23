@@ -69,19 +69,25 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 		}
 		result, err := func() (map[string]any, error) {
 			defer release()
+			lent, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
+			if err != nil {
+				return nil, err
+			}
 			if record.Tokens.DeviceFP == "" || record.Tokens.DeviceFPExpiresAtMS <= time.Now().UnixMilli() {
-				tokens, err := a.API.Fingerprint(ctx, record.Tokens)
+				tokens, err := a.API.Fingerprint(ctx, lent)
 				if err != nil {
 					return nil, err
 				}
+				tokens.Device = record.Tokens.Device
 				record.Tokens = tokens
+				lent.DeviceFP, lent.DeviceFPExpiresAtMS = tokens.DeviceFP, tokens.DeviceFPExpiresAtMS
 				if err = a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
 					return nil, err
 				}
 				record.Revision++
 			}
 			role := accounts.Role{Game: q.Game, UID: q.UID, Region: q.Region, Nickname: "公开角色"}
-			data, err := a.API.Execute(ctx, record.Tokens, role, q.Game+".profile", map[string]any{})
+			data, err := a.API.Execute(ctx, lent, role, q.Game+".profile", map[string]any{})
 			if err != nil {
 				delay := time.Minute
 				if code := publicError(err).Code; code == "plugin.upstream_device_required" || code == "plugin.upstream_challenge_required" || code == "plugin.upstream_auth_invalid" {

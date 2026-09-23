@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -111,12 +112,20 @@ func (a *App) deviceAccount(ctx context.Context, store accounts.SecretStore, cip
 	return accounts.Summary{}, accounts.Role{}, failure("plugin.account_device_ambiguous")
 }
 
-// deviceService answers device.bind and device.unbind for a game plugin's
-// 绑定设备 and 解绑设备.
-func (a *App) deviceService(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, owner accounts.Subject, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
+// deviceService answers device.bind, device.unbind and device.default for a
+// game plugin's 绑定设备, 解绑设备 and 设置默认设备.
+func (a *App) deviceService(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, owner accounts.Subject, request rayleabot.ServiceRequest, games, superAdmins []string) (map[string]any, error) {
 	private := request.Origin.EventType == "message.private" && request.Origin.Target != nil && request.Origin.Target.Type == "private"
-	if !slices.Contains(games, "zzz") || !strings.HasPrefix(request.Origin.EventType, "message.") || request.Method == "device.bind" && !private {
+	if !slices.Contains(games, "zzz") || !strings.HasPrefix(request.Origin.EventType, "message.") || request.Method != "device.unbind" && !private {
 		return nil, failure("plugin.account_operation_denied")
+	}
+	if request.Method == "device.default" {
+		// The host's super administrators are OneBot11 accounts.
+		if owner.SourceProtocol != "onebot11" || !slices.Contains(superAdmins, owner.ActorID) {
+			return nil, failure("plugin.account_subject_denied")
+		}
+		a.devices.start(owner, defaultDeviceWait)
+		return map[string]any{}, nil
 	}
 	item, role, err := a.deviceAccount(ctx, store, cipher, owner, request.CallerPluginID)
 	if err != nil {
@@ -196,6 +205,12 @@ func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, 
 		return false, nil
 	}
 	a.devices.end(owner)
+	if ref == defaultDeviceWait {
+		if err := a.saveDefaultDevice(ctx, store, []byte(text)); err != nil {
+			return true, event.SendText(deviceReply(err))
+		}
+		return true, event.SendText("默认设备信息设置成功")
+	}
 	if err := a.saveDevice(ctx, store, ref, []byte(text)); err != nil {
 		return true, event.SendText(deviceReply(err))
 	}
@@ -232,6 +247,57 @@ func (a *App) saveDevice(ctx context.Context, store accounts.SecretStore, ref st
 	}
 	record.Tokens = tokens
 	return a.Repo.Update(ctx, store, cipher, record, record.Revision)
+}
+
+// defaultDeviceWait marks the wait 设置默认设备 starts; account references
+// never take this form.
+const defaultDeviceWait = "*default"
+
+// defaultDeviceSetting keeps the default device, encrypted like the
+// accounts.
+const defaultDeviceSetting = "device.default"
+
+// saveDefaultDevice keeps the Android device information ZZZ-Plugin's
+// 设置默认设备 takes, with the same required fields, for accounts without
+// a device of their own.
+func (a *App) saveDefaultDevice(ctx context.Context, store accounts.SecretStore, raw []byte) error {
+	defer clear(raw)
+	var device accounts.Device
+	if len(raw) > 8192 || json.Unmarshal(raw, &device) != nil {
+		return failure("plugin.account_input_invalid")
+	}
+	for _, value := range []string{device.Name, device.Board, device.Model, device.AndroidVersion, device.Fingerprint, device.Product} {
+		if !devicePattern.MatchString(value) {
+			return failure("plugin.account_input_invalid")
+		}
+	}
+	// Each account registers the device under its own identifier, as
+	// upstream fills the advertising ID from the user's device ID.
+	device.OAID = ""
+	a.vaultGate.RLock()
+	defer a.vaultGate.RUnlock()
+	cipher, err := a.Vault.Cipher()
+	if err != nil {
+		return err
+	}
+	return a.Repo.WriteSetting(ctx, store, cipher, defaultDeviceSetting, device)
+}
+
+// lendDefaultDevice gives tokens without a device of their own the default
+// device, as ZZZ-Plugin's device.yaml serves users who bound none. Callers
+// must not save the lent device into the account.
+func (a *App) lendDefaultDevice(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, tokens accounts.Tokens) (accounts.Tokens, error) {
+	if tokens.Device != nil || tokens.DeviceFPImported {
+		return tokens, nil
+	}
+	var device accounts.Device
+	exists, err := a.Repo.ReadSetting(ctx, store, cipher, defaultDeviceSetting, &device)
+	if err != nil || !exists || device.Model == "" {
+		return tokens, err
+	}
+	device.OAID = tokens.DeviceID
+	tokens.Device = &device
+	return tokens, nil
 }
 
 // resetDevice gives an account a generated device again.
