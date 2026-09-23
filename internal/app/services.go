@@ -18,6 +18,12 @@ func management(origin rayleabot.ServiceOrigin) bool {
 	return origin.SourceProtocol == "management" && origin.SourceAdapter == "management.ui" && origin.EventType == "management.action"
 }
 
+// superAdmin is whether a chat message came from one of the host's super
+// administrators, who are OneBot11 accounts.
+func superAdmin(origin rayleabot.ServiceOrigin, admins []string) bool {
+	return strings.HasPrefix(origin.EventType, "message.") && origin.SourceProtocol == "onebot11" && origin.Actor != nil && slices.Contains(admins, origin.Actor.ID)
+}
+
 func originSubject(origin rayleabot.ServiceOrigin) accounts.Subject {
 	actor := ""
 	if origin.Actor != nil {
@@ -76,11 +82,18 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if request.Method == "list" {
 		var items []accounts.Summary
 		var next *int
-		if owner.Validate() == nil {
+		// all lists every account by page for a super administrator's
+		// 原石任务, which saves each account's ledger as upstream's master does.
+		all := request.Params["all"] == true
+		if all && !superAdmin(request.Origin, policy.SuperAdmins) {
+			return nil, failure("plugin.account_subject_denied")
+		}
+		if owner.Validate() == nil && !all {
 			items, err = a.Repo.List(ctx, store, cipher, owner)
 		} else {
 			var input struct {
-				Page int `json:"page"`
+				Page int  `json:"page"`
+				All  bool `json:"all"`
 			}
 			if decode(request.Params, &input) != nil {
 				return nil, failure("plugin.account_input_invalid")
@@ -151,7 +164,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if !slices.Contains(record.AllowedCallers, request.CallerPluginID) {
 		return nil, failure("plugin.account_caller_denied")
 	}
-	if !scheduled && (!admin || owner.Validate() == nil) {
+	// A super administrator's 原石任务 reads every account's ledger.
+	ledger := request.Method == "execute" && strings.HasSuffix(stringValue(request.Params["operation"]), ".monthly") && superAdmin(request.Origin, policy.SuperAdmins)
+	if !scheduled && !ledger && (!admin || owner.Validate() == nil) {
 		allowed, err := a.Repo.CanAccess(ctx, store, cipher, record.Owner, owner)
 		if err != nil {
 			return nil, err

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
 )
@@ -277,4 +278,31 @@ func TestBatchMissingRefreshMaterialPreservesUsableCookie(t *testing.T) {
 	}
 	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.start", map[string]any{"mode": "statistics", "password": "synthetic-plaintext"})
 	assertCode(t, err, "plugin.account_input_invalid")
+}
+
+func TestSuperAdministratorsSaveEveryLedger(t *testing.T) {
+	a, store, record := setup(t, &fakeAPI{})
+	admins := policy()
+	admins.SuperAdmins = []string{"admin-1"}
+	ask := func(method, actor string, params map[string]any) rayleabot.ServiceRequest {
+		request := request("genshin", record.Ref)
+		request.Method, request.Params = method, params
+		request.Origin.EventType, request.Origin.Actor = "message.group", &rayleabot.Actor{ID: actor}
+		return request
+	}
+	// Only a super administrator lists every account.
+	_, err := a.Service(t.Context(), store, admins, ask("list", "user-2", map[string]any{"all": true}))
+	assertCode(t, err, "plugin.account_subject_denied")
+	listed, err := a.Service(t.Context(), store, admins, ask("list", "admin-1", map[string]any{"all": true}))
+	if err != nil || len(listed["items"].([]accounts.Summary)) != 1 {
+		t.Fatal(listed, err)
+	}
+	// And reads another's ledger, but nothing else of theirs.
+	ledger := map[string]any{"account_ref": record.Ref, "role_ref": role("genshin").Ref, "operation": "genshin.monthly", "input": map[string]any{}}
+	if _, err := a.Service(t.Context(), store, admins, ask("execute", "admin-1", ledger)); err != nil {
+		t.Fatal(err)
+	}
+	ledger["operation"] = "genshin.note"
+	_, err = a.Service(t.Context(), store, admins, ask("execute", "admin-1", ledger))
+	assertCode(t, err, "plugin.account_subject_denied")
 }

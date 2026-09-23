@@ -18,12 +18,12 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 
 | 方法 | 输入 | 返回 |
 | --- | --- | --- |
-| `list` | 空对象；管理来源可选 `subject` 或 `page` | 当前主体可用的账号摘要、角色和凭据状态；管理页按账号页返回 `next_page` |
+| `list` | 空对象；管理来源可选 `subject` 或 `page`；宿主超级管理员（OneBot11）的聊天来源可传 `all: true` 与 `page` | 当前主体可用的账号摘要、角色和凭据状态；管理页与 `all` 按账号页返回 `next_page` |
 | `roles` | `account_ref`，可选 `game` | 该主体有权使用的绑定角色 |
 | `select` | `account_ref`、`role_ref` | 为账号主体选择该游戏的默认角色 |
 | `uids.bind` / `uids.remove` / `uids.use` | `game`、`uid` | 不需要账号：为调用主体绑定、删除或选用该游戏的 UID |
 | `uids.current` | `game`、`user_id` | 同一聊天中被 @ 的用户当前使用的该游戏 UID：`uid`，没有时为空字符串 |
-| `execute` | `account_ref`、`role_ref`、`operation`、对象 `input` | 指定操作的无凭据业务结果 |
+| `execute` | `account_ref`、`role_ref`、`operation`、对象 `input` | 指定操作的无凭据业务结果；宿主超级管理员（OneBot11）的聊天来源可对任一允许调用插件的账号执行只读的 `<game>.monthly`，对应上游主人的“原石任务”“星琼任务” |
 | `delegation.create` | `account_ref`、`role_ref`、`task_id`、`operation`、`days`（1–90） | 显式创建只读定时委托，返回 `delegation` |
 | `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
