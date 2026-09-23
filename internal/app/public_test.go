@@ -76,3 +76,68 @@ func TestPublicQueryRequiresOptInAndNeverRevealsLendingAccount(t *testing.T) {
 		t.Fatal("deleted account remained indexed")
 	}
 }
+
+// The pool proxies Genshin's character list as it proxies the index: only
+// that one more read, charged to the same opted-in quota and spacing, without
+// the lending account.
+func TestPublicCharacterListSharesProfileSafeguards(t *testing.T) {
+	asked := []string{}
+	api := &fakeAPI{execute: func(_ context.Context, _ accounts.Tokens, role accounts.Role, name string, input map[string]any) (map[string]any, error) {
+		if role.UID != "100000002" || len(input) != 0 {
+			t.Fatal("not a fixed public query")
+		}
+		asked = append(asked, name)
+		return map[string]any{"list": []any{map[string]any{"id": 10000046}}}, nil
+	}}
+	a, store, record := setup(t, api)
+	ctx := t.Context()
+	cipher, _ := a.Vault.Cipher()
+	if _, err := a.Repo.SetPublic(ctx, store, cipher, record.Ref, record.Owner, true, 2, []string{"genshin", "starrail"}); err != nil {
+		t.Fatal(err)
+	}
+	query := func(game, operation string) (map[string]any, error) {
+		req := request(game, record.Ref)
+		req.Method = "public.execute"
+		req.Origin.Actor.ID = "another-user"
+		req.Params = map[string]any{"game": game, "uid": "100000002", "region": map[string]string{"genshin": "cn_gf01", "starrail": "prod_gf_cn"}[game], "operation": operation}
+		return a.Service(ctx, store, policy(), req)
+	}
+	rested := func() {
+		saved, err := a.Repo.Get(ctx, store, cipher, record.Ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		saved.PublicQuery.NextUseMS = 0
+		if err = a.Repo.Update(ctx, store, cipher, saved, saved.Revision); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := query("genshin", "note")
+	assertCode(t, err, "plugin.account_operation_denied")
+	_, err = query("starrail", "characters")
+	assertCode(t, err, "plugin.account_operation_denied")
+	result, err := query("genshin", "characters")
+	if err != nil || result["operation"] != "genshin.characters" {
+		t.Fatalf("result = %v, %v", result, err)
+	}
+	raw, _ := json.Marshal(result)
+	for _, marker := range []string{record.Ref, record.Owner.ActorID, "synthetic-stoken", "synthetic-cookie", "123456789"} {
+		if strings.Contains(string(raw), marker) {
+			t.Fatal("lender identity or credential exposed")
+		}
+	}
+	// The index right after waits out the same account's spacing, then
+	// takes the last of the quota both reads share.
+	_, err = query("genshin", "profile")
+	assertCode(t, err, "plugin.account_public_unavailable")
+	rested()
+	if _, err = query("genshin", "profile"); err != nil {
+		t.Fatal(err)
+	}
+	rested()
+	_, err = query("genshin", "characters")
+	assertCode(t, err, "plugin.account_public_unavailable")
+	if strings.Join(asked, ",") != "genshin.characters,genshin.profile" {
+		t.Errorf("asked = %v", asked)
+	}
+}

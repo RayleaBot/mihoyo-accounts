@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -17,9 +18,16 @@ import (
 
 var publicUID = regexp.MustCompile(`^[0-9]{6,12}$`)
 
+// publicOperation reports the reads the public pool proxies: each game's
+// index, and the Genshin character list miao reads for another player's UID
+// with a public cookie.
+func publicOperation(game, operation string) bool {
+	return operation == "profile" || operation == "characters" && game == "genshin"
+}
+
 func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, request rayleabot.ServiceRequest, games []string) (map[string]any, error) {
 	for key := range request.Params {
-		if !slices.Contains([]string{"game", "uid", "region"}, key) {
+		if !slices.Contains([]string{"game", "uid", "region", "operation"}, key) {
 			return nil, failure("plugin.account_input_invalid")
 		}
 	}
@@ -27,12 +35,17 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 		return nil, failure("plugin.account_subject_denied")
 	}
 	var q struct {
-		Game   string `json:"game"`
-		UID    string `json:"uid"`
-		Region string `json:"region"`
+		Game      string `json:"game"`
+		UID       string `json:"uid"`
+		Region    string `json:"region"`
+		Operation string `json:"operation"`
 	}
 	if decode(request.Params, &q) != nil || !publicUID.MatchString(q.UID) || !slices.Contains(games, q.Game) {
 		return nil, failure("plugin.account_input_invalid")
+	}
+	operation := cmp.Or(q.Operation, "profile")
+	if !publicOperation(q.Game, operation) {
+		return nil, failure("plugin.account_operation_denied")
 	}
 	regions := []string{"prod_gf_cn"}
 	if q.Game == "genshin" {
@@ -87,7 +100,8 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 				record.Revision++
 			}
 			role := accounts.Role{Game: q.Game, UID: q.UID, Region: q.Region, Nickname: "公开角色"}
-			data, err := a.API.Execute(ctx, lent, role, q.Game+".profile", map[string]any{})
+			name := q.Game + "." + operation
+			data, err := a.API.Execute(ctx, lent, role, name, map[string]any{})
 			if err != nil {
 				delay := time.Minute
 				if code := publicError(err).Code; code == "plugin.upstream_device_required" || code == "plugin.upstream_challenge_required" || code == "plugin.upstream_auth_invalid" {
@@ -102,7 +116,7 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 				}
 				return nil, err
 			}
-			return map[string]any{"operation": q.Game + ".profile", "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli(), "source": "public_query_pool"}, nil
+			return map[string]any{"operation": name, "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli(), "source": "public_query_pool"}, nil
 		}()
 		return result, err
 	}
@@ -111,7 +125,7 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 func (a *App) publicCommand(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, owner accounts.Subject, items []accounts.Summary) error {
 	args := event.Event.Args()
 	if len(args) == 0 {
-		return event.SendText("共享查询账号 开启 [序号] [每日额度] [原神,星铁,绝区零]\n共享查询账号 关闭 [序号]\n开启后，仅已授权游戏可用此账号查询其他玩家主动公开的基础资料；不交出 CK。默认每日 100，最多 1000。仅本人私聊可开启。")
+		return event.SendText("共享查询账号 开启 [序号] [每日额度] [原神,星铁,绝区零]\n共享查询账号 关闭 [序号]\n开启后，仅已授权游戏可用此账号查询其他玩家主动公开的基础资料与原神角色列表；不交出 CK。默认每日 100，最多 1000。仅本人私聊可开启。")
 	}
 	if args[0] != "开启" && args[0] != "关闭" {
 		return event.SendText("请使用开启或关闭。")
