@@ -29,8 +29,8 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
 | `gacha.link` | `account_ref`、`role_ref` | 绝区零国服角色的抽卡记录链接 `url`，只接受私聊消息来源 |
 | `device.bind` | 空对象 | 为调用主体开始“绑定设备”：两分钟内等待本人私聊发送设备信息，返回将绑定的 `uid`（按账号查到时可为空）与掩码 `account_label`；只接受私聊消息来源 |
-| `device.unbind` | 空对象 | 把“绑定设备”所选账号恢复为自动生成的设备，返回 `uid` 与 `account_label`；只接受聊天消息来源 |
-| `device.default` | 空对象 | 为调用主体开始“设置默认设备”：两分钟内等待本人私聊发送设备信息，返回空对象；只接受宿主超级管理员（OneBot11）的私聊消息来源 |
+| `device.unbind` | 空对象 | 清除“绑定设备”所选账号导入的设备并换用新生成的设备标识，之后该账号借用默认设备（已设置时），否则使用自动生成的设备；返回 `uid` 与 `account_label`；只接受聊天消息来源 |
+| `device.default` | 空对象 | 为调用主体开始“设置默认设备”：两分钟内等待本人私聊发送设备信息，返回空对象；只接受宿主超级管理员（OneBot11）的私聊消息来源：调用者不是超级管理员返回 `plugin.account_subject_denied`，不是私聊来源返回 `plugin.account_operation_denied`，调用插件无权使用绝区零时同样返回 `plugin.account_operation_denied` |
 
 `gacha.link` 对应 ZZZ-Plugin 的“获取抽卡链接”：以账号 SToken 换取 `authkey`，按上游格式拼出独家频段的抽卡记录链接交给绝区零插件，由它在原私聊中发出。`authkey` 只能读取抽卡记录、一天后失效，不是账号凭据；这是它离开本插件的唯一途径。群聊、管理页与定时来源一律拒绝，国际服角色返回 `plugin.account_region_unsupported`，与上游不支持国际服一致。
 
@@ -163,7 +163,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 `accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。登记沿用 ZZZ-Plugin getFp 的 ext_fields：型号同时作为 deviceName 与 model，设备信息的 deviceName 作为 deviceType，aaid 与 vaid 为账号的设备标识，oaid 取设备信息中的 oaid，缺省时为设备标识；没有自己设备的账号按 ZZZ-Plugin 的默认设备（Sony XQ-BC52）登记。reset 清除导入的设备。
 
-聊天按 ZZZ-Plugin 绑定设备：本人私聊“绑定设备”（本插件的命令或绝区零插件经 `device.bind` 转来的命令）后，两分钟内私聊发送的第一条以 `{` 开头的消息按上述两种格式导入，“取消”结束等待，其他消息不受影响；格式错误回复“设备信息格式错误”。设备信息不是账号凭据，但只在私聊中接收，群聊中的“绑定设备”提示改为私聊。绑定的账号是持有本人当前绝区零 UID 的账号，没有时取本人唯一的账号；本人有多个账号且没有当前绝区零 UID 时要求先切换 UID。国际服角色返回 `plugin.account_region_unsupported`，与上游“国际服不需要绑定设备”一致。“解绑设备”（本插件或 `device.unbind`）把同一账号恢复为自动生成的设备；“绑定设备帮助”给出获取方法。出现 10041 时提示发送“绑定设备帮助”。
+聊天按 ZZZ-Plugin 绑定设备：本人私聊“绑定设备”（本插件的命令或绝区零插件经 `device.bind` 转来的命令）后，两分钟内私聊发送的第一条以 `{` 开头的消息按上述两种格式导入，“取消”结束等待，其他消息不受影响；格式错误回复“设备信息格式错误”。设备信息不是账号凭据，但只在私聊中接收，群聊中的“绑定设备”提示改为私聊。绑定的账号是持有本人当前绝区零 UID 的账号，没有时取本人唯一的账号；本人有多个账号且没有当前绝区零 UID 时要求先切换 UID。国际服角色返回 `plugin.account_region_unsupported`，与上游“国际服不需要绑定设备”一致。“解绑设备”（本插件或 `device.unbind`）清除同一账号导入的设备并换用新生成的设备标识，之后借用默认设备（已设置时），否则使用自动生成的设备；“绑定设备帮助”给出获取方法。出现 10041 时提示发送“绑定设备帮助”。
 
 绝区零插件经 `device.default` 转来 ZZZ-Plugin 的“设置默认设备”：宿主超级管理员私聊该命令后，两分钟内私聊发送的第一条以 `{` 开头的消息须为安卓设备信息，deviceName、deviceBoard、deviceModel、androidVersion、deviceFingerprint、deviceProduct 均不可缺（与上游相同，不需要 oaid），成功回复“默认设备信息设置成功”，格式错误回复“设备信息格式错误”，“取消”结束等待。默认设备与账号同样加密保存；没有自己设备的账号（未导入安卓设备信息，也未导入设备标识与指纹）在登记指纹与发送请求时借用它，以本账号的设备标识作为 oaid，账号记录不保存这份设备。账号自己的设备始终优先；设备信息不写入日志或回复。
 
