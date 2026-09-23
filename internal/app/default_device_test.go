@@ -65,6 +65,30 @@ func TestDefaultDeviceServesAccountsWithoutTheirOwn(t *testing.T) {
 	if err != nil || saved.Tokens.Device != nil || saved.Tokens.DeviceFP != "syntheticfingerprint" {
 		t.Fatalf("account kept the lent device: %+v %v", saved.Tokens.Device, err)
 	}
+	// The device is read once; a new one replaces it at once.
+	for key := range store.values {
+		if strings.Contains(key, defaultDeviceSetting) {
+			delete(store.values, key)
+		}
+	}
+	if _, err := a.Service(t.Context(), store, policy(), request("zzz", record.Ref)); err != nil || used == nil || used.Model != "XQ-BC52" {
+		t.Fatalf("cached device not used: %+v %v", used, err)
+	}
+	if err := a.saveDefaultDevice(t.Context(), store, []byte(strings.Replace(device, `"deviceModel":"XQ-BC52"`, `"deviceModel":"Replaced"`, 1))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Service(t.Context(), store, policy(), request("zzz", record.Ref)); err != nil || used == nil || used.Model != "Replaced" {
+		t.Fatalf("replaced device not used: %+v %v", used, err)
+	}
+	a.defaultDev.forget()
+	for key := range store.values {
+		if strings.Contains(key, defaultDeviceSetting) {
+			delete(store.values, key)
+		}
+	}
+	if _, err := a.Service(t.Context(), store, policy(), request("zzz", record.Ref)); err != nil || used != nil {
+		t.Fatalf("a forgotten device was still lent: %+v %v", used, err)
+	}
 	// An account's own device wins over the default one.
 	if err := a.saveDevice(t.Context(), store, record.Ref, []byte(strings.Replace(device, `"deviceModel":"XQ-BC52"`, `"deviceModel":"Own","oaid":"own-oaid"`, 1))); err != nil {
 		t.Fatal(err)

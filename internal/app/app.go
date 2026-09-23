@@ -69,6 +69,7 @@ type App struct {
 	locksMu      sync.Mutex
 	locks        map[string]*accountLock
 	devices      deviceWaits
+	defaultDev   defaultDeviceCache
 	jobsMu       sync.Mutex
 	jobs         map[string]*login
 	owners       map[accounts.Subject]string

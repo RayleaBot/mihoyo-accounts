@@ -280,7 +280,29 @@ func (a *App) saveDefaultDevice(ctx context.Context, store accounts.SecretStore,
 	if err != nil {
 		return err
 	}
-	return a.Repo.WriteSetting(ctx, store, cipher, defaultDeviceSetting, device)
+	a.defaultDev.mu.Lock()
+	defer a.defaultDev.mu.Unlock()
+	if err := a.Repo.WriteSetting(ctx, store, cipher, defaultDeviceSetting, device); err != nil {
+		a.defaultDev.loaded = false
+		return err
+	}
+	a.defaultDev.device, a.defaultDev.loaded = &device, true
+	return nil
+}
+
+// defaultDeviceCache keeps the default device once read, so requests do not
+// read it from the secret store each time; saving replaces it, and opening
+// or locking the vault forgets it.
+type defaultDeviceCache struct {
+	mu     sync.Mutex
+	loaded bool
+	device *accounts.Device
+}
+
+func (c *defaultDeviceCache) forget() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.loaded, c.device = false, nil
 }
 
 // lendDefaultDevice gives tokens without a device of their own the default
@@ -290,11 +312,23 @@ func (a *App) lendDefaultDevice(ctx context.Context, store accounts.SecretStore,
 	if tokens.Device != nil || tokens.DeviceFPImported {
 		return tokens, nil
 	}
-	var device accounts.Device
-	exists, err := a.Repo.ReadSetting(ctx, store, cipher, defaultDeviceSetting, &device)
-	if err != nil || !exists || device.Model == "" {
-		return tokens, err
+	a.defaultDev.mu.Lock()
+	defer a.defaultDev.mu.Unlock()
+	if !a.defaultDev.loaded {
+		var device accounts.Device
+		exists, err := a.Repo.ReadSetting(ctx, store, cipher, defaultDeviceSetting, &device)
+		if err != nil {
+			return tokens, err
+		}
+		a.defaultDev.device, a.defaultDev.loaded = nil, true
+		if exists && device.Model != "" {
+			a.defaultDev.device = &device
+		}
 	}
+	if a.defaultDev.device == nil {
+		return tokens, nil
+	}
+	device := *a.defaultDev.device
 	device.OAID = tokens.DeviceID
 	tokens.Device = &device
 	return tokens, nil

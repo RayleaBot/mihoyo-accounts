@@ -59,6 +59,7 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		a.cancelLogins()
 		a.associations.clear()
 		a.imports.clear()
+		a.defaultDev.forget()
 		a.Vault.Lock()
 		return map[string]any{"state": "locked"}, nil
 	case "vault.mode":
@@ -81,6 +82,8 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	case "vault.initialize", "vault.unlock":
 		a.vaultGate.Lock()
 		defer a.vaultGate.Unlock()
+		// A new or reopened store is read again.
+		a.defaultDev.forget()
 		password := ""
 		if value := stringValue(input["password_ciphertext"]); value != "" {
 			password, err = a.Vault.DecodePassword(value)
