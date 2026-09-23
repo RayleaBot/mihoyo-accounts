@@ -100,6 +100,8 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	case "关联账号", "申请关联", "关联进度", "完成关联", "取消关联", "关联列表", "解除关联", "扫码登录", "登录状态", "取消登录", "我的CK", "刷新CK", "检查CK", "删除CK", "共享查询账号":
 	case "绑定设备帮助":
 		return event.SendText(deviceHelp)
+	case "CK帮助":
+		return event.SendText(ckTutorial)
 	case "绑定设备", "解绑设备":
 	default:
 		return event.Result(map[string]any{"handled": false})
@@ -260,6 +262,8 @@ var (
 	ckRemove  = regexp.MustCompile(`(?i)^(?:原神|星铁|绝区零)?删除c(?:oo)?k(?:ie)?$`)
 	ckRefresh = regexp.MustCompile(`(?i)^刷新c(?:oo)?k(?:ie)?$`)
 	ckCheck   = regexp.MustCompile(`(?i)^(?:检查|我的)*c(?:oo)?k(?:ie)?(?:状态)*$`)
+	// ckHelp are the Yunzai words that send the Cookie binding tutorial.
+	ckHelp = regexp.MustCompile(`(?i)^(?:(?:体力|c(?:oo)?k(?:ie)?)帮助|绑定c(?:oo)?k(?:ie)?|c(?:oo)?k(?:ie)?代码)$`)
 )
 
 // ckCommand names a CK command word the way the upstream user commands read
@@ -275,9 +279,15 @@ func ckCommand(word string) string {
 		return "刷新CK"
 	case ckCheck.MatchString(word):
 		return "检查CK"
+	case ckHelp.MatchString(word):
+		return "CK帮助"
 	}
 	return strings.ToUpper(word)
 }
+
+// ckTutorial answers Yunzai's 体力帮助, CK帮助, 绑定CK and CK代码, which
+// explain binding a pasted Cookie; accounts here are bound by scanning.
+const ckTutorial = "绑定米游社账号：私聊机器人发送“扫码登录”，用米游社扫码并确认，无需获取 Cookie。聊天中不接收 Cookie 原文；发送“账号帮助”查看全部账号命令。"
 
 // deviceHelp is ZZZ-Plugin's 绑定设备帮助; the information is sent in private.
 const deviceHelp = `[绑定设备]

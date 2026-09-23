@@ -290,6 +290,17 @@
       }
     },
     {
+      "id": "ck-help",
+      "name": "CK帮助",
+      "description": "说明如何绑定米游社账号（扫码登录）",
+      "usage": "#CK帮助 / #体力帮助",
+      "permission": "everyone",
+      "trigger": {
+        "type": "pattern",
+        "pattern": "^(?i:(?:体力|c(?:oo)?k(?:ie)?)帮助|绑定c(?:oo)?k(?:ie)?|c(?:oo)?k(?:ie)?代码)$"
+      }
+    },
+    {
       "id": "help",
       "name": "账号帮助",
       "description": "查看账号插件说明",
@@ -357,6 +368,7 @@
       "id": "manage",
       "title": "帮助",
       "commands": [
+        "ck-help",
         "help",
         "version"
       ]
