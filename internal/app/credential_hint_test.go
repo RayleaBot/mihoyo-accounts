@@ -9,13 +9,13 @@ func TestPastedCredentialsAreRecognized(t *testing.T) {
 		"stoken=v2_abc;stuid=100000001",
 		"login_ticket=abc",
 		"_MHYUUID=abc-def",
-		"https://public-operation-hk4e.mihoyo.com/gacha_info/api/getGachaLog?authkey_ver=1&authkey=abc%2B&page=1",
 	} {
 		if !pastedCredential.MatchString(text) {
 			t.Errorf("not recognized: %s", text)
 		}
 	}
-	for _, text := range []string{"#刷新CK", "我的ltoken过期了吗", "authkey_ver=1", "token=abc", "扫码登录"} {
+	// Gacha links are left to the game plugins.
+	for _, text := range []string{"#刷新CK", "我的ltoken过期了吗", "authkey_ver=1", "token=abc", "扫码登录", "https://public-operation-hk4e.mihoyo.com/gacha_info/api/getGachaLog?authkey_ver=1&authkey=abc%2B&page=1"} {
 		if pastedCredential.MatchString(text) {
 			t.Errorf("recognized ordinary text: %s", text)
 		}
