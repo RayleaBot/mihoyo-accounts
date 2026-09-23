@@ -19,8 +19,8 @@ import (
 var publicUID = regexp.MustCompile(`^[0-9]{6,12}$`)
 
 // publicOperation reports the reads the public pool proxies: each game's
-// index, and the Genshin character list miao reads for another player's UID
-// with a public cookie.
+// index, and for Genshin the index with the character list, which miao reads
+// one after the other with one public cookie for another player's UID.
 func publicOperation(game, operation string) bool {
 	return operation == "profile" || operation == "characters" && game == "genshin"
 }
@@ -71,7 +71,7 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 		if err != nil {
 			return nil, err
 		}
-		record, err := a.Repo.ReservePublic(ctx, store, cipher, ref, request.CallerPluginID, q.Game, time.Now())
+		record, err := a.Repo.ReservePublic(ctx, store, cipher, ref, request.CallerPluginID, q.Game, false, time.Now())
 		if errors.Is(err, accounts.ErrPublicUnavailable) || errors.Is(err, accounts.ErrNotFound) {
 			release()
 			continue
@@ -100,23 +100,55 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 				record.Revision++
 			}
 			role := accounts.Role{Game: q.Game, UID: q.UID, Region: q.Region, Nickname: "公开角色"}
-			name := q.Game + "." + operation
-			data, err := a.API.Execute(ctx, lent, role, name, map[string]any{})
+			// read sends one official request already charged; a failure
+			// rests the account.
+			read := func(name string) (map[string]any, error) {
+				data, err := a.API.Execute(ctx, lent, role, name, map[string]any{})
+				if err != nil {
+					delay := time.Minute
+					if code := publicError(err).Code; code == "plugin.upstream_device_required" || code == "plugin.upstream_challenge_required" || code == "plugin.upstream_auth_invalid" {
+						delay = 24 * time.Hour
+					} else if code == "plugin.upstream_rate_limited" {
+						delay = time.Hour
+					}
+					record.PublicQuery.NextUseMS = time.Now().Add(delay).UnixMilli()
+					_ = a.Repo.Update(ctx, store, cipher, record, record.Revision)
+					if publicError(err).Code == "plugin.upstream_auth_invalid" {
+						return nil, failure("plugin.account_public_unavailable")
+					}
+					return nil, err
+				}
+				return data, nil
+			}
+			index, err := read(q.Game + ".profile")
 			if err != nil {
-				delay := time.Minute
-				if code := publicError(err).Code; code == "plugin.upstream_device_required" || code == "plugin.upstream_challenge_required" || code == "plugin.upstream_auth_invalid" {
-					delay = 24 * time.Hour
-				} else if code == "plugin.upstream_rate_limited" {
-					delay = time.Hour
-				}
-				record.PublicQuery.NextUseMS = time.Now().Add(delay).UnixMilli()
-				_ = a.Repo.Update(ctx, store, cipher, record, record.Revision)
-				if publicError(err).Code == "plugin.upstream_auth_invalid" {
-					return nil, failure("plugin.account_public_unavailable")
-				}
 				return nil, err
 			}
-			return map[string]any{"operation": name, "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli(), "source": "public_query_pool"}, nil
+			if operation == "profile" {
+				return map[string]any{"operation": q.Game + ".profile", "role": role, "data": index, "fetched_at_ms": time.Now().UnixMilli(), "source": "public_query_pool"}, nil
+			}
+			// miao reads the character list right after the index with the
+			// same cookie. It is charged as a request of its own on this
+			// account; a list that cannot be read leaves the index answered
+			// with the list's failure.
+			result := map[string]any{"operation": q.Game + ".characters", "role": role, "index": index, "source": "public_query_pool"}
+			var list map[string]any
+			charged, err := a.Repo.ReservePublic(ctx, store, cipher, ref, request.CallerPluginID, q.Game, true, time.Now())
+			if err == nil {
+				record = charged
+				list, err = read(q.Game + ".characters")
+			}
+			if errors.Is(err, accounts.ErrPublicUnavailable) || errors.Is(err, accounts.ErrNotFound) {
+				err = failure("plugin.account_public_unavailable")
+			}
+			if err != nil {
+				failed := publicError(err)
+				result["failure"] = map[string]any{"code": failed.Code, "message": failed.Message}
+			} else {
+				result["data"] = list
+			}
+			result["fetched_at_ms"] = time.Now().UnixMilli()
+			return result, nil
 		}()
 		return result, err
 	}

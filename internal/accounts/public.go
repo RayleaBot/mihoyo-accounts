@@ -72,7 +72,12 @@ func (r *Repository) SetPublic(ctx context.Context, store SecretStore, cipher *v
 	record.UpdatedAtMS = time.Now().UnixMilli()
 	return record, writeEncrypted(ctx, store, cipher, map[string]any{"account." + ref: record, publicKey: pool})
 }
-func (r *Repository) ReservePublic(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref, caller, game string, now time.Time) (Record, error) {
+
+// ReservePublic charges one official request to a public account: its owner
+// must still share it with the caller for the game and the day's quota must
+// have room. A request following another of the same call goes right after
+// it; any other waits five seconds from the account's last.
+func (r *Repository) ReservePublic(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref, caller, game string, following bool, now time.Time) (Record, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	record, err := r.Get(ctx, store, cipher, ref)
@@ -88,7 +93,7 @@ func (r *Repository) ReservePublic(ctx context.Context, store SecretStore, ciphe
 		p.Day = day
 		p.Used = 0
 	}
-	if p.Used >= p.DailyLimit || p.NextUseMS > now.UnixMilli() {
+	if p.Used >= p.DailyLimit || !following && p.NextUseMS > now.UnixMilli() {
 		return record, ErrPublicUnavailable
 	}
 	p.Used++
