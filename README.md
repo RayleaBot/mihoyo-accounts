@@ -77,7 +77,7 @@ corepack pnpm --dir ui run build
 go run github.com/RayleaBot/RayleaBot/sdk/go/cmd/raylea-plugin build-go --backend ./cmd/mihoyo-accounts --target windows-x64 --include .rayleabot/source.zip=ui/source.zip
 ```
 
-也支持 `linux-x64` 和 `macos-arm64`。打包前在相邻 `game-plugin-kit` 运行 `python scripts/source-bundles.py` 生成对应源码。开发中的 Go SDK v0.7.1 尚未发布 tag，本机及源码包使用 `go.work` 指向随附 SDK 和 game-plugin-kit v0.1.0，并在构建时设置 `RAYLEA_PLUGIN_BUILD_USE_WORKSPACE=1`。单独远端检出构建需要该 SDK 与编译期库版本或对应源码；当前 artifact 已包含后端、UI 与源码下载。
+也支持 `linux-x64` 和 `macos-arm64`。打包前运行 `python scripts/source-bundle.py` 生成管理页提供下载的源码包。开发中的 Go SDK v0.7.1 尚未发布 tag，本机及源码包使用 `go.work` 指向随附 SDK，并在构建时设置 `RAYLEA_PLUGIN_BUILD_USE_WORKSPACE=1`。单独远端检出构建需要该 SDK 与编译期库版本或对应源码；当前 artifact 已包含后端、UI 与源码下载。
 
 插件沿用 RayleaBot SDK 的 AGPL-3.0 许可，第三方依赖声明保留在 `LICENSES/`。
 
