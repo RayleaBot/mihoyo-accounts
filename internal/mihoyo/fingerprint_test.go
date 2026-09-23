@@ -47,3 +47,33 @@ func TestFingerprintRejectsInnerFailureAndMalformedValue(t *testing.T) {
 		}
 	}
 }
+
+func TestFingerprintRegistersDevicesAsZZZPlugin(t *testing.T) {
+	sent := map[string]any{}
+	client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
+		var body map[string]any
+		raw, _ := io.ReadAll(req.Body)
+		_ = json.Unmarshal(raw, &body)
+		sent = map[string]any{}
+		_ = json.Unmarshal([]byte(body["ext_fields"].(string)), &sent)
+		return reply(map[string]any{"retcode": 0, "data": map[string]any{"code": 200, "device_fp": "syntheticfingerprint"}}), nil
+	}), nil)
+	device := &accounts.Device{Name: "panther", Board: "panther", Model: "Pixel 7", OAID: "own-oaid", AndroidVersion: "14", Fingerprint: "google/panther/panther:14/UQ1A.240205.004/11269751:user/release-keys", Product: "panther"}
+	if _, err := client.Fingerprint(t.Context(), accounts.Tokens{DeviceID: "test-device", Device: device}); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"deviceName": "Pixel 7", "model": "Pixel 7", "deviceType": "panther", "brand": "google", "display": "UQ1A.240205.004", "osVersion": "14", "aaid": "test-device", "vaid": "test-device", "oaid": "own-oaid", "proxyStatus": float64(1)}
+	for key, value := range want {
+		if sent[key] != value {
+			t.Errorf("%s = %v, want %v", key, sent[key], value)
+		}
+	}
+	// Without a device of its own, ZZZ-Plugin's default device registers
+	// under the account's identifier.
+	if _, err := client.Fingerprint(t.Context(), accounts.Tokens{DeviceID: "test-device"}); err != nil {
+		t.Fatal(err)
+	}
+	if sent["deviceName"] != "XQ-BC52" || sent["productName"] != "XQ-BC52_EEA" || sent["oaid"] != "test-device" || sent["board"] != "lahaina" {
+		t.Errorf("default device = %v", sent)
+	}
+}
