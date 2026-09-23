@@ -267,9 +267,7 @@ func message(code string) string {
 	case "plugin.upstream_gacha_expired":
 		return "抽卡记录授权暂不可用，请稍后继续同步。"
 	case "plugin.upstream_gacha_unavailable":
-		return "星铁官方暂不接受此抽卡授权方式：请在账号管理页导入游戏内的抽卡链接后再同步，或导入 UIGF、SRGF 记录。现有 CK 仍可用于其他游戏查询。"
-	case "plugin.upstream_gacha_link_expired":
-		return "抽卡链接已过期，请在游戏内重新打开跃迁记录，复制新链接后在账号管理页导入。"
+		return "星铁官方暂不接受此抽卡授权方式：请在游戏内打开跃迁记录，把链接发给机器人，或导入 UIGF、SRGF 记录。现有 CK 仍可用于其他游戏查询。"
 	case "plugin.account_operation_canceled":
 		return "操作已取消或超时，可稍后重试。"
 	case "plugin.vault_locked":

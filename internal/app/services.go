@@ -181,6 +181,24 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		}
 		return nil, failure("plugin.account_role_denied")
 	}
+	// gacha.link gives ZZZ-Plugin's 获取抽卡链接 the owner's own gacha link,
+	// only in a private chat. An authkey only reads gacha records for a day
+	// and is not an account credential; this is the one way it leaves here.
+	if request.Method == "gacha.link" {
+		if request.Origin.EventType != "message.private" || request.Origin.Target == nil || request.Origin.Target.Type != "private" || !slices.Contains(games, "zzz") {
+			return nil, failure("plugin.account_operation_denied")
+		}
+		roleRef := stringValue(request.Params["role_ref"])
+		for _, role := range record.Roles {
+			if role.Ref == roleRef && role.Game == "zzz" {
+				if record.Status == "invalid" {
+					return nil, failure("plugin.upstream_auth_invalid")
+				}
+				return a.API.Execute(ctx, record.Tokens, role, mihoyo.ZZZGachaLink, nil)
+			}
+		}
+		return nil, failure("plugin.account_role_denied")
+	}
 	if request.Method != "execute" {
 		return nil, failure("plugin.account_operation_denied")
 	}

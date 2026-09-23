@@ -63,6 +63,28 @@ func allowedGachaEndpoint(host, path, profile string) bool {
 	}
 	return false
 }
+
+// ZZZGachaLink names the link of ZZZ-Plugin's 获取抽卡链接. It is not in the
+// operation table, so execute never reaches it; only the gacha.link service
+// method does.
+const ZZZGachaLink = "zzz.gacha_link"
+
+// zzzGachaLink is the exclusive channel's record page with an authkey from
+// the SToken, in ZZZ-Plugin's getZZZGachaLink shape. As upstream, only
+// mainland roles are supported.
+func (c *Client) zzzGachaLink(ctx context.Context, tokens accounts.Tokens, role accounts.Role) (map[string]any, error) {
+	spec := gachaProfiles["zzz"]
+	if role.Game != "zzz" || tokens.Realm == "os" || role.UID == "" || !slices.Contains(spec.regions, role.Region) {
+		return nil, &Error{Code: "plugin.account_region_unsupported", Operation: ZZZGachaLink}
+	}
+	key, err := c.gachaAuthKey(ctx, tokens, role, false)
+	if err != nil {
+		return nil, err
+	}
+	query := url.Values{"authkey_ver": {"1"}, "sign_type": {"2"}, "auth_appid": {"webview_gacha"}, "init_log_gacha_type": {"2001"}, "init_log_gacha_base_type": {"2"}, "gacha_id": {"2c1f5692fdfbb733a08733f9eb69d32aed1d37"}, "timestamp": {strconv.FormatInt(c.now().Unix(), 10)}, "lang": {"zh-cn"}, "device_type": {"mobile"}, "plat_type": {"ios"}, "region": {role.Region}, "authkey": {key}, "game_biz": {spec.biz}, "gacha_type": {"2001"}, "real_gacha_type": {"2"}, "page": {"1"}, "size": {"20"}, "end_id": {"0"}}
+	return map[string]any{"url": spec.host + spec.path + "?" + query.Encode()}, nil
+}
+
 func (c *Client) gachaAuthKey(ctx context.Context, tokens accounts.Tokens, role accounts.Role, force bool) (string, error) {
 	return c.businessAuthKey(ctx, tokens, role, "webview_gacha", "gacha.authorize", force)
 }
@@ -126,47 +148,6 @@ func (c *Client) businessAuthKey(ctx context.Context, tokens accounts.Tokens, ro
 	return key, nil
 }
 
-// gachaLinkPage reads a Star Rail gacha page with an imported link's authkey
-// in StarRail-plugin's URL shape.
-func (c *Client) gachaLinkPage(ctx context.Context, tokens accounts.Tokens, key, pool string, page int, endID string) (map[string]any, error) {
-	query := url.Values{"authkey_ver": {"1"}, "default_gacha_type": {"11"}, "lang": {"zh-cn"}, "authkey": {key}, "game_biz": {"hkrpg_cn"}, "page": {strconv.Itoa(page)}, "size": {"20"}, "gacha_type": {pool}, "end_id": {endID}}
-	path := "/common/gacha_record/api/getGachaLog"
-	if pool == "21" || pool == "22" {
-		path = "/common/gacha_record/api/getLdGachaLog"
-	}
-	data, err := c.request(ctx, "starrail.gacha", "https://api-takumi.mihoyo.com", path, "gacha", query, nil, accounts.Tokens{})
-	var failure *Error
-	if errors.As(err, &failure) && failure.Code == "plugin.upstream_gacha_expired" {
-		return nil, &Error{Code: "plugin.upstream_gacha_link_expired", Operation: "starrail.gacha", RetCode: failure.RetCode}
-	}
-	if err != nil {
-		return nil, err
-	}
-	clean, ok := sanitizeBusinessValue(data, tokens, 0)
-	if !ok {
-		return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: "starrail.gacha", Reason: "credential_echo"}
-	}
-	result, _ := clean.(map[string]any)
-	return result, nil
-}
-
-// ParseGachaLink reads the authkey of an in-game Star Rail gacha link, as
-// StarRail-plugin takes it from the pasted URL.
-func ParseGachaLink(raw string) (string, error) {
-	link, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || link.Scheme != "https" || !strings.HasSuffix(link.Hostname(), ".mihoyo.com") {
-		return "", invalidInput("starrail.gacha_link")
-	}
-	key := link.Query().Get("authkey")
-	if len(key) < 8 || len(key) > 16384 || strings.ContainsAny(key, "\r\n ") {
-		return "", invalidInput("starrail.gacha_link")
-	}
-	if biz := link.Query().Get("game_biz"); biz != "" && biz != "hkrpg_cn" {
-		return "", invalidInput("starrail.gacha_link")
-	}
-	return key, nil
-}
-
 func (c *Client) gachaPage(ctx context.Context, tokens accounts.Tokens, role accounts.Role, input map[string]any) (map[string]any, error) {
 	name := role.Game + ".gacha"
 	spec := gachaProfiles[role.Game]
@@ -196,9 +177,6 @@ func (c *Client) gachaPage(ctx context.Context, tokens accounts.Tokens, role acc
 	}
 	if !slices.Contains(spec.pools, pool) || !recordDigits.MatchString(endID) || page < 1 || page > 10001 {
 		return nil, invalidInput(name)
-	}
-	if link, ok := tokens.GachaLinks[role.UID]; ok && role.Game == "starrail" && tokens.Realm != "os" && c.now().UnixMilli() < link.ExpiresAtMS {
-		return c.gachaLinkPage(ctx, tokens, link.AuthKey, pool, page, endID)
 	}
 	key, err := c.gachaAuthKey(ctx, tokens, role, false)
 	if err != nil {

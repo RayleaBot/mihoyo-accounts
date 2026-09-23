@@ -3,11 +3,11 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"regexp"
+
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
-	"regexp"
-	"time"
 )
 
 var deviceIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{16,64}$`)
@@ -142,67 +142,4 @@ func importDevice(raw []byte, tokens accounts.Tokens) (accounts.Tokens, error) {
 	}
 	tokens.Device, tokens.DeviceFP, tokens.DeviceFPExpiresAtMS, tokens.DeviceFPImported = &device, "", 0, false
 	return tokens, nil
-}
-
-// saveGachaLink keeps an in-game Star Rail gacha link's authkey with the
-// account for a day, for the role the link belongs to; the link is only
-// accepted encrypted from the management page.
-func (a *App) saveGachaLink(ctx context.Context, store accounts.SecretStore, input map[string]any) (map[string]any, error) {
-	if _, ok := input["url"]; ok {
-		return nil, failure("plugin.account_input_invalid")
-	}
-	var q struct {
-		AccountRef string         `json:"account_ref"`
-		RoleRef    string         `json:"role_ref"`
-		Revision   uint64         `json:"revision"`
-		Box        vault.InputBox `json:"box"`
-	}
-	if decode(input, &q) != nil {
-		return nil, failure("plugin.account_input_invalid")
-	}
-	a.vaultGate.RLock()
-	defer a.vaultGate.RUnlock()
-	cipher, err := a.Vault.Cipher()
-	if err != nil {
-		return nil, err
-	}
-	release, err := a.acquire(ctx, q.AccountRef)
-	if err != nil {
-		return nil, err
-	}
-	defer release()
-	record, err := a.Repo.Get(ctx, store, cipher, q.AccountRef)
-	if err != nil {
-		return nil, err
-	}
-	if q.Revision != record.Revision {
-		return nil, accounts.ErrConflict
-	}
-	var role *accounts.Role
-	for index := range record.Roles {
-		if record.Roles[index].Ref == q.RoleRef && record.Roles[index].Game == "starrail" {
-			role = &record.Roles[index]
-		}
-	}
-	if role == nil || record.Tokens.Realm == "os" {
-		return nil, failure("plugin.account_role_denied")
-	}
-	plain, err := a.Vault.DecodeInput(q.Box, "account.gacha.link")
-	if err != nil {
-		return nil, err
-	}
-	key, err := mihoyo.ParseGachaLink(string(plain))
-	clear(plain)
-	if err != nil {
-		return nil, err
-	}
-	if record.Tokens.GachaLinks == nil {
-		record.Tokens.GachaLinks = map[string]accounts.GachaLink{}
-	}
-	expires := time.Now().Add(24 * time.Hour).UnixMilli()
-	record.Tokens.GachaLinks[role.UID] = accounts.GachaLink{AuthKey: key, ExpiresAtMS: expires}
-	if err = a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
-		return nil, err
-	}
-	return map[string]any{"revision": record.Revision + 1, "uid": role.UID, "expires_ms": expires}, nil
 }

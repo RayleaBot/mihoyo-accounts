@@ -6,7 +6,7 @@
 
 默认所有插件可信。账号插件维护允许调用的插件列表及账号用途。宿主来源上下文提供调用者和原始主体，`params` 不接受调用者自行声明的管理员标志。
 
-CK、SToken、LToken、Cookie Token、AuthKey、登录会话材料不出现在服务结果或普通配置中。持久化前由本插件 AES-256-GCM 加密，再写入自身 secret 命名空间。主密钥置于插件数据目录，由 Windows 用户范围 DPAPI 或口令包装，不保存在宿主数据库中。
+CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果或普通配置中；AuthKey 只经下文的 `gacha.link` 出现在私聊结果中。持久化前由本插件 AES-256-GCM 加密，再写入自身 secret 命名空间。主密钥置于插件数据目录，由 Windows 用户范围 DPAPI 或口令包装，不保存在宿主数据库中。
 
 登录页面与本人私聊可显示官方二维码 PNG；这是完成扫码所需的临时登录入口。普通服务结果不包含二维码、原始 URL 或 ticket，二维码不写入数据库或文件。
 
@@ -26,6 +26,9 @@ CK、SToken、LToken、Cookie Token、AuthKey、登录会话材料不出现在�
 | `delegation.create` | `account_ref`、`role_ref`、`task_id`、`operation`、`days`（1–90） | 显式创建只读定时委托，返回 `delegation` |
 | `ark.request` | `route`、对象 `body` | 以本插件保存的 ark 令牌代发请求，返回 `data`（ark 响应，已去除令牌回显） |
 | `delegation.revoke` | `account_ref`、`delegation_ref` | 撤销本人或管理来源指定的、属于调用插件的委托 |
+| `gacha.link` | `account_ref`、`role_ref` | 绝区零国服角色的抽卡记录链接 `url`，只接受私聊消息来源 |
+
+`gacha.link` 对应 ZZZ-Plugin 的“获取抽卡链接”：以账号 SToken 换取 `authkey`，按上游格式拼出独家频段的抽卡记录链接交给绝区零插件，由它在原私聊中发出。`authkey` 只能读取抽卡记录、一天后失效，不是账号凭据；这是它离开本插件的唯一途径。群聊、管理页与定时来源一律拒绝，国际服角色返回 `plugin.account_region_unsupported`，与上游不支持国际服一致。
 
 定时委托开放三游戏 `note`、`sign` 和原神/绝区零 `gacha`；签到委托创建还必须带 `write_confirmed=true`。每个账号最多 16 项有效委托，同一调用插件及 task_id 更新同一委托。创建继续校验聊天主体或正式管理来源，不能从调度事件创建。委托把调用插件、task_id、角色、操作、到期时间一起加密保存在账号记录中。
 
@@ -43,7 +46,7 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 
 `genshin.gacha`、`starrail.gacha`、`zzz.gacha` 是国服抽卡记录分页读取，input 为 `gacha_type`、可选 `end_id`（默认字符串 `0`）及 `page`（默认 1）。返回官方分页 data（含 `list`、`region`、`region_time_zone` 等），按上一段删除凭据字段，值中出现 AuthKey 或账号凭据时拒绝。原神支持 100/200/301/302/400/500，星铁支持 1/2/11/12/21/22，绝区零支持 1001/2001/3001/5001/12001/13001。记录校验（每页最多 20 条、UID 与所选角色一致、游标递减、池类型一致、时间与 ID 格式）、池类型转换（绝区零转为档案池类型 1/2/3/5/102/103，原神 400 归入 301）与时区换算由游戏插件完成。
 
-账号插件通过固定官方端点换取 AuthKey，最多在内存缓存 128 项、每项 30 分钟，不落盘、不跨插件传输。分页端点不发送 CK/SToken。明确 AuthKey 失效时重新换取并重试一次，仍失败返回 `plugin.upstream_gacha_expired`；星铁在官方仍拒绝新换取 AuthKey 时返回 `plugin.upstream_gacha_unavailable`。两者均不使 CK 失效；海外角色返回 `plugin.account_region_unsupported`。
+账号插件通过固定官方端点换取 AuthKey，最多在内存缓存 128 项、每项 30 分钟，不落盘；除 `gacha.link` 外不跨插件传输。分页端点不发送 CK/SToken。明确 AuthKey 失效时重新换取并重试一次，仍失败返回 `plugin.upstream_gacha_expired`；星铁在官方仍拒绝新换取 AuthKey 时返回 `plugin.upstream_gacha_unavailable`。两者均不使 CK 失效；海外角色返回 `plugin.account_region_unsupported`。
 
 调用者须同时出现在全局 `allowed_plugins` 与账号 `allowed_callers` 中；其 `games` 进一步限制可用角色和操作。聊天来源必须与账号四字段主体完全相同，不能提交 `subject` 替换。由宿主认证的 `management.action` 来源可管理已授权账号；计划任务仅可按前述有期委托使用指定角色和操作。业务 DTO 使用操作级顶层字段名单，递归拒绝凭据字段与已知凭据值；上游结构不兼容时返回失败。
 
@@ -122,7 +125,6 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 三游戏 `monthly` 也可创建只读定时委托，仅空输入读取官方默认月份，仍遵守五分钟准入间隔及角色/任务/有效期绑定。
 
-
 ## 社区与云游戏账号操作
 
 三游戏 `community_status/community_posts/community_sign/community_read/community_like/community_unlike/community_share` 是账号级操作：`execute` 仅需 `account_ref`，`role_ref` 留空；仍校验原主体、账号调用者名单及调用插件的游戏范围。帖子列表固定本游戏讨论区，读帖/点赞/取消/分享只接受数字 `post_id`。签到、读帖计数、点赞/取消与分享属于显式操作，均要求 `write_confirmed=true`；状态和列表只读。所有认证请求由账号插件发送，游戏只得到米游币、任务、帖子摘要或完成结果。
@@ -131,9 +133,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 原神/绝区零 `cloud_sign/cloud_status/cloud_rewards/cloud_claim` 为账号级云游戏操作。`cloud_sign` 的钱包 GET 可能发放免费时长，必须确认；`cloud_status` 仅读已保存的最近钱包结果并注明时间，不暗中触发领取。原神还支持读取未处理通知及显式确认领取。云授权配置由账号管理页 `accounts.cloud.save/clear` 提供，使用 `box`（RSA-OAEP/AES-GCM，加密用途 `account.cloud.save`）和账号 `revision`；仅保存云端 `combo_token` 密文，摘要只显示配置存在性。令牌不可用不影响普通游戏 CK，暂未提供无依据的 CK→云 Token 换取。已有相同账号重登/刷新保留云授权；删除账号清除全部当前凭据。
 
-
 账号级定时委托支持 `community_run` 和 `cloud_sign`，不需要游戏角色，`role_ref` 必须为空。创建均须 `write_confirmed=true`。community_run 仅接受固定 `action=status/posts/sign/read/like/unlike/share` 和相关数字 `post_id`，最少三秒间隔；云签到空输入、最少五分钟。仍绑定调用插件、真实 task_id、账号主体与到期时间；没有自动 CAPTCHA 重试或写请求重放。
-
 
 ## 兑换与资产变动记录
 
@@ -141,9 +141,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 原神/星铁 `billing` 只读代理固定客服资产记录：原神 `crystal/primogem` 使用字符串 `end_id`，星铁 `dreams/stellar/power/relic/cone` 使用整数 `page`，可选 `page_size` 为 10–50（默认 10）。`direction=produce/consume/all` 筛选变动方向。账号插件用 SToken 换取独立 `csc` AuthKey，仅在内存短期缓存；按账号、角色及用途隔离，AuthKey/原始链接不回传。原神先校验客服返回 UID 与所选角色一致。返回一页无凭据记录（原神 20 条，星铁按页长）、下一游标/页码及覆盖边界；授权拒绝使用 `plugin.upstream_billing_unavailable`，不会判定普通游戏 CK 失效。
 
-
 `genshin.blueprint_read/blueprint_compute` 为本人角色读取尘歌壶10–15位分享码和计算摆设材料。仅固定官方家具 blueprint/compute 端点，国服及原神海外明确区服；read 输入 share_code，compute 输入1–500项 {id,cnt}、ID正整数且数量1–9999。计算为只读业务，不执行游戏内放置或消耗。凭据、原始头和URL不返回调用方。
-
 
 ### 本人跨聊天关联
 
@@ -161,9 +159,6 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 插件订阅聊天消息，但从不在聊天中读取或保存账号凭据：消息中出现 ltoken、cookie_token、stoken（含 _v2）、login_ticket、ltuid 或 _MHYUUID 时，回复请撤回并改用扫码登录或管理页加密导入；群聊中另提醒凭据已公开，需退出登录或修改密码使其失效。抽卡链接不是账号凭据，由各游戏插件在聊天中按上游读取。
 
-`accounts.gacha_link.save` 接收账号、星铁角色、版本号与浏览器加密输入（`account.gacha.link` 用途）的游戏内跃迁记录链接，只接受 miHoYo 域名的 HTTPS 链接，取出 authkey 随账号加密保存一天。国服星铁翻页时优先使用该 authkey，按 StarRail-plugin 的链接形态请求 `api-takumi.mihoyo.com`（不带 auth_appid 与 sign_type）；过期时提示重新导入，没有链接时仍按原方式换取授权。链接与 authkey 不返回管理页或游戏插件。
-
-
 ### 海外 HoYoLab 账号
 
 账号增加 `realm=cn/os`，旧记录缺省cn；相同数字通行证ID在不同地区不合并。国服可用米游社扫码，也可与海外一样在管理页用浏览器混合加密输入本人 Cookie（`account.cookie.import` 用途，选择国服或海外），仅接收白名单账号ID、LToken、CookieToken、SToken 与 MID；国服需要 SToken，或 LToken 与 CookieToken，海外需要 LToken，或 SToken v2 与 MID。凭据字段在账号进程内解析，其他字段不保存，普通管理响应和游戏插件不接收原文；国服导入与扫码得到的同一通行证合并为一个账号。
@@ -171,6 +166,5 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 `accounts.import.start/step/cancel`（start 带 `realm=cn/os`）保存五分钟进程内导入会话，缺少可用凭据时先用 SToken 换取，之后每一步发现一个游戏的官方角色，三步结束后加密绑定。未完成流程不写账号库；认证失败明确停止，短暂不可用可重试当前步骤。锁库、重启清除会话。正常业务使用各游戏固定海外战绩、签到、月报、养成/家具、兑换与抽卡端点，地区不匹配不发送凭据；社区米游币与国服云游戏不跨区混用。
 
 海外 Cookie 的 v1/v2字段分别记录，SToken v2与MID可经固定官方端点刷新LToken/CookieToken，旧SToken使用固定旧版账号接口；逐抽AuthKey用CookieToken v2和MID在账号插件内换取。只有存在已验证源路径的操作才接入，未提供地区路径保持明确不支持。接口和签名参考固定 `genshin.py` 075f0e1e332f9452e544aa7dfdf265678889d6ab 与既有 Yunzai；海外真人扫码/账号/设备验证保留实测条件，不把合成验证写成真人登录成功。
-
 
 `genshin.birthday_list/birthday_claim` 代理留影叙佳期活动。活动临时 Cookie 仅留在账号插件内存，list 只返回生日角色与官方图片链接；claim 要求 write_confirmed、固定数字 role_id，并先确认该角色在当前活动列表。失败不自动重放领取请求，社区活动认证失败不直接宣告普通游戏CK失效。

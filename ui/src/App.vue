@@ -6,7 +6,6 @@ import ArkToken from './ArkToken.vue'
 import AccountMaintenance from './AccountMaintenance.vue'
 import CloudAuthorizations from './CloudAuthorizations.vue'
 import DeviceSettings from './DeviceSettings.vue'
-import GachaLink from './GachaLink.vue'
 import AccountAssociations from './AccountAssociations.vue'
 import CookieAuthorization from './CookieAuthorization.vue'
 import { accountNames, checkNames, encryptPassword, errorText, finished, gameNames, loginLabel, subjectFor, vaultNames, type Account, type Login, type Status } from './model'
@@ -240,7 +239,6 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
                 <p v-else class="muted">尚未发现角色，可按游戏重新读取。</p>
                 <div class="actions"><button v-for="(label, game) in gameNames" :key="game" type="button" :disabled="busy" @click="updateAccount(account, 'accounts.roles', { game })">重新读取{{ label }}</button></div>
                 <DeviceSettings :account="account" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
-                <GachaLink :account="account" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
                 <CloudAuthorizations v-if="account.realm!=='os'" :account="account" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
                 <form @submit.prevent="updateAccount(account, 'accounts.permissions', { callers, revision: account.revision })">
                   <fieldset :disabled="busy"><legend>允许使用此账号的插件</legend><div class="checks"><label v-for="entry in status.allowed_plugins" :key="entry.plugin_id"><input v-model="callers" type="checkbox" :value="entry.plugin_id"><span>{{ entry.games.map(game => gameNames[game] || game).join('、') }} <small>{{ entry.plugin_id }}</small></span></label></div></fieldset>

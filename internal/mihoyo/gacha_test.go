@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -104,5 +105,30 @@ func TestGachaRejectsAuthKeyEcho(t *testing.T) {
 		if err == nil {
 			t.Fatal("invalid gacha page accepted")
 		}
+	}
+}
+
+func TestZZZGachaLinkFollowsZZZPlugin(t *testing.T) {
+	client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Path != "/binding/api/genAuthKey" {
+			t.Fatal("the link must not fetch records")
+		}
+		return reply(map[string]any{"retcode": 0, "data": map[string]any{"authkey": "synthetic-key+/="}}), nil
+	}), nil)
+	tokens := accounts.Tokens{AccountID: "123", SToken: "synthetic-token"}
+	data, err := client.Execute(t.Context(), tokens, accounts.Role{Game: "zzz", UID: "10000001", Region: "prod_gf_cn"}, ZZZGachaLink, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link, err := url.Parse(text(data["url"]))
+	if err != nil || link.Host != "public-operation-common.mihoyo.com" || link.Path != "/common/gacha_record/api/getGachaLog" {
+		t.Fatal(data)
+	}
+	query := link.Query()
+	if query.Get("authkey") != "synthetic-key+/=" || query.Get("gacha_type") != "2001" || query.Get("real_gacha_type") != "2" || query.Get("game_biz") != "nap_cn" || query.Get("region") != "prod_gf_cn" {
+		t.Fatal(query)
+	}
+	if _, err := client.Execute(t.Context(), accounts.Tokens{Realm: "os"}, accounts.Role{Game: "zzz", UID: "1300000001", Region: "prod_gf_us"}, ZZZGachaLink, nil); err == nil {
+		t.Fatal("overseas role got a link")
 	}
 }

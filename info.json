@@ -31,7 +31,8 @@
         "ark.request",
         "uids.bind",
         "uids.remove",
-        "uids.use"
+        "uids.use",
+        "gacha.link"
       ]
     }
   ],

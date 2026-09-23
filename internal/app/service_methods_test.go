@@ -33,7 +33,7 @@ func TestManifestDeclaresEveryRegisteredMethod(t *testing.T) {
 	if !slices.Equal(registered, declared) {
 		t.Fatal(registered, declared)
 	}
-	for _, method := range []string{"uids.bind", "uids.remove", "uids.use", "ark.request"} {
+	for _, method := range []string{"uids.bind", "uids.remove", "uids.use", "ark.request", "gacha.link"} {
 		if !slices.Contains(declared, method) {
 			t.Fatal("missing", method)
 		}

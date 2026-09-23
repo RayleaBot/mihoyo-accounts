@@ -69,6 +69,9 @@ func OperationNames() []string {
 }
 
 func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accounts.Role, name string, input map[string]any) (map[string]any, error) {
+	if name == ZZZGachaLink {
+		return c.zzzGachaLink(ctx, tokens, role)
+	}
 	spec, exists := operations[name]
 	if !exists || spec.game != role.Game || !spec.accountScoped && (role.UID == "" || role.Region == "") {
 		return nil, &Error{Code: "plugin.account_operation_denied", Operation: name}
