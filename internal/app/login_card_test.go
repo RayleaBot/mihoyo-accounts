@@ -84,10 +84,7 @@ func TestLoginCardFallsBackToText(t *testing.T) {
 		}
 	})
 	t.Run("picture refused", func(t *testing.T) {
-		a, host := chatLogin(t, &fakeAPI{})
-		host.message("private", "#扫码登录", "扫码登录")
-		job := currentJob(a)
-		waitFor(t, func() bool { job.mu.Lock(); defer job.mu.Unlock(); return job.ready })
+		_, host := handedOver(t)
 		host.imageFails = true
 		reply, actions := host.loginTrigger()
 		sends := actionsNamed(actions, "message.send")

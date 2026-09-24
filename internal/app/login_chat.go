@@ -31,7 +31,7 @@ func loginTaskRequest() rayleabot.SchedulerCreateRequest {
 	return rayleabot.SchedulerCreateRequest{TaskID: loginTask, Cron: "* * * * *", LogLabel: "米游社扫码结果", Payload: map[string]any{"kind": "login_notifications"}}
 }
 
-// followLogin waits for a group login inside its 扫码登录 event, as
+// followLogin waits for a chat login inside its 扫码登录 event, as
 // xiaoyao-cvs-plugin's GetQrCode polls it: it says once that the code was
 // scanned, recalls the code once it is due and sends the result as soon as
 // the login ends, recalling a code still shown. It follows until
@@ -119,7 +119,7 @@ func (a *App) handOver(parent context.Context, event *rayleabot.EventContext) {
 	}
 }
 
-// recallCode recalls the code a login sent to a group, once: with due set
+// recallCode recalls the code a login sent to its chat, once: with due set
 // only when its time came, otherwise at once. As upstream, a failed recall is
 // logged, not retried.
 func (a *App) recallCode(parent context.Context, event *rayleabot.EventContext, s *login, due bool) {
@@ -140,7 +140,7 @@ func (a *App) recallCode(parent context.Context, event *rayleabot.EventContext, 
 		if errors.As(err, &failure) {
 			fields["code"] = failure.Code
 		}
-		_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: "群聊中的扫码二维码未能撤回；二维码在发出三分钟后失效。", Fields: fields})
+		_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: "扫码二维码未能撤回；二维码在发出三分钟后失效。", Fields: fields})
 	}
 }
 

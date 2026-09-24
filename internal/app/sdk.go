@@ -139,14 +139,16 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 			_, _ = a.cancelLogin(view.Ref)
 			return event.SendText("扫码任务未能创建，请稍后重试。")
 		}
+		// As xiaoyao-cvs-plugin's 扫码登录, in a private chat as in a group:
+		// the code, @ing the sender in a group, is recalled after 30 seconds,
+		// and the event waits for the login. The per-minute task answers what
+		// the event leaves.
 		code := rayleabot.Image("base64://" + strings.TrimPrefix(view.QRCode, "data:image/png;base64,"))
-		if event.Event.Target.Type == "private" {
-			return event.Send("private", owner.ActorID, rayleabot.Text("使用米游社扫码并确认。登录结果会在一分钟内发送，也可发送“登录状态”立即查看。"), code)
+		segments := []rayleabot.Segment{rayleabot.Text("请扫码以完成绑定\n"), code}
+		if event.Event.Target.Type != "private" {
+			segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}
 		}
-		// In a group, as xiaoyao-cvs-plugin's 扫码登录: the code @s the
-		// sender and is recalled after 30 seconds, and the event waits for
-		// the login. The per-minute task answers what the event leaves.
-		sent, err := event.Actions().MessageSend(ctx, rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}}})
+		sent, err := event.Actions().MessageSend(ctx, rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: segments}})
 		if id := stringValue(sent["message_id"]); err == nil && id != "" && owner.SourceProtocol == "onebot11" {
 			job.mu.Lock()
 			job.qrMessage, job.recallAt = id, time.Now().Add(a.recallDelay)
@@ -363,7 +365,7 @@ const deviceHelp = `[绑定设备]
 发送“解绑设备”即可`
 
 // loginTask sends chat logins their result once a minute while any is open,
-// and recalls the codes sent to groups, when their 扫码登录 events did not.
+// and recalls the codes sent to chats, when their 扫码登录 events did not.
 const loginTask = "mihoyo.accounts.login"
 
 func (a *App) notifyLogins(parent context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy) error {

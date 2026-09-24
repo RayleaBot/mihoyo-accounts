@@ -38,7 +38,7 @@ type LoginFailure struct {
 
 // login is a login job. chat is the chat 扫码登录 came from, which is sent
 // the result; logins started on the management page have none. qrMessage is
-// the code sent to a group, recalled from recallAt on. changed wakes the
+// the code sent to the chat, recalled from recallAt on. changed wakes the
 // 扫码登录 event following the job when the worker moved it on, and
 // scanNoticed is set once that event said the code was scanned.
 type login struct {

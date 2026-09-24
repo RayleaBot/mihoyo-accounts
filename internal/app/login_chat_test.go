@@ -74,17 +74,22 @@ func TestGroupLoginResultIsSentInItsEvent(t *testing.T) {
 	}
 }
 
-func TestGroupLoginSaysScannedOnceAndRecallsTheCodeWhenDue(t *testing.T) {
+// scannedThenConfirmed is scanned for 200ms after its first poll, then
+// confirmed.
+func scannedThenConfirmed() *fakeAPI {
 	var once sync.Once
 	var first time.Time
-	api := &fakeAPI{poll: func(context.Context, mihoyo.QR) (mihoyo.Confirmation, error) {
+	return &fakeAPI{poll: func(context.Context, mihoyo.QR) (mihoyo.Confirmation, error) {
 		once.Do(func() { first = time.Now() })
 		if time.Since(first) < 200*time.Millisecond {
 			return mihoyo.Confirmation{State: "scanned"}, nil
 		}
 		return mihoyo.Confirmation{State: "confirmed", Tokens: syntheticTokens()}, nil
 	}}
-	a, host := chatLogin(t, api)
+}
+
+func TestGroupLoginSaysScannedOnceAndRecallsTheCodeWhenDue(t *testing.T) {
+	a, host := chatLogin(t, scannedThenConfirmed())
 	a.pollInterval, a.recallDelay = 5*time.Millisecond, 50*time.Millisecond
 	_, actions := host.message("group", "#扫码登录", "扫码登录")
 	var notices []hostAction
@@ -171,15 +176,62 @@ func TestFollowedLoginEndsWhenCanceledElsewhere(t *testing.T) {
 	}
 }
 
-func TestPrivateLoginIsAnsweredOnceByTheTaskOrLoginStatus(t *testing.T) {
-	a, host := chatLogin(t, &fakeAPI{})
-	reply, actions := host.message("private", "#扫码登录", "扫码登录")
-	if !strings.Contains(sentText(reply), "登录结果会在一分钟内发送") || len(actionsNamed(actions, "message.send")) != 0 {
-		t.Fatalf("private 扫码登录 changed: %q, %v", sentText(reply), actions)
+func TestPrivateLoginIsAnsweredInItsEvent(t *testing.T) {
+	a, host := chatLogin(t, scannedThenConfirmed())
+	a.pollInterval, a.recallDelay = 5*time.Millisecond, 50*time.Millisecond
+	_, actions := host.message("private", "/扫码登录", "扫码登录")
+	sends := actionsNamed(actions, "message.send")
+	code := object(sends[0].Data["message"])["segments"].([]any)
+	if sends[0].Data["target_type"] != "private" || sends[0].Data["target_id"] != subject().ActorID || object(object(code[0])["data"])["text"] != "请扫码以完成绑定\n" || object(code[1])["type"] != "image" {
+		t.Fatalf("private code: %v", sends[0].Data)
 	}
+	var notices []hostAction
+	for _, send := range sends {
+		if send.Data["reply_to_event_id"] != nil {
+			notices = append(notices, send)
+		}
+	}
+	results, recalls := resultSends(actions), actionsNamed(actions, "message.delete")
+	if len(notices) != 1 || actionText(notices[0]) != "二维码已扫描，请确认登录" || notices[0].Data["target_type"] != "private" {
+		t.Fatalf("scanned notice: %v", notices)
+	}
+	if len(results) != 1 || results[0].Data["target_type"] != "private" || !strings.Contains(actionText(results[0]), "登录成功") {
+		t.Fatalf("result: %v", actions)
+	}
+	if len(recalls) != 1 || recalls[0].Data["message_id"] != "sent-1" || position(actions, recalls[0]) > position(actions, results[0]) {
+		t.Fatalf("the private code was not recalled when due: %v", actions)
+	}
+	_, actions = host.loginTrigger()
+	if len(actionsNamed(actions, "message.send")) != 0 || len(actionsNamed(actions, "message.delete")) != 0 {
+		t.Fatalf("the task repeated the event's work: %v", actions)
+	}
+}
+
+// handedOver starts a private login the event leaves open, and confirms it
+// once handed over to the task.
+func handedOver(t *testing.T) (*App, *chatHost) {
+	t.Helper()
+	var confirmed atomic.Bool
+	a, host := chatLogin(t, &fakeAPI{poll: func(context.Context, mihoyo.QR) (mihoyo.Confirmation, error) {
+		if !confirmed.Load() {
+			return mihoyo.Confirmation{State: "waiting"}, nil
+		}
+		return mihoyo.Confirmation{State: "confirmed", Tokens: syntheticTokens()}, nil
+	}})
+	a.followWindow, a.recallDelay = 100*time.Millisecond, 50*time.Millisecond
+	_, actions := host.message("private", "/扫码登录", "扫码登录")
+	if len(resultSends(actions)) != 0 || len(actionsNamed(actions, "message.delete")) != 1 || len(actionsNamed(actions, "scheduler.create")) != 2 {
+		t.Fatalf("the open login was not handed over: %v", actions)
+	}
+	confirmed.Store(true)
 	job := currentJob(a)
 	waitFor(t, func() bool { job.mu.Lock(); defer job.mu.Unlock(); return job.ready })
-	reply, actions = host.message("private", "#登录状态", "登录状态")
+	return a, host
+}
+
+func TestLoginStatusResultIsNotSentAgainByTheTask(t *testing.T) {
+	_, host := handedOver(t)
+	reply, actions := host.message("private", "/登录状态", "登录状态")
 	if results := actionsNamed(actions, "message.send"); reply["type"] != "result" || len(results) != 1 || results[0].Data["target_type"] != "private" || !strings.Contains(actionText(results[0]), "登录成功") {
 		t.Fatalf("登录状态 did not give the result: %v", actions)
 	}

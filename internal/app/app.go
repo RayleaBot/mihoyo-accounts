@@ -76,9 +76,9 @@ type App struct {
 	refreshMu    sync.Mutex
 	refreshes    map[string]*refreshFlight
 	pollInterval time.Duration
-	// followWindow is how long a group 扫码登录 event follows its login,
-	// recallDelay how long its code stays in the group, and followers holds
-	// a slot for each event following one.
+	// followWindow is how long a 扫码登录 event follows its login,
+	// recallDelay how long its code stays in the chat, and followers holds a
+	// slot for each event following one.
 	followWindow time.Duration
 	recallDelay  time.Duration
 	followers    chan struct{}
