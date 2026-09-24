@@ -208,15 +208,22 @@ func (a *App) expireLogin(s *login) {
 
 // The worker only contacts official HTTPS endpoints and changes memory. It
 // never reuses an ended EventContext. pollLogin commits with a fresh live event.
+// The code is polled every interval, as upstream polls it; once it is
+// confirmed, the exchange and each game's roles follow one another at once,
+// and only a retry waits for its turn.
 func (a *App) watchLogin(s *login) {
 	ticker := time.NewTicker(a.pollInterval)
 	defer ticker.Stop()
+	next := false
 	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
+		if !next {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-ticker.C:
+			}
 		}
+		next = false
 		s.mu.Lock()
 		if time.Now().UnixMilli() >= s.view.ExpiresAtMS {
 			s.expire()
@@ -248,6 +255,7 @@ func (a *App) watchLogin(s *login) {
 					s.tokens = confirmation.Tokens
 					s.view.State, s.view.Phase, s.view.QRCode = "scanned", "exchange", ""
 					s.view.ExpiresAtMS = time.Now().Add(3 * time.Minute).UnixMilli()
+					next = true
 				case "waiting", "scanned":
 					s.view.State = confirmation.State
 				case "expired", "canceled":
@@ -271,6 +279,7 @@ func (a *App) watchLogin(s *login) {
 				s.tokens = refreshed
 				s.view.Phase = "roles"
 				s.recovered()
+				next = true
 			}
 			s.mu.Unlock()
 		case "roles":
@@ -310,6 +319,7 @@ func (a *App) watchLogin(s *login) {
 				}
 			}
 			s.mu.Unlock()
+			next = true
 		default:
 			cancel()
 			return
