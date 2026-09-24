@@ -43,7 +43,8 @@ func TestBoundLoginIsSentAsTheRoleCard(t *testing.T) {
 		resources[stringValue(object(raw)["id"])] = object(raw)
 	}
 	games := data["games"].([]any)
-	if data["prefix"] != "#" || len(games) != 3 {
+	// The tips write the plugin's first prefix; the host here uses / * ~.
+	if data["prefix"] != "/" || len(games) != 3 {
 		t.Fatalf("card data: %v", data)
 	}
 	genshin, starrail, zzz := object(games[0]), object(games[1]), object(games[2])

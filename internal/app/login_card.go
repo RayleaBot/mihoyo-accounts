@@ -48,12 +48,8 @@ func (a *App) loginResult(ctx context.Context, event *rayleabot.EventContext, st
 	faceCtx, cancel := context.WithTimeout(ctx, faceTime)
 	faces := a.roleFaces(faceCtx, store, view.Account.Ref)
 	cancel()
-	prefix := ""
-	if len(event.CommandPrefixes) > 0 {
-		prefix = event.CommandPrefixes[0]
-	}
 	data, resources := loginCard(view, faces)
-	data["prefix"] = prefix
+	data["prefix"] = commandPrefix(event)
 	result, err := event.Actions().RenderImage(ctx, rayleabot.RenderImageRequest{Template: "uid-list", Output: "png", FallbackText: loginText(view), Data: data, Resources: resources})
 	path := stringValue(result["image_path"])
 	if err != nil || path == "" {

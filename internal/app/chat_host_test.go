@@ -64,7 +64,7 @@ func newChatHost(t *testing.T, a *App, store *memoryStore) *chatHost {
 		close(h.lines)
 	}()
 	s := subject()
-	h.exchange("init", map[string]any{"type": "init", "request_id": "init", "protocol_version": "4", "plugin_id": "raylea.mihoyo-accounts", "bots": []any{map[string]any{"source_adapter": s.SourceAdapter, "source_protocol": s.SourceProtocol, "id": s.BotID}}, "config": policy(), "super_admins": []string{}, "command_prefixes": []string{"#"}, "timezone": "Asia/Shanghai", "concurrency": 4})
+	h.exchange("init", map[string]any{"type": "init", "request_id": "init", "protocol_version": "4", "plugin_id": "raylea.mihoyo-accounts", "bots": []any{map[string]any{"source_adapter": s.SourceAdapter, "source_protocol": s.SourceProtocol, "id": s.BotID}}, "config": policy(), "super_admins": []string{}, "command_prefixes": []string{"/", "*", "~"}, "timezone": "Asia/Shanghai", "concurrency": 4})
 	return h
 }
 
