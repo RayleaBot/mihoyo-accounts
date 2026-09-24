@@ -60,7 +60,7 @@ func TestBoundLoginIsSentAsTheRoleCard(t *testing.T) {
 	if starrail["name"] != "星穹铁道" || card["face"] != "face-common" || resources["face-common"]["path"] != "assets/miao-plugin/resources/common/item/face.webp" || resources[stringValue(card["banner"])]["path"] != "assets/miao-plugin/resources/meta-sr/character/common/imgs/banner.webp" {
 		t.Fatalf("星穹铁道 card: %v %v", starrail, resources)
 	}
-	if zzz["name"] != "绝区零" || len(zzz["uids"].([]any)) != 0 || !strings.Contains(stringValue(zzz["notice"]), "读取失败") {
+	if zzz["name"] != "绝区零" || len(zzz["uids"].([]any)) != 0 || zzz["retry"] != "/刷新ck" {
 		t.Fatalf("绝区零 notice: %v", zzz)
 	}
 	results := resultSends(actions)

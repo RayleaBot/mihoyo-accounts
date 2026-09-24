@@ -37,7 +37,10 @@
       </div>
       {{ end }}
       {{ else }}
-      <div class="no-uid">{{ .notice }}</div>
+      <div class="no-uid">角色读取失败，可发送
+        <nobr>{{ .retry }}</nobr>
+        重新读取
+      </div>
       {{ end }}
     </div>
   </div>

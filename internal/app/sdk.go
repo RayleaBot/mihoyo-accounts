@@ -223,7 +223,14 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if command == "删除CK" {
 		action = "accounts.remove"
 	}
-	if _, err := a.Manage(ctx, store, policy, action, map[string]any{"account_ref": items[index-1].Ref, "subject": owner}); err != nil {
+	if action == "accounts.refresh" {
+		// Refreshing reads each game's roles as well, several requests.
+		var stop context.CancelFunc
+		ctx, stop = context.WithTimeout(parent, resultTime)
+		defer stop()
+	}
+	ref := items[index-1].Ref
+	if _, err := a.Manage(ctx, store, policy, action, map[string]any{"account_ref": ref, "subject": owner}); err != nil {
 		return event.SendText(publicError(err).Message)
 	}
 	if action == "accounts.remove" {
@@ -232,7 +239,19 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if action == "accounts.check" {
 		return event.SendText("账号角色接口检查通过，凭据未刷新。具体游戏的设备验证状态需单独查询。")
 	}
-	return event.SendText("账号凭据已刷新。")
+	// As xiaoyao-cvs-plugin's 刷新ck, which binds the new cookie through
+	// Yunzai's bing and so reads the account's roles again, each game's roles
+	// are read again; a game that cannot be read keeps its roles.
+	var failed []string
+	for _, game := range cardGames {
+		if _, err := a.Manage(ctx, store, policy, "accounts.roles", map[string]any{"account_ref": ref, "game": game.id, "subject": owner}); err != nil {
+			failed = append(failed, game.name)
+		}
+	}
+	if len(failed) > 0 {
+		return event.SendText("账号凭据已刷新；" + strings.Join(failed, "、") + "角色未能读取，已保留原有角色，可稍后再次发送“刷新CK”。")
+	}
+	return event.SendText("账号凭据已刷新，已重新读取游戏角色。")
 }
 
 func checkLabel(state string) string {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -48,7 +49,12 @@ func (a *App) loginResult(ctx context.Context, event *rayleabot.EventContext, st
 	faceCtx, cancel := context.WithTimeout(ctx, faceTime)
 	faces := a.roleFaces(faceCtx, store, view.Account.Ref)
 	cancel()
-	data, resources := loginCard(view, faces)
+	// A game whose roles were not read names the 刷新CK that reads them.
+	retry := commandPrefix(event) + "刷新ck"
+	if number := a.accountNumber(ctx, store, view.Account.Owner, view.Account.Ref); number > 1 {
+		retry += " " + strconv.Itoa(number)
+	}
+	data, resources := loginCard(view, faces, retry)
 	data["prefix"] = commandPrefix(event)
 	result, err := event.Actions().RenderImage(ctx, rayleabot.RenderImageRequest{Template: "uid-list", Output: "png", FallbackText: loginText(view), Data: data, Resources: resources})
 	path := stringValue(result["image_path"])
@@ -62,8 +68,8 @@ func (a *App) loginResult(ctx context.Context, event *rayleabot.EventContext, st
 // in the 原神插件's html/user/uid-list: per game, each role's UID with the CK
 // tag, its name and level from the official role list, its in-game avatar or
 // miao's common face, and the game's common banner. A game whose roles were
-// not read says so; one without roles is left out.
-func loginCard(view LoginView, faces map[string]string) (map[string]any, []rayleabot.RenderImageResource) {
+// not read shows the retry command; one without roles is left out.
+func loginCard(view LoginView, faces map[string]string, retry string) (map[string]any, []rayleabot.RenderImageResource) {
 	resources := append([]rayleabot.RenderImageResource{}, cardArtwork...)
 	games := []any{}
 	for _, game := range cardGames {
@@ -87,7 +93,7 @@ func loginCard(view LoginView, faces map[string]string) (map[string]any, []rayle
 			resources = append(resources, rayleabot.RenderImageResource{ID: "banner-" + game.id, Path: game.banner})
 			games = append(games, map[string]any{"name": game.name, "uids": uids})
 		} else if state := view.RoleStates[game.id]; state != "" && state != "empty" && state != "ready" {
-			games = append(games, map[string]any{"name": game.name, "uids": uids, "notice": "角色读取失败，可在账号管理页按游戏重试"})
+			games = append(games, map[string]any{"name": game.name, "uids": uids, "retry": retry})
 		}
 	}
 	return map[string]any{"games": games}, resources
@@ -132,4 +138,20 @@ func (a *App) roleFaces(ctx context.Context, store accounts.SecretStore, ref str
 		}
 	}
 	return faces
+}
+
+// accountNumber is the account's number among its owner's accounts, as 我的CK
+// lists them and 刷新CK takes it; 0 when it is not found.
+func (a *App) accountNumber(ctx context.Context, store accounts.SecretStore, owner accounts.Subject, ref string) int {
+	a.vaultGate.RLock()
+	defer a.vaultGate.RUnlock()
+	cipher, err := a.Vault.Cipher()
+	if err != nil {
+		return 0
+	}
+	items, err := a.Repo.List(ctx, store, cipher, owner)
+	if err != nil {
+		return 0
+	}
+	return slices.IndexFunc(items, func(item accounts.Summary) bool { return item.Ref == ref }) + 1
 }

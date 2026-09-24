@@ -117,7 +117,7 @@
     {
       "id": "refresh",
       "name": "刷新CK",
-      "description": "刷新指定账号，默认第一个账号",
+      "description": "刷新指定账号的凭据并重新读取游戏角色，默认第一个账号",
       "usage": "#刷新CK [序号]",
       "permission": "everyone",
       "trigger": {

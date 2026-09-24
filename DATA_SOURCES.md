@@ -2,7 +2,7 @@
 
 ## 登录角色图
 
-扫码登录成功后的角色图 `templates/uid-list/` 按 Miao-Yunzai 原神插件的 html/user/uid-list 改写（GPL-3.0，见 `LICENSES/Miao-Yunzai-GPL-3.0.txt`），与 Yunzai 的 showUid 一样在一张图中按原神、星穹铁道、绝区零列出角色；页面框架与样式沿用 miao-plugin 的 common/layout/elem 与 common/common.css（MIT，见 `LICENSES/miao-plugin-MIT.txt`）中本页用到的部分，同 miao 的 1.4 倍缩放，与原神、星铁、绝区零插件的“我的uid”图相同。图片地址改为宿主渲染资源。上游标出当前使用的 UID 并提示切换命令，登录结果没有当前 UID，因此不显示；底部提示改为账号命令。
+扫码登录成功后的角色图 `templates/uid-list/` 按 Miao-Yunzai 原神插件的 html/user/uid-list 改写（GPL-3.0，见 `LICENSES/Miao-Yunzai-GPL-3.0.txt`），与 Yunzai 的 showUid 一样在一张图中按原神、星穹铁道、绝区零列出角色；页面框架与样式沿用 miao-plugin 的 common/layout/elem 与 common/common.css（MIT，见 `LICENSES/miao-plugin-MIT.txt`）中本页用到的部分，同 miao 的 1.4 倍缩放，与原神、星铁、绝区零插件的“我的uid”图相同。图片地址改为宿主渲染资源。上游标出当前使用的 UID 并提示切换命令，登录结果没有当前 UID，因此不显示；底部提示改为账号命令；角色读取失败的游戏与上游“暂无uid”一样以命令标签提示发送“刷新ck”重新读取。
 
 每个角色显示 UID、CK 标记，以及官方角色列表中的名称与等级。
 
