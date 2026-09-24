@@ -23,8 +23,7 @@ func actionText(action hostAction) string {
 func resultSends(actions []hostAction) []hostAction {
 	var found []hostAction
 	for _, action := range actionsNamed(actions, "message.send") {
-		segments := object(action.Data["message"])["segments"].([]any)
-		if action.Data["reply_to_event_id"] == nil && object(segments[len(segments)-1])["type"] != "image" {
+		if action.Data["reply_to_event_id"] == nil && !strings.Contains(actionText(action), "请扫码以完成绑定") {
 			found = append(found, action)
 		}
 	}
@@ -180,9 +179,9 @@ func TestPrivateLoginIsAnsweredOnceByTheTaskOrLoginStatus(t *testing.T) {
 	}
 	job := currentJob(a)
 	waitFor(t, func() bool { job.mu.Lock(); defer job.mu.Unlock(); return job.ready })
-	reply, _ = host.message("private", "#登录状态", "登录状态")
-	if !strings.Contains(sentText(reply), "登录成功") {
-		t.Fatalf("登录状态: %q", sentText(reply))
+	reply, actions = host.message("private", "#登录状态", "登录状态")
+	if results := actionsNamed(actions, "message.send"); reply["type"] != "result" || len(results) != 1 || results[0].Data["target_type"] != "private" || !strings.Contains(actionText(results[0]), "登录成功") {
+		t.Fatalf("登录状态 did not give the result: %v", actions)
 	}
 	// 登录状态 gave the result in the login's chat; the task does not send it
 	// again.

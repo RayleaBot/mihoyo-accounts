@@ -102,7 +102,7 @@ func (a *App) finishFollow(parent context.Context, event *rayleabot.EventContext
 	result, err := a.Manage(ctx, store, policy, "login.poll", map[string]any{"login_ref": ref})
 	if err == nil {
 		view := result["login"].(LoginView)
-		if terminal(view.State) && a.sendLoginResult(ctx, event, s, view) == nil {
+		if terminal(view.State) && a.sendLoginResult(ctx, event, store, s, view) == nil {
 			return
 		}
 	}
@@ -144,27 +144,55 @@ func (a *App) recallCode(parent context.Context, event *rayleabot.EventContext, 
 	}
 }
 
-// sendLoginResult sends an ended login's result to the chat it came from, @ing
-// the sender in a group. The result is sent once: it is marked sent first and
-// unmarked when the send fails, for the per-minute task to retry.
-func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext, s *login, view LoginView) error {
+// claimResult marks an ended login's result as sent before it is sent, so
+// it is sent once; given a chat, only when the login came from that chat. It
+// is false when the result was already sent or has no chat to go to.
+func (s *login) claimResult(chat *rayleabot.Target) bool {
 	s.mu.Lock()
-	if s.chat.Type == "" || s.notified {
-		s.mu.Unlock()
-		return nil
+	defer s.mu.Unlock()
+	if s.notified || s.chat.Type == "" || !terminal(s.view.State) || chat != nil && (s.chat.Type != chat.Type || s.chat.ID != chat.ID) {
+		return false
 	}
 	s.notified = true
+	return true
+}
+
+// sendLoginResult sends an ended login's result to the chat it came from,
+// once, @ing the sender in a group. When the chat does not take the card, the
+// text is sent instead; when nothing was sent, the claim is dropped for the
+// per-minute task to retry. A send that may have gone through is not repeated.
+func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, s *login, view LoginView) error {
+	if !s.claimResult(nil) {
+		return nil
+	}
+	return a.postLoginResult(ctx, event, store, s, view)
+}
+
+// postLoginResult sends a result claimResult marked, as sendLoginResult does.
+func (a *App) postLoginResult(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, s *login, view LoginView) error {
+	s.mu.Lock()
 	owner, chat := s.owner, s.chat
 	s.mu.Unlock()
 	if view.State == "failed" && view.Failure != nil {
 		_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: loginText(view), Fields: map[string]any{"code": view.ErrorCode, "login_stage": view.Failure.Stage, "operation": view.Failure.Operation, "retcode": view.Failure.RetCode, "http_status": view.Failure.HTTPStatus, "reason": view.Failure.Reason}})
 	}
-	request := rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: "private", TargetID: owner.ActorID, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.Text(loginText(view))}}}
-	if chat.Type != "private" {
-		request.TargetType, request.TargetID = chat.Type, chat.ID
-		request.Message.Segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n" + loginText(view))}
+	send := func(segments []rayleabot.Segment) error {
+		request := rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: "private", TargetID: owner.ActorID, Message: rayleabot.MessageOut{Segments: segments}}
+		if chat.Type != "private" {
+			request.TargetType, request.TargetID = chat.Type, chat.ID
+			first := segments[0]
+			first.Data = map[string]any{"text": "\n" + stringValue(first.Data["text"])}
+			request.Message.Segments = append([]rayleabot.Segment{rayleabot.At(owner.ActorID), first}, segments[1:]...)
+		}
+		_, err := event.Actions().MessageSend(ctx, request)
+		return err
 	}
-	if _, err := event.Actions().MessageSend(ctx, request); err != nil {
+	segments, image := a.loginResult(ctx, event, store, view)
+	err := send(segments)
+	if err != nil && image && !unconfirmed(err) {
+		err = send([]rayleabot.Segment{rayleabot.Text(loginText(view))})
+	}
+	if err != nil && !unconfirmed(err) {
 		s.mu.Lock()
 		s.notified = false
 		s.mu.Unlock()
@@ -173,15 +201,8 @@ func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext
 	return nil
 }
 
-// claimResult marks an ended login's result as given by a command in the chat
-// the login came from, so the per-minute task does not send it again; false
-// when the result was already sent or belongs to another chat.
-func (s *login) claimResult(chat rayleabot.Target) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.notified || s.chat.Type == "" || s.chat.Type != chat.Type || s.chat.ID != chat.ID || !terminal(s.view.State) {
-		return false
-	}
-	s.notified = true
-	return true
+// unconfirmed is a send that may still arrive, which is not repeated.
+func unconfirmed(err error) bool {
+	var failure *rayleabot.ActionError
+	return errors.As(err, &failure) && failure.Code == "adapter.send_unconfirmed"
 }

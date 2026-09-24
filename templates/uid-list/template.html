@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><style>{{ .Stylesheet }}</style></head>
+<body class="elem-hydro default-mode">
+<div class="container elem-bg" id="container">
+<div class="uid-list">
+  {{ range .games }}
+  <div class="game-cont">
+    <div class="game-title">
+      <strong>{{ .name }}</strong>
+    </div>
+    <div class="game-ul">
+      {{ if .uids }}
+      {{ range .uids }}
+      <div class="game-li">
+        <div class="game-idx">
+          <span>{{ .index }}</span>
+        </div>
+        <div class="game-bar"{{ with .banner }} data-render-resource="{{ . }}"{{ end }}>
+          <div class="game-inner">
+            <div class="face"{{ with .face }} data-render-resource="{{ . }}"{{ end }}></div>
+            <div class="info">
+              <div class="uid-info">
+                <div class="uid shadow">{{ .uid }}<span>{{ .uid }}</span></div>
+                <div class="type ck">CK</div>
+              </div>
+              <div class="detail">
+                {{ if .name }}
+                <div class="name">{{ .name }} Lv.{{ .level }}</div>
+                {{ else }}
+                <div class="no-info">暂无uid信息</div>
+                {{ end }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+      {{ else }}
+      <div class="no-uid">{{ .notice }}</div>
+      {{ end }}
+    </div>
+  </div>
+  {{ end }}
+</div>
+<ul class="tips">
+  <li>登录成功，CK已加密保存，原神、星穹铁道、绝区零插件可直接使用</li>
+  <li>游戏信息来自米游社角色列表</li>
+  <li>
+    <nobr>{{ .prefix }}我的ck</nobr>
+    查看ck信息
+
+    <nobr>{{ .prefix }}删除ck</nobr>
+    删除ck
+  </li>
+</ul>
+{{ with .render_footer }}<div class="copyright">{{ . }}</div>{{ end }}
+</div>
+</body>
+</html>

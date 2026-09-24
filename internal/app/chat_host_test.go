@@ -24,6 +24,9 @@ type chatHost struct {
 	output bytes.Buffer
 	next   int
 	sent   int
+	// renderFails fails render.image; imageFails rejects messages with an
+	// image, as a chat that does not take pictures.
+	renderFails, imageFails bool
 }
 
 // hostAction is an action the plugin asked the host for during one event.
@@ -106,6 +109,7 @@ func (h *chatHost) exchange(id string, frame map[string]any) (map[string]any, []
 		data := object(response["data"])
 		actions = append(actions, hostAction{Name: stringValue(response["action"]), Data: data})
 		result := map[string]any{}
+		failure := ""
 		switch response["action"] {
 		case "secret.read":
 			value, exists, err := h.store.Read(h.t.Context(), stringValue(data["key"]))
@@ -122,11 +126,25 @@ func (h *chatHost) exchange(id string, frame map[string]any) (map[string]any, []
 				h.t.Fatal(err)
 			}
 		case "message.send":
+			for _, segment := range object(data["message"])["segments"].([]any) {
+				if h.imageFails && object(segment)["type"] == "image" {
+					failure = "adapter.send_failed"
+				}
+			}
 			h.sent++
 			result = map[string]any{"message_id": fmt.Sprintf("sent-%d", h.sent), "delivery_kind": "send", "target_type": data["target_type"], "target_id": data["target_id"]}
+		case "render.image":
+			result = map[string]any{"image_path": "file:///rendered/uid-list.png"}
+			if h.renderFails {
+				failure = "platform.render_timeout"
+			}
 		case "message.delete", "scheduler.create", "scheduler.delete", "logger.write":
 		default:
 			h.t.Fatalf("unexpected action %s", response["action"])
+		}
+		if failure != "" {
+			h.write(map[string]any{"type": "error", "request_id": response["request_id"], "code": failure, "message": failure})
+			continue
 		}
 		h.write(map[string]any{"type": "result", "request_id": response["request_id"], "status": "success", "data": result})
 	}

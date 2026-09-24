@@ -5,7 +5,7 @@
 ## 使用
 
 1. 打开插件的“账号管理”，初始化账号库。Windows 可使用当前用户的 DPAPI，其他系统使用恢复口令；之后可在“密钥保护方式”中切换。账号库只能由管理页初始化，聊天中的 `#扫码登录` 在初始化前只会提示管理员先完成设置。
-2. 点击“扫码添加账号”，选择在线机器人并填写聊天用户 ID，使用米游社扫码确认。也可在私聊或群聊向机器人发送 `#扫码登录`；群聊中与 xiaoyao-cvs-plugin 一样，二维码 @ 发起人，扫描后提示确认，发出 30 秒后撤回，登录结束即在群内回复结果。
+2. 点击“扫码添加账号”，选择在线机器人并填写聊天用户 ID，使用米游社扫码确认。也可在私聊或群聊向机器人发送 `#扫码登录`；群聊中与 xiaoyao-cvs-plugin 一样，二维码 @ 发起人，扫描后提示确认，发出 30 秒后撤回，登录结束即在群内回复结果。登录成功时与 Yunzai 的“我的uid”图一样，以图片按游戏列出发现的角色（UID、CK 标记、名称等级、游戏内头像与横幅），无法出图时回复文字。
 3. 账号保存后，原神、星穹铁道、绝区零插件通过业务服务使用账号。默认指定 `raylea.genshin`、`raylea.starrail`、`raylea.zzz`，可在单个账号的“管理”中撤销授权。
 
 命令前缀沿用宿主设置，以下使用 `#` 举例：
@@ -73,12 +73,12 @@ corepack pnpm --dir ui install --frozen-lockfile
 go test ./...
 corepack pnpm --dir ui test
 corepack pnpm --dir ui run build
-go run github.com/RayleaBot/RayleaBot/sdk/go/cmd/raylea-plugin build-go --backend ./cmd/mihoyo-accounts --target windows-x64 --include .rayleabot/source.zip=ui/source.zip
+go run github.com/RayleaBot/RayleaBot/sdk/go/cmd/raylea-plugin build-go --backend ./cmd/mihoyo-accounts --target windows-x64 --include DATA_SOURCES.md=DATA_SOURCES.md --include .rayleabot/source.zip=ui/source.zip
 ```
 
-也支持 `linux-x64` 和 `macos-arm64`。打包前运行 `python scripts/source-bundle.py` 生成管理页提供下载的源码包。开发中的 Go SDK v0.7.0 尚未发布 tag，本机及源码包使用 `go.work` 指向随附 SDK，并在构建时设置 `RAYLEA_PLUGIN_BUILD_USE_WORKSPACE=1`。单独远端检出构建需要该 SDK 与编译期库版本或对应源码；当前 artifact 已包含后端、UI 与源码下载。
+也支持 `linux-x64` 和 `macos-arm64`。打包前运行 `python scripts/bundle-assets.py --references <参考项目/2026-09-15>`，把登录角色图用到的上游字体与图片从游戏插件使用的同一固定提交复制到 `assets/`（不纳入版本库，构建时随包分发），再运行 `python scripts/source-bundle.py` 生成管理页提供下载的源码包。开发中的 Go SDK v0.7.0 尚未发布 tag，本机及源码包使用 `go.work` 指向随附 SDK，并在构建时设置 `RAYLEA_PLUGIN_BUILD_USE_WORKSPACE=1`。单独远端检出构建需要该 SDK 与编译期库版本或对应源码；当前 artifact 已包含后端、UI 与源码下载。
 
-插件沿用 RayleaBot SDK 的 AGPL-3.0 许可，第三方依赖声明保留在 `LICENSES/`。
+插件沿用 RayleaBot SDK 的 AGPL-3.0 许可，第三方依赖声明保留在 `LICENSES/`。[资料来源与上游许可](./DATA_SOURCES.md)记录登录角色图的上游模板、素材与固定提交。
 
 新增依赖只有本地二维码编码器 `go-qrcode`（避免把登录 URL 传给外部图片服务）及与宿主基线一致的 `x/sys`（Windows DPAPI）。数据库、加密、HTTP 与密钥派生使用宿主接口或 Go 标准库。
 

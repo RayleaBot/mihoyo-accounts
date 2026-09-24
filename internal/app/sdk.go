@@ -172,10 +172,14 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		}
 		// In the chat the login came from, an ended login's reply is its
 		// result, which the per-minute task then does not send again.
-		if job, _ := a.getLogin(ref); job != nil {
-			job.claimResult(event.Event.Target)
+		view := result["login"].(LoginView)
+		if job, _ := a.getLogin(ref); job != nil && job.claimResult(&event.Event.Target) {
+			resultCtx, cancel := context.WithTimeout(parent, resultTime)
+			defer cancel()
+			_ = a.postLoginResult(resultCtx, event, store, job, view)
+			return event.Result(map[string]any{"handled": true})
 		}
-		return event.SendText(loginText(result["login"].(LoginView)))
+		return event.SendText(loginText(view))
 	}
 	listed, err := a.Manage(ctx, store, policy, "accounts.list", map[string]any{"subject": owner})
 	if err != nil {
@@ -371,7 +375,7 @@ func (a *App) notifyLogins(parent context.Context, event *rayleabot.EventContext
 		if !terminal(view.State) {
 			continue
 		}
-		if err := a.sendLoginResult(ctx, event, s, view); err != nil {
+		if err := a.sendLoginResult(ctx, event, store, s, view); err != nil {
 			return event.Fail("plugin.account_notification_failed", "扫码结果通知未发送，将在下次任务中重试。")
 		}
 	}

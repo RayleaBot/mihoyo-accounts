@@ -1,0 +1,11 @@
+{
+  "id": "uid-list",
+  "name": "扫码登录角色列表",
+  "description": "扫码登录成功后发现的三游戏角色，布局参照 Yunzai 原神插件 html/user/uid-list",
+  "version": "1",
+  "entry_html": "template.html",
+  "stylesheet": "styles.css",
+  "input_schema": "input.schema.json",
+  "width": 630,
+  "height": 2000
+}
