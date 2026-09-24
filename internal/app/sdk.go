@@ -289,7 +289,7 @@ func ckCommand(word string) string {
 // explain binding a pasted Cookie; accounts here are bound by scanning.
 const ckTutorial = "绑定米游社账号：私聊机器人发送“扫码登录”，用米游社扫码并确认，无需获取 Cookie。聊天中不接收 Cookie 原文；发送“账号帮助”查看全部账号命令。"
 
-// deviceHelp is ZZZ-Plugin's 绑定设备帮助; the information is sent in private.
+// deviceHelp is ZZZ-Plugin's 绑定设备帮助.
 const deviceHelp = `[绑定设备]
 用于尝试解决10041报错等问题（无法100%解决）。
 方法一：
@@ -297,7 +297,7 @@ const deviceHelp = `[绑定设备]
 2. 在请求头内找到【x-rpc-device_id】和【x-rpc-device_fp】
 3. 自行构造如下格式的信息：
     {"device_id": "x-rpc-device_id的内容", "device_fp": "x-rpc-device_fp的内容"}
-4. 私聊给机器人发送“绑定设备”指令
+4. 给机器人发送“绑定设备”指令
 5. 机器人会提示发送设备信息
 6. 粘贴自行构造的信息发送
 7. 提示绑定成功
@@ -305,7 +305,7 @@ const deviceHelp = `[绑定设备]
 方法二（仅适用于安卓设备）：
 1. 在常用米游社的手机上安装 forchannot/get_device_info 的设备信息工具
 2. 打开后点击按钮复制
-3. 私聊给机器人发送“绑定设备”指令
+3. 给机器人发送“绑定设备”指令
 4. 机器人会提示发送设备信息
 5. 粘贴设备信息发送
 6. 提示绑定成功

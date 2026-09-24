@@ -139,7 +139,7 @@
     {
       "id": "device-bind",
       "name": "绑定设备",
-      "description": "出现 10041 时绑定设备（之后私聊发送设备信息）",
+      "description": "出现 10041 时绑定设备（之后发送设备信息，建议私聊）",
       "usage": "#绑定设备",
       "permission": "everyone",
       "trigger": {

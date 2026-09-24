@@ -32,13 +32,13 @@ func TestDefaultDeviceServesAccountsWithoutTheirOwn(t *testing.T) {
 	}
 	admins := policy()
 	admins.SuperAdmins = []string{subject().ActorID}
-	// Only a super administrator starts it, and only in private.
-	_, err := a.Service(t.Context(), store, policy(), ask("message.private"))
+	// Only a super administrator starts it, in private or in a group.
+	_, err := a.Service(t.Context(), store, policy(), ask("message.group"))
 	assertCode(t, err, "plugin.account_subject_denied")
-	_, err = a.Service(t.Context(), store, admins, ask("message.group"))
-	assertCode(t, err, "plugin.account_operation_denied")
-	if _, err = a.Service(t.Context(), store, admins, ask("message.private")); err != nil {
-		t.Fatal(err)
+	for _, eventType := range []string{"message.group", "message.private"} {
+		if _, err = a.Service(t.Context(), store, admins, ask(eventType)); err != nil {
+			t.Fatal(eventType, err)
+		}
 	}
 	if ref, waiting := a.devices.waiting(subject()); !waiting || ref != defaultDeviceWait {
 		t.Fatal("no wait for the default device", ref, waiting)

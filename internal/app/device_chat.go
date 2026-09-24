@@ -17,9 +17,10 @@ import (
 )
 
 // 绑定设备 in chat follows ZZZ-Plugin: after the command, the owner's next
-// private message that holds device information is imported, within two
-// minutes, and 取消 ends the wait. Device information is no credential, but
-// it is still only taken in private.
+// message that holds device information is imported, in private or in a
+// group, within two minutes, and 取消 ends the wait. As upstream, the prompt
+// advises sending it in private and a group is asked to recall it; the
+// information itself is never logged or echoed.
 
 type deviceWait struct {
 	ref   string
@@ -115,8 +116,7 @@ func (a *App) deviceAccount(ctx context.Context, store accounts.SecretStore, cip
 // deviceService answers device.bind, device.unbind and device.default for a
 // game plugin's 绑定设备, 解绑设备 and 设置默认设备.
 func (a *App) deviceService(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, owner accounts.Subject, request rayleabot.ServiceRequest, games, superAdmins []string) (map[string]any, error) {
-	private := request.Origin.EventType == "message.private" && request.Origin.Target != nil && request.Origin.Target.Type == "private"
-	if !slices.Contains(games, "zzz") || !strings.HasPrefix(request.Origin.EventType, "message.") || request.Method != "device.unbind" && !private {
+	if !slices.Contains(games, "zzz") || !strings.HasPrefix(request.Origin.EventType, "message.") {
 		return nil, failure("plugin.account_operation_denied")
 	}
 	if request.Method == "device.default" {
@@ -132,6 +132,11 @@ func (a *App) deviceService(ctx context.Context, store accounts.SecretStore, cip
 		return nil, err
 	}
 	if request.Method == "device.bind" {
+		// ZZZ-Plugin binds the account of the current Zenless UID and stops
+		// when there is none; an account without a Zenless role is none.
+		if role.UID == "" {
+			return nil, failure("plugin.account_not_found")
+		}
 		a.devices.start(owner, item.Ref)
 	} else if err := a.resetDevice(ctx, store, cipher, item.Ref); err != nil {
 		return nil, err
@@ -161,13 +166,13 @@ func (a *App) deviceCommand(ctx context.Context, event *rayleabot.EventContext, 
 	return event.SendText(DevicePrompt(role.UID, item.AccountLabel))
 }
 
-// DevicePrompt is ZZZ-Plugin's reply to 绑定设备, without its advice to send
-// privately, which is required here.
+// DevicePrompt is ZZZ-Plugin's reply to 绑定设备; an account without a
+// Zenless role is named by its account ID instead.
 func DevicePrompt(uid, label string) string {
 	if uid == "" {
-		return fmt.Sprintf("为账号 %s 绑定设备，请发送设备信息，或者发送“取消”取消绑定", label)
+		return fmt.Sprintf("为账号 %s 绑定设备，请发送设备信息(建议私聊发送)，或者发送“取消”取消绑定", label)
 	}
-	return fmt.Sprintf("为UID %s绑定设备，请发送设备信息，或者发送“取消”取消绑定", uid)
+	return fmt.Sprintf("为UID %s绑定设备，请发送设备信息(建议私聊发送)，或者发送“取消”取消绑定", uid)
 }
 
 // deviceReply words a failure of 绑定设备 or 解绑设备 as ZZZ-Plugin does
@@ -188,9 +193,6 @@ func deviceReply(err error) string {
 // 绑定设备; handled is false for other messages, which leave the wait
 // running.
 func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore) (bool, error) {
-	if event.Event.Target.Type != "private" {
-		return false, nil
-	}
 	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Bot.ID, ActorID: event.Event.Actor.ID}
 	ref, ok := a.devices.waiting(owner)
 	if !ok {
@@ -213,6 +215,10 @@ func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, 
 	}
 	if err := a.saveDevice(ctx, store, ref, []byte(text)); err != nil {
 		return true, event.SendText(deviceReply(err))
+	}
+	if event.Event.Target.Type != "private" {
+		// As upstream: the information is visible to the group.
+		return true, event.SendText("绑定设备成功\n请撤回设备信息")
 	}
 	return true, event.SendText("绑定设备成功")
 }
