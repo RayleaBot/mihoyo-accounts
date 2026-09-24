@@ -200,7 +200,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
               </select>
             </label>
             <label>聊天用户 ID<input v-model="actorID" :disabled="busy" required autocomplete="off" placeholder="输入要绑定账号的聊天用户 ID"></label>
-            <p v-if="!status.bots?.length" class="hint">没有在线机器人。连接机器人后刷新页面，或让用户在私聊中发送“扫码登录”。</p>
+            <p v-if="!status.bots?.length" class="hint">没有在线机器人。连接机器人后刷新页面，或让用户向机器人发送“扫码登录”。</p>
             <button class="primary" type="submit" :disabled="busy || !bot || !actorID.trim()">{{ busy ? '正在获取二维码…' : '获取米游社二维码' }}</button>
           </form>
           <div v-if="login" class="login-result">
@@ -234,7 +234,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
               <div v-if="selected === account.ref" class="account-detail">
                 <h3>游戏角色</h3>
                 <p v-if="account.public_query?.enabled" class="hint">本人已开启公共资料查询：{{ account.public_query.games.map(game => gameNames[game] || game).join('、') }} · 每日 {{ account.public_query.daily_limit }} 次 · {{ account.public_query.day || '尚未使用' }} 已用 {{ account.public_query.used }} 次。<button type="button" :disabled="busy" @click="updateAccount(account, 'accounts.public.disable')">退出公共查询池</button></p>
-                <p v-else class="hint">公共查询未开启。需要共享时，由账号所属用户本人私聊“共享查询账号 开启”设置游戏范围与额度。</p>
+                <p v-else class="hint">公共查询未开启。需要共享时，由账号所属用户本人发送“共享查询账号 开启”设置游戏范围与额度。</p>
                 <ul v-if="account.roles.length" class="roles"><li v-for="role in account.roles" :key="role.ref"><span>{{ gameNames[role.game] }}</span><strong>{{ role.nickname }}</strong><span class="mono">{{ role.uid }}</span><span class="muted">等级 {{ role.level }}</span></li></ul>
                 <p v-else class="muted">尚未发现角色，可按游戏重新读取。</p>
                 <div class="actions"><button v-for="(label, game) in gameNames" :key="game" type="button" :disabled="busy" @click="updateAccount(account, 'accounts.roles', { game })">重新读取{{ label }}</button></div>

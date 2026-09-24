@@ -157,7 +157,7 @@ func (a *App) publicExecute(ctx context.Context, store accounts.SecretStore, cip
 func (a *App) publicCommand(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, owner accounts.Subject, items []accounts.Summary) error {
 	args := event.Event.Args()
 	if len(args) == 0 {
-		return event.SendText("共享查询账号 开启 [序号] [每日额度] [原神,星铁,绝区零]\n共享查询账号 关闭 [序号]\n开启后，仅已授权游戏可用此账号查询其他玩家主动公开的基础资料与原神角色列表；不交出 CK。默认每日 100，最多 1000。仅本人私聊可开启。")
+		return event.SendText("共享查询账号 开启 [序号] [每日额度] [原神,星铁,绝区零]\n共享查询账号 关闭 [序号]\n开启后，仅已授权游戏可用此账号查询其他玩家主动公开的基础资料与原神角色列表；不交出 CK。默认每日 100，最多 1000。仅账号所属用户本人可开启。")
 	}
 	if args[0] != "开启" && args[0] != "关闭" {
 		return event.SendText("请使用开启或关闭。")

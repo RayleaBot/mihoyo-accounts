@@ -105,7 +105,7 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 		}
 		ref := rand.Text()
 		a.associations.items[ref] = pendingAssociation{Ref: ref, Primary: owner, Expires: now.Add(5 * time.Minute)}
-		return "请在你要关联的另一聊天身份私聊机器人发送：\n申请关联 " + ref + "\n随后回到这里发送“关联进度 " + ref + "”核对目标，再按提示完成确认。编号5分钟有效。", nil
+		return "请在你要关联的另一聊天身份向机器人发送：\n申请关联 " + ref + "\n随后回到这里发送“关联进度 " + ref + "”核对目标，再按提示完成确认。编号5分钟有效。", nil
 	}
 	if len(args) < 1 || len(args) > 2 {
 		return "请提供关联编号；完成确认时还需目标用户ID。", nil

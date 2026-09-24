@@ -106,7 +106,7 @@
     {
       "id": "accounts",
       "name": "我的CK",
-      "description": "查看账号与角色状态",
+      "description": "私聊查看账号与角色状态",
       "usage": "#我的CK",
       "permission": "everyone",
       "trigger": {
@@ -178,7 +178,7 @@
     {
       "id": "public-query",
       "name": "共享查询账号",
-      "description": "本人私聊主动开启或关闭公共资料查询用途",
+      "description": "本人主动开启或关闭公共资料查询用途",
       "usage": "#共享查询账号 开启/关闭 [序号] [每日额度] [游戏]",
       "permission": "everyone",
       "trigger": {
@@ -377,7 +377,7 @@
   ],
   "help": {
     "title": "米游社账号",
-    "summary": "私聊扫码一次，授权游戏插件共用账号；命令前缀沿用宿主设置。"
+    "summary": "扫码一次，授权游戏插件共用账号；命令前缀沿用宿主设置。"
   },
   "management_ui": {
     "entry": "ui/index.html",

@@ -150,6 +150,14 @@ func (h *chatHost) message(targetType, text, command string, args ...string) (ma
 	return h.exchange(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "message." + targetType, "source_protocol": s.SourceProtocol, "source_adapter": s.SourceAdapter, "timestamp": time.Now().UnixMilli(), "actor": map[string]any{"id": s.ActorID}, "target": map[string]any{"type": targetType, "id": targetID}, "message": map[string]any{"plain_text": text, "segments": []any{map[string]any{"type": "text", "data": map[string]any{"text": text}}}}, "payload": payload}})
 }
 
+// loginTrigger sends the per-minute login task's scheduler event.
+func (h *chatHost) loginTrigger() (map[string]any, []hostAction) {
+	h.t.Helper()
+	h.next++
+	id := fmt.Sprintf("scheduler-%d", h.next)
+	return h.exchange(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "scheduler.trigger", "source_protocol": "scheduler", "source_adapter": "scheduler.internal", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"task_id": loginTask, "payload": map[string]any{"kind": "login_notifications"}}}})
+}
+
 // sentText is the text of a terminal message.send frame.
 func sentText(frame map[string]any) string {
 	var text string

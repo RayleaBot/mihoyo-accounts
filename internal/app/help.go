@@ -22,7 +22,7 @@ func (a *App) helpCommand(event *rayleabot.EventContext, command string) error {
 	if command == "账号版本" {
 		return event.SendText(m.Name + " " + m.Version + "\n许可：" + m.License + "\n最低宿主：" + m.MinCoreVersion)
 	}
-	lines := []string{m.Name + " " + m.Version, "国服米游社扫码、海外加密授权导入。账号命令除帮助外请在本人私聊使用；前缀沿用宿主设置。"}
+	lines := []string{m.Name + " " + m.Version, "国服米游社扫码、海外加密授权导入。“我的CK”请私聊查看，其他命令私聊或群聊均可；前缀沿用宿主设置。"}
 	query := strings.Join(event.Event.Args(), " ")
 	for _, c := range m.Commands {
 		if query == "" || strings.Contains(c.Name+c.Description+c.Usage, query) {
