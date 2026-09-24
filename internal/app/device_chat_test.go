@@ -1,11 +1,13 @@
 package app
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
 )
 
 func deviceRequest(ref, method, eventType string) rayleabot.ServiceRequest {
@@ -109,5 +111,47 @@ func TestDeviceInformationIsTakenFromTheGroupWithoutEcho(t *testing.T) {
 		if strings.Contains(host.output.String(), value) {
 			t.Fatal("device information was echoed or logged")
 		}
+	}
+}
+
+func TestDeviceWaitAnswersAsUpstream(t *testing.T) {
+	api := &fakeAPI{fingerprint: func(context.Context, accounts.Tokens) (accounts.Tokens, error) {
+		return accounts.Tokens{}, &mihoyo.Error{Code: "plugin.upstream_unavailable", Operation: "device.fingerprint"}
+	}}
+	a, store, record := setup(t, api)
+	host := newChatHost(t, a, store)
+	bind := func() {
+		t.Helper()
+		if _, err := a.Service(t.Context(), store, policy(), deviceRequest(record.Ref, "device.bind", "message.group")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bind()
+	// A message without text is asked again; other text is left alone.
+	if reply, _ := host.message("group", "", ""); sentText(reply) != "请发送设备信息" {
+		t.Fatalf("empty message: %v", reply)
+	}
+	if reply, _ := host.message("group", "今天的体力", ""); reply["type"] != "result" {
+		t.Fatalf("ordinary message was taken: %v", reply)
+	}
+	if _, waiting := a.devices.waiting(subject()); !waiting {
+		t.Fatal("the wait ended early")
+	}
+	// Any message with 取消 ends the wait.
+	if reply, _ := host.message("group", "不绑了，取消吧", ""); sentText(reply) != "已取消" {
+		t.Fatalf("cancel: %q", sentText(reply))
+	}
+	if _, waiting := a.devices.waiting(subject()); waiting {
+		t.Fatal("取消 did not end the wait")
+	}
+	// A device that gets no fingerprint is not bound.
+	bind()
+	reply, _ := host.message("private", `{"deviceName":"XQ-BC52","deviceBoard":"lahaina","deviceModel":"XQ-BC52","oaid":"synthetic-oaid","androidVersion":"13","deviceFingerprint":"Sony/XQ-BC52_EEA/XQ-BC52:13/61.2.A.0.472A/061002A0000472A0046651803:user/release-keys","deviceProduct":"XQ-BC52_EEA"}`, "")
+	if sentText(reply) != "绑定设备失败" {
+		t.Fatalf("failed binding: %q", sentText(reply))
+	}
+	cipher, _ := a.Vault.Cipher()
+	if saved, err := a.Repo.Get(t.Context(), store, cipher, record.Ref); err != nil || saved.Tokens.Device != nil {
+		t.Fatal("a device without a fingerprint was saved", err)
 	}
 }

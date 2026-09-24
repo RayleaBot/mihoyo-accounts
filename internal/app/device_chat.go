@@ -190,8 +190,9 @@ func deviceReply(err error) string {
 }
 
 // deviceMessage imports the device information an owner sends after
-// 绑定设备; handled is false for other messages, which leave the wait
-// running.
+// 绑定设备, answering as ZZZ-Plugin's toBindDevice: a message without text
+// is asked again and one with 取消 ends the wait. handled is false for other
+// messages, which leave the wait running.
 func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore) (bool, error) {
 	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Bot.ID, ActorID: event.Event.Actor.ID}
 	ref, ok := a.devices.waiting(owner)
@@ -199,11 +200,13 @@ func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, 
 		return false, nil
 	}
 	text := strings.TrimSpace(event.Event.Message.PlainText)
-	if text == "取消" {
+	switch {
+	case text == "":
+		return true, event.SendText("请发送设备信息")
+	case strings.Contains(text, "取消"):
 		a.devices.end(owner)
 		return true, event.SendText("已取消")
-	}
-	if !strings.HasPrefix(text, "{") {
+	case !strings.HasPrefix(text, "{"):
 		return false, nil
 	}
 	a.devices.end(owner)
@@ -214,6 +217,11 @@ func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, 
 		return true, event.SendText("默认设备信息设置成功")
 	}
 	if err := a.saveDevice(ctx, store, ref, []byte(text)); err != nil {
+		if strings.HasPrefix(publicError(err).Code, "plugin.upstream_") {
+			// Registering the device for a fingerprint failed, where
+			// upstream's getAPI finds no fingerprint.
+			return true, event.SendText("绑定设备失败")
+		}
 		return true, event.SendText(deviceReply(err))
 	}
 	if event.Event.Target.Type != "private" {
