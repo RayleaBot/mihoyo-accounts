@@ -38,7 +38,9 @@ type LoginFailure struct {
 
 // login is a login job. chat is the chat 扫码登录 came from, which is sent
 // the result; logins started on the management page have none. qrMessage is
-// the code sent to a group, recalled from recallAt on.
+// the code sent to a group, recalled from recallAt on. changed wakes the
+// 扫码登录 event following the job when the worker moved it on, and
+// scanNoticed is set once that event said the code was scanned.
 type login struct {
 	mu          sync.Mutex
 	ctx         context.Context
@@ -51,10 +53,19 @@ type login struct {
 	ready       bool
 	chat        rayleabot.Target
 	notified    bool
+	scanNoticed bool
 	qrMessage   string
 	recallAt    time.Time
+	changed     chan struct{}
 	retries     int
 	nextAttempt time.Time
+}
+
+func (s *login) signal() {
+	select {
+	case s.changed <- struct{}{}:
+	default:
+	}
 }
 
 func terminal(state string) bool {
@@ -160,7 +171,7 @@ func (a *App) startLogin(ctx context.Context, owner accounts.Subject) (LoginView
 		return LoginView{}, failure("plugin.login_qr_invalid")
 	}
 	jobCtx, cancel := context.WithCancel(a.ctx)
-	s := &login{ctx: jobCtx, cancel: cancel, owner: owner, qr: qr, view: LoginView{Ref: rand.Text(), State: "waiting", Phase: "scan", ExpiresAtMS: time.Now().Add(3 * time.Minute).UnixMilli(), QRCode: "data:image/png;base64," + base64.StdEncoding.EncodeToString(png), RoleStates: map[string]string{}}}
+	s := &login{ctx: jobCtx, cancel: cancel, owner: owner, qr: qr, changed: make(chan struct{}, 1), view: LoginView{Ref: rand.Text(), State: "waiting", Phase: "scan", ExpiresAtMS: time.Now().Add(3 * time.Minute).UnixMilli(), QRCode: "data:image/png;base64," + base64.StdEncoding.EncodeToString(png), RoleStates: map[string]string{}}}
 	a.jobsMu.Lock()
 	if len(a.jobs) >= 128 {
 		a.jobsMu.Unlock()
@@ -300,6 +311,7 @@ func (a *App) watchLogin(s *login) {
 					s.view.Phase = "saving"
 				}
 				s.mu.Unlock()
+				s.signal()
 				return
 			}
 			roles, err := a.API.RolesForGame(ctx, tokens, game)
@@ -324,6 +336,7 @@ func (a *App) watchLogin(s *login) {
 			cancel()
 			return
 		}
+		s.signal()
 	}
 }
 

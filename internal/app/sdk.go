@@ -62,8 +62,10 @@ var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.
 
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	// Ordinary event deadlines are owned by the host; keep local HTTP work
-	// shorter than the standard host event window as well.
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	// shorter than the standard host event window as well. The login task and
+	// a group 扫码登录 that follows its login use the event's own context.
+	started, parent := time.Now(), ctx
+	ctx, cancel := context.WithTimeout(ctx, actionTime)
 	defer cancel()
 	store, policy := sdkStore{event}, policyFor(event)
 	if event.Event.EventType == "management.action" {
@@ -81,7 +83,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		return event.Result(result)
 	}
 	if event.Event.EventType == "scheduler.trigger" {
-		return a.notifyLogins(ctx, event, store, policy)
+		return a.notifyLogins(parent, event, store, policy)
 	}
 	if event.Event.EventType != "message.private" && event.Event.EventType != "message.group" {
 		return event.Result(map[string]any{"handled": false})
@@ -133,7 +135,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		job.mu.Lock()
 		job.chat = event.Event.Target
 		job.mu.Unlock()
-		if _, err := event.Actions().SchedulerCreate(ctx, rayleabot.SchedulerCreateRequest{TaskID: loginTask, Cron: "* * * * *", LogLabel: "米游社扫码结果", Payload: map[string]any{"kind": "login_notifications"}}); err != nil {
+		if _, err := event.Actions().SchedulerCreate(ctx, loginTaskRequest()); err != nil {
 			_, _ = a.cancelLogin(view.Ref)
 			return event.SendText("扫码任务未能创建，请稍后重试。")
 		}
@@ -142,15 +144,18 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 			return event.Send("private", owner.ActorID, rayleabot.Text("使用米游社扫码并确认。登录结果会在一分钟内发送，也可发送“登录状态”立即查看。"), code)
 		}
 		// In a group, as xiaoyao-cvs-plugin's 扫码登录: the code @s the
-		// sender and is recalled after 30 seconds. An event ends before
-		// then, so the per-minute login task recalls it once it is due.
+		// sender and is recalled after 30 seconds, and the event waits for
+		// the login. The per-minute task answers what the event leaves.
 		sent, err := event.Actions().MessageSend(ctx, rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}}})
 		if id := stringValue(sent["message_id"]); err == nil && id != "" && owner.SourceProtocol == "onebot11" {
 			job.mu.Lock()
-			job.qrMessage, job.recallAt = id, time.Now().Add(qrRecallDelay)
+			job.qrMessage, job.recallAt = id, time.Now().Add(a.recallDelay)
 			job.mu.Unlock()
 		}
 		// A code that was not sent still gets its result: 二维码已过期.
+		if err == nil {
+			a.followLogin(parent, started, event, store, policy, job)
+		}
 		return event.Result(map[string]any{"handled": true})
 	}
 	if event.Event.Command() == "登录状态" || event.Event.Command() == "取消登录" {
@@ -164,6 +169,11 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		result, err := a.Manage(ctx, store, policy, action, map[string]any{"login_ref": ref})
 		if err != nil {
 			return event.SendText(publicError(err).Message)
+		}
+		// In the chat the login came from, an ended login's reply is its
+		// result, which the per-minute task then does not send again.
+		if job, _ := a.getLogin(ref); job != nil {
+			job.claimResult(event.Event.Target)
 		}
 		return event.SendText(loginText(result["login"].(LoginView)))
 	}
@@ -330,24 +340,25 @@ const deviceHelp = `[绑定设备]
 发送“解绑设备”即可`
 
 // loginTask sends chat logins their result once a minute while any is open,
-// and recalls the codes sent to groups.
+// and recalls the codes sent to groups, when their 扫码登录 events did not.
 const loginTask = "mihoyo.accounts.login"
 
-// qrRecallDelay is how long a code stays in a group, as xiaoyao-cvs-plugin's.
-const qrRecallDelay = 30 * time.Second
-
-func (a *App) notifyLogins(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy) error {
+func (a *App) notifyLogins(parent context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy) error {
+	ctx, cancel := context.WithTimeout(parent, eventTime)
+	defer cancel()
 	a.jobsMu.Lock()
 	jobs := make([]*login, 0, len(a.jobs))
 	for _, s := range a.jobs {
 		jobs = append(jobs, s)
 	}
 	a.jobsMu.Unlock()
-	a.recallCodes(ctx, event, jobs)
+	for _, s := range jobs {
+		a.recallCode(ctx, event, s, true)
+	}
 	for _, s := range jobs {
 		s.mu.Lock()
 		notify := s.chat.Type != "" && !s.notified
-		ref, owner, chat := s.view.Ref, s.owner, s.chat
+		ref := s.view.Ref
 		s.mu.Unlock()
 		if !notify {
 			continue
@@ -360,27 +371,7 @@ func (a *App) notifyLogins(ctx context.Context, event *rayleabot.EventContext, s
 		if !terminal(view.State) {
 			continue
 		}
-		if view.State == "failed" && view.Failure != nil {
-			_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: loginText(view), Fields: map[string]any{"code": view.ErrorCode, "login_stage": view.Failure.Stage, "operation": view.Failure.Operation, "retcode": view.Failure.RetCode, "http_status": view.Failure.HTTPStatus, "reason": view.Failure.Reason}})
-		}
-		s.mu.Lock()
-		if s.notified {
-			s.mu.Unlock()
-			continue
-		}
-		s.notified = true
-		s.mu.Unlock()
-		request := rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: "private", TargetID: owner.ActorID, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.Text(loginText(view))}}}
-		if chat.Type != "private" {
-			// The result goes back to the group, @ing the sender.
-			request.TargetType, request.TargetID = chat.Type, chat.ID
-			request.Message.Segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n" + loginText(view))}
-		}
-		_, err = event.Actions().MessageSend(ctx, request)
-		if err != nil {
-			s.mu.Lock()
-			s.notified = false
-			s.mu.Unlock()
+		if err := a.sendLoginResult(ctx, event, s, view); err != nil {
 			return event.Fail("plugin.account_notification_failed", "扫码结果通知未发送，将在下次任务中重试。")
 		}
 	}
@@ -398,28 +389,4 @@ func (a *App) notifyLogins(ctx context.Context, event *rayleabot.EventContext, s
 		_, _ = event.Actions().SchedulerDelete(ctx, loginTask)
 	}
 	return event.Result(map[string]any{"handled": true})
-}
-
-// recallCodes recalls the codes sent to groups once they are due. As
-// upstream, a code is recalled once; a failed recall is logged, not retried.
-func (a *App) recallCodes(ctx context.Context, event *rayleabot.EventContext, jobs []*login) {
-	for _, s := range jobs {
-		s.mu.Lock()
-		id, adapter := "", s.owner.SourceAdapter
-		if s.qrMessage != "" && !time.Now().Before(s.recallAt) {
-			id, s.qrMessage = s.qrMessage, ""
-		}
-		s.mu.Unlock()
-		if id == "" {
-			continue
-		}
-		if _, err := event.Actions().ForOneBotAdapter(adapter).MessageDelete(ctx, id); err != nil {
-			fields := map[string]any{}
-			var failure *rayleabot.ActionError
-			if errors.As(err, &failure) {
-				fields["code"] = failure.Code
-			}
-			_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: "群聊中的扫码二维码未能撤回；二维码在发出三分钟后失效。", Fields: fields})
-		}
-	}
 }
