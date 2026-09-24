@@ -133,10 +133,6 @@ type Summary struct {
 }
 
 func (r Record) Summary() Summary {
-	label := r.Tokens.AccountID
-	if len(label) > 4 {
-		label = "***" + label[len(label)-4:]
-	}
 	roles := append([]Role{}, r.Roles...)
 	callers := append([]string{}, r.AllowedCallers...)
 	var public *PublicPolicy
@@ -157,7 +153,9 @@ func (r Record) Summary() Summary {
 	if r.Tokens.CloudZZZ != "" {
 		cloud = append(cloud, "zzz")
 	}
-	return Summary{Realm: r.Tokens.RealmName(), CloudConfigured: cloud, LastCheck: check, PublicQuery: public, Ref: r.Ref, Revision: r.Revision, Owner: r.Owner, AccountLabel: label, Roles: roles, AllowedCallers: callers, Status: r.Status, CanRefresh: r.Tokens.SToken != "" && (r.Tokens.Realm != "os" || (!r.Tokens.STokenV2 || r.Tokens.MID != "")), UpdatedAtMS: r.UpdatedAtMS}
+	// The label is the whole account ID: it is no credential, and only CK is
+	// kept out of chats and pages.
+	return Summary{Realm: r.Tokens.RealmName(), CloudConfigured: cloud, LastCheck: check, PublicQuery: public, Ref: r.Ref, Revision: r.Revision, Owner: r.Owner, AccountLabel: r.Tokens.AccountID, Roles: roles, AllowedCallers: callers, Status: r.Status, CanRefresh: r.Tokens.SToken != "" && (r.Tokens.Realm != "os" || (!r.Tokens.STokenV2 || r.Tokens.MID != "")), UpdatedAtMS: r.UpdatedAtMS}
 }
 
 func (t Tokens) RealmName() string {

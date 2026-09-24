@@ -106,7 +106,7 @@
     {
       "id": "accounts",
       "name": "我的CK",
-      "description": "查看脱敏账号与角色状态",
+      "description": "查看账号与角色状态",
       "usage": "#我的CK",
       "permission": "everyone",
       "trigger": {

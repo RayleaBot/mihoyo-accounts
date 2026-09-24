@@ -54,6 +54,9 @@ func TestEncryptedAccountsDeduplicateAndDoNotExposeTokens(t *testing.T) {
 	if err != nil || len(items) != 1 {
 		t.Fatalf("list: %v", err)
 	}
+	if items[0].AccountLabel != tokens.AccountID {
+		t.Fatalf("account label = %q, want the whole account ID", items[0].AccountLabel)
+	}
 	public, _ := json.Marshal(items)
 	for _, marker := range []string{tokens.CookieToken, tokens.LToken, tokens.SToken} {
 		if strings.Contains(string(public), marker) {
