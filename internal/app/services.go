@@ -272,6 +272,29 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 			return nil, err
 		}
 	}
+	data, err := a.executeRole(ctx, store, cipher, &record, role, name, object(request.Params["input"]))
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasSuffix(name, ".cloud_sign") {
+		if record.CloudStates == nil {
+			record.CloudStates = map[string]map[string]any{}
+		}
+		data["checked_at_ms"] = time.Now().UnixMilli()
+		record.CloudStates[game] = data
+		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
+			return nil, err
+		}
+	}
+	return map[string]any{"operation": name, "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli()}, nil
+}
+
+// executeRole sends one business request for a role of a saved account the
+// caller holds the lock of. It registers the device fingerprint when there is
+// no current one, lends the default device to an account without its own,
+// renews a rejected cached fingerprint and retries a read once, and marks the
+// account invalid when the credentials are refused; record follows each save.
+func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, record *accounts.Record, role accounts.Role, name string, input map[string]any) (map[string]any, error) {
 	refreshFingerprint := func() error {
 		lent, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
 		if err != nil {
@@ -284,7 +307,7 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		// A lent default device is registered but not kept.
 		tokens.Device = record.Tokens.Device
 		record.Tokens = tokens
-		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
+		if err := a.Repo.Update(ctx, store, cipher, *record, record.Revision); err != nil {
 			return err
 		}
 		record.Revision++
@@ -302,7 +325,7 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		if err != nil {
 			return nil, err
 		}
-		return a.API.Execute(ctx, tokens, role, name, object(request.Params["input"]))
+		return a.API.Execute(ctx, tokens, role, name, input)
 	}
 	data, err := execute()
 	// Only reads may renew a rejected cached fingerprint and retry once.
@@ -317,23 +340,14 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if err != nil {
 		if publicError(err).Code == "plugin.upstream_auth_invalid" {
 			record.Status = "invalid"
-			if saveErr := a.Repo.Update(ctx, store, cipher, record, record.Revision); saveErr != nil {
+			if saveErr := a.Repo.Update(ctx, store, cipher, *record, record.Revision); saveErr != nil {
 				return nil, saveErr
 			}
+			record.Revision++
 		}
 		return nil, err
 	}
-	if strings.HasSuffix(name, ".cloud_sign") {
-		if record.CloudStates == nil {
-			record.CloudStates = map[string]map[string]any{}
-		}
-		data["checked_at_ms"] = time.Now().UnixMilli()
-		record.CloudStates[game] = data
-		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
-			return nil, err
-		}
-	}
-	return map[string]any{"operation": name, "role": role, "data": data, "fetched_at_ms": time.Now().UnixMilli()}, nil
+	return data, nil
 }
 
 // uidPattern is a game UID as upstream's 绑定uid reads it; ZZZ also has
