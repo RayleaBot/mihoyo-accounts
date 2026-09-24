@@ -164,7 +164,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 ### 设备控制
 
-`accounts.device.status/reset` 面向管理，状态只显示设备标识的掩码、指纹是否存在及到期时间；reset 要求账号版本号和 confirm，可自动生成新标识或使用有效的设备标识，清除旧指纹。下次需要指纹的业务从官方重新获取。现有 CK 不回显，不自动重试游戏写操作。
+`accounts.device.status/reset` 面向管理，状态显示完整的设备标识（不是凭据，不打码）、导入设备的品牌与型号、指纹是否存在及到期时间；reset 要求账号版本号和 confirm，可自动生成新标识或使用有效的设备标识，清除旧指纹。下次需要指纹的业务从官方重新获取。现有 CK 不回显，不自动重试游戏写操作。
 
 `accounts.device.import` 按 ZZZ-Plugin 的“绑定设备”导入设备，要求账号版本号与浏览器加密输入（`account.device.import` 用途）：`{"device_id","device_fp"}` 直接使用该设备标识与指纹，此后不自动换取新指纹；安卓设备信息（deviceName、deviceBoard、deviceModel、oaid、androidVersion、deviceFingerprint、deviceProduct）立即向官方登记换取指纹，之后的请求以该设备的品牌与型号标注设备。登记沿用 ZZZ-Plugin getFp 的 ext_fields：型号同时作为 deviceName 与 model，设备信息的 deviceName 作为 deviceType，aaid 与 vaid 为账号的设备标识，oaid 取设备信息中的 oaid，缺省时为设备标识；没有自己设备的账号按 ZZZ-Plugin 的默认设备（Sony XQ-BC52）登记。reset 清除导入的设备。
 

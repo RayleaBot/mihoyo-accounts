@@ -96,13 +96,8 @@ func (a *App) manageDevice(ctx context.Context, store accounts.SecretStore, acti
 	} else if action != "accounts.device.status" {
 		return nil, failure("plugin.account_input_invalid")
 	}
-	label := record.Tokens.DeviceID
-	if len(label) > 8 {
-		label = label[:4] + "…" + label[len(label)-4:]
-	} else if label != "" {
-		label = "已设置"
-	}
-	result := map[string]any{"revision": record.Revision, "device_label": label, "has_fingerprint": record.Tokens.DeviceFP != "", "fingerprint_expires_ms": record.Tokens.DeviceFPExpiresAtMS, "fingerprint_imported": record.Tokens.DeviceFPImported}
+	// The management page shows the whole device ID: only CK is masked.
+	result := map[string]any{"revision": record.Revision, "device_label": record.Tokens.DeviceID, "has_fingerprint": record.Tokens.DeviceFP != "", "fingerprint_expires_ms": record.Tokens.DeviceFPExpiresAtMS, "fingerprint_imported": record.Tokens.DeviceFPImported}
 	if device := record.Tokens.Device; device != nil {
 		result["device_model"] = device.Brand() + " " + device.Model
 	}

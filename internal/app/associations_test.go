@@ -122,8 +122,8 @@ func TestAssociationExpiryLockAndDeviceReset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state["device_label"] == record.Tokens.DeviceID && record.Tokens.DeviceID != "" {
-		t.Fatal("device identifier echoed")
+	if state["device_label"] != record.Tokens.DeviceID {
+		t.Fatalf("device label = %v, want the whole device ID", state["device_label"])
 	}
 	changed, err := a.Manage(t.Context(), store, policy(), "accounts.device.reset", map[string]any{"account_ref": record.Ref, "revision": record.Revision, "confirm": true})
 	if err != nil || changed["has_fingerprint"] != false {

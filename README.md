@@ -103,7 +103,7 @@ go run github.com/RayleaBot/RayleaBot/sdk/go/cmd/raylea-plugin build-go --backen
 
 主聊天身份发送 `关联账号`，另一身份发送 `申请关联 编号`；回到主身份发送 `关联进度 编号` 核对目标，再按提示 `完成关联 编号 目标用户ID`。申请五分钟有效，双方确认后共享原始账号记录；`关联列表`、`解除关联 序号` 可查看或停止。解除后附属身份的后续查询与定时委托被拒绝。删除账号、公共账号授权仍由原始身份或管理操作处理。
 
-设备设置只显示标识掩码，支持生成新标识或浏览器加密输入自定义标识，并清除缓存指纹。官方应用的设备验证仍由用户在官方应用完成。
+设备设置显示完整的设备标识，支持生成新标识或浏览器加密输入自定义标识，并清除缓存指纹。官方应用的设备验证仍由用户在官方应用完成。
 
 管理页的“Cookie 与 SToken 导入”加密导入本人的米游社或 HoYoLab Cookie：国服需要 SToken（stuid、stoken 与 mid），或 LToken 与 CookieToken，与扫码得到的同一通行证合并为一个账号；海外可用 LToken 或 SToken v2/MID 换取凭据。按三游戏分步发现角色后保存。相同数字账号的国服/海外记录分开。支持固定海外战绩、签到、月报、养成、摹本、兑换与抽卡代理；AuthKey 只在本插件内换取。部分业务需要 CookieToken v2/MID。参考 [genshin.py 固定提交](https://github.com/seriaati/genshin.py/tree/075f0e1e332f9452e544aa7dfdf265678889d6ab)，海外真实账号仍需单独验收。
 
