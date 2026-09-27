@@ -107,7 +107,7 @@ func TestSDKTranscriptSharesLoginWithoutPlaintextCredentials(t *testing.T) {
 	}
 	transaction("init", map[string]any{"type": "init", "request_id": "init", "protocol_version": "4", "plugin_id": "raylea.mihoyo-accounts", "bots": []any{}, "config": policy(), "super_admins": []string{}, "command_prefixes": []string{"#"}, "timezone": "Asia/Shanghai", "concurrency": 4})
 	manage := func(id, action string, payload map[string]any) map[string]any {
-		return transaction(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "management.action", "source_protocol": "management", "source_adapter": "management.ui", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"action": action, "payload": payload}}})
+		return transaction(id, eventFrame(id, time.Now().Add(eventTimeout), map[string]any{"event_id": id, "event_type": "management.action", "source_protocol": "management", "source_adapter": "management.ui", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"action": action, "payload": payload}}))
 	}
 	started := manage("start", "login.start", map[string]any{"subject": subject()})
 	ref := stringValue(object(object(started["data"])["login"])["ref"])
@@ -125,7 +125,7 @@ func TestSDKTranscriptSharesLoginWithoutPlaintextCredentials(t *testing.T) {
 		r := request(game, accountRef)
 		r.DeadlineAtMs = time.Now().Add(time.Second).UnixMilli()
 		id := fmt.Sprintf("service-%d", index)
-		response := transaction(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "plugin.request", "source_protocol": "platform", "source_adapter": "plugins.internal", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"service_request": r}}})
+		response := transaction(id, eventFrame(id, time.UnixMilli(r.DeadlineAtMs), map[string]any{"event_id": id, "event_type": "plugin.request", "source_protocol": "platform", "source_adapter": "plugins.internal", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"service_request": r}}))
 		if object(response["data"])["operation"] != game+".note" {
 			t.Fatal("service response lost operation")
 		}

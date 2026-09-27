@@ -150,6 +150,15 @@ func (h *chatHost) exchange(id string, frame map[string]any) (map[string]any, []
 	}
 }
 
+// eventTimeout is the host's default runtime.plugin_event_timeout_seconds.
+const eventTimeout = 60 * time.Second
+
+// eventFrame is an event frame as the host sends it, with the deadline the
+// host gives the event.
+func eventFrame(id string, deadline time.Time, event map[string]any) map[string]any {
+	return map[string]any{"type": "event", "request_id": id, "deadline_at_ms": deadline.UnixMilli(), "event": event}
+}
+
 // message sends a chat message from the test subject; targetType is private
 // or group. command is the host's parsed command, empty for plain text.
 func (h *chatHost) message(targetType, text, command string, args ...string) (map[string]any, []hostAction) {
@@ -165,7 +174,7 @@ func (h *chatHost) message(targetType, text, command string, args ...string) (ma
 	if command != "" {
 		payload = map[string]any{"command": command, "args": args}
 	}
-	return h.exchange(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "message." + targetType, "source_protocol": s.SourceProtocol, "source_adapter": s.SourceAdapter, "timestamp": time.Now().UnixMilli(), "actor": map[string]any{"id": s.ActorID}, "target": map[string]any{"type": targetType, "id": targetID}, "message": map[string]any{"plain_text": text, "segments": []any{map[string]any{"type": "text", "data": map[string]any{"text": text}}}}, "payload": payload}})
+	return h.exchange(id, eventFrame(id, time.Now().Add(eventTimeout), map[string]any{"event_id": id, "event_type": "message." + targetType, "source_protocol": s.SourceProtocol, "source_adapter": s.SourceAdapter, "timestamp": time.Now().UnixMilli(), "actor": map[string]any{"id": s.ActorID}, "target": map[string]any{"type": targetType, "id": targetID}, "message": map[string]any{"plain_text": text, "segments": []any{map[string]any{"type": "text", "data": map[string]any{"text": text}}}}, "payload": payload}))
 }
 
 // loginTrigger sends the per-minute login task's scheduler event.
@@ -173,7 +182,7 @@ func (h *chatHost) loginTrigger() (map[string]any, []hostAction) {
 	h.t.Helper()
 	h.next++
 	id := fmt.Sprintf("scheduler-%d", h.next)
-	return h.exchange(id, map[string]any{"type": "event", "request_id": id, "event": map[string]any{"event_id": id, "event_type": "scheduler.trigger", "source_protocol": "scheduler", "source_adapter": "scheduler.internal", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"task_id": loginTask, "payload": map[string]any{"kind": "login_notifications"}}}})
+	return h.exchange(id, eventFrame(id, time.Now().Add(eventTimeout), map[string]any{"event_id": id, "event_type": "scheduler.trigger", "source_protocol": "scheduler", "source_adapter": "scheduler.internal", "timestamp": time.Now().UnixMilli(), "payload": map[string]any{"task_id": loginTask, "payload": map[string]any{"kind": "login_notifications"}}}))
 }
 
 // sentText is the text of a terminal message.send frame.
