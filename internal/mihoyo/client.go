@@ -78,6 +78,21 @@ func (c *Client) requestWithCookies(ctx context.Context, operation, host, path, 
 }
 
 func (c *Client) requestWithSession(ctx context.Context, operation, host, path, profile string, query url.Values, body any, tokens accounts.Tokens, received map[string]string, activityCookies map[string]string) (map[string]any, error) {
+	encoded := query.Encode()
+	return c.send(ctx, operation, host, path, profile, wireQuery{sent: encoded, signed: encoded}, body, tokens, received, activityCookies)
+}
+
+// wireQuery is a query string exactly as sent and the part of it a record DS
+// signs. They differ only where ZZZ-Plugin appends a request's data.query
+// after signing its fixed query.
+type wireQuery struct{ sent, signed string }
+
+// requestWire sends a query exactly as written.
+func (c *Client) requestWire(ctx context.Context, operation, host, path, profile string, query wireQuery, tokens accounts.Tokens) (map[string]any, error) {
+	return c.send(ctx, operation, host, path, profile, query, nil, tokens, nil, nil)
+}
+
+func (c *Client) send(ctx context.Context, operation, host, path, profile string, query wireQuery, body any, tokens accounts.Tokens, received map[string]string, activityCookies map[string]string) (map[string]any, error) {
 	if host != passportHost && host != webHost && host != recordHost && !(host == fingerprintHost && path == "/device-fp/api/getFp" && profile == "fingerprint") && !(host == ledgerHost && path == "/event/ys_ledger/monthInfo" && profile == "record") && !(host == activityHost && profile == "badge" && (path == "/event/rpg_gacha_record/pool_stat" || path == "/event/rpg_gacha_record/five_star_list")) && !allowedGachaEndpoint(host, path, profile) && !allowedSignEndpoint(host, path, profile) && !allowedCommunityEndpoint(host, path, profile) && !allowedCloudEndpoint(host, path, profile) && !allowedBillingEndpoint(host, path, profile) && !allowedBlueprintEndpoint(host, path, profile) && !allowedOverseasEndpoint(host, path, profile) && !allowedBirthdayEndpoint(host, path, profile) && !allowedRedeemEndpoint(host, path, profile) {
 		return nil, &Error{Code: "plugin.upstream_endpoint_invalid", Operation: operation}
 	}
@@ -92,9 +107,8 @@ func (c *Client) requestWithSession(ctx context.Context, operation, host, path, 
 		method = http.MethodPost
 	}
 	address := host + path
-	encodedQuery := query.Encode()
-	if encodedQuery != "" {
-		address += "?" + encodedQuery
+	if query.sent != "" {
+		address += "?" + query.sent
 	}
 	req, err := http.NewRequestWithContext(ctx, method, address, bytes.NewReader(payload))
 	if err != nil {
@@ -190,7 +204,7 @@ func (c *Client) requestWithSession(ctx context.Context, operation, host, path, 
 			}
 		}
 	case "record", "record.zzz":
-		req.Header.Set("DS", c.ds2(recordSalt, encodedQuery, payload))
+		req.Header.Set("DS", c.ds2(recordSalt, query.signed, payload))
 		req.Header.Set("x-rpc-app_version", "2.40.1")
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android 12; XQ-BC52) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.73 Mobile Safari/537.36 miHoYoBBS/2.40.1")
 		req.Header.Set("Referer", "https://webstatic.mihoyo.com/")

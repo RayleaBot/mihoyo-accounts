@@ -49,6 +49,8 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 
 `monthly` 可选 `month`：原神为 1–12，星铁/绝区零为 YYYYMM，省略读取接口默认月份。期数型挑战使用 `schedule_type=1/2`；星铁 `rogue` 使用 1/2/3（默认 3）；星铁 `peak` 接受 1/2/3，官方只按 1（本期）或 3（最近三期）作答，2 与 3 都以 3 请求，上期是其中第二条。星铁 `challenge`、`story`、`boss`、`peak` 默认带 `need_all=true` 读取详细记录；`input` 带布尔值 `need_all: false` 时不发送该参数，即 StarRail-plugin 的“简易”记录，`need_all` 的其他值无效。七圣牌库固定读取角色牌及行动牌的可用列表。身份查询参数按官方端点固定选择 `role_id/server`、`uid/region` 或 `bind_uid/bind_region`，调用方不能覆盖。原神札记固定访问 `https://hk4e-api.mihoyo.com/event/ys_ledger/monthInfo`，其他扩展端点仍位于已限定的官方主机。
 
+绝区零国服的战绩与月报（`profile`、`note`、`characters`、`character`、`buddies`、`challenge`、`deadly`、`holo_boss`、`tower`、`void_front`、`hollow_zero`、`hollow_zero_detail`、`lost_void`、`zenkov`、`zenkov_detail`、`exploration`、`monthly`）与 ZZZ-Plugin（tool.js 的 zzzUrlMap 与 mysapi.js 的 getUrl）发送同一查询：参数按上游的顺序写出、不排序，只有上游带 `lang=zh-cn` 的操作才带（`note`、`exploration`、`monthly` 不带）；DS 只签这段固定查询，`character` 的 `id_list[]=<ID>`（方括号不转义）与 `monthly` 的 `month=<YYYYMM>`（读取默认月份时为空值）在签名之后追加。请求头与设备指纹不因此改变；海外角色的战绩请求沿用 genshin.py 的写法。
+
 `genshin.gacha`、`starrail.gacha`、`zzz.gacha` 是国服抽卡记录分页读取，input 为 `gacha_type`、可选 `end_id`（默认字符串 `0`）及 `page`（默认 1）。返回官方分页 data（含 `list`、`region`、`region_time_zone` 等），按上一段删除凭据字段，值中出现 AuthKey 或账号凭据时拒绝。原神支持 100/200/301/302/400/500，星铁支持 1/2/11/12/21/22，绝区零支持 1001/2001/3001/5001/12001/13001。记录校验（每页最多 20 条、UID 与所选角色一致、游标递减、池类型一致、时间与 ID 格式）、池类型转换（绝区零转为档案池类型 1/2/3/5/102/103，原神 400 归入 301）与时区换算由游戏插件完成。
 
 账号插件通过固定官方端点换取 AuthKey，最多在内存缓存 128 项、每项 30 分钟，不落盘；除 `gacha.link` 外不跨插件传输。分页端点不发送 CK/SToken。明确 AuthKey 失效时重新换取并重试一次，仍失败返回 `plugin.upstream_gacha_expired`；星铁在官方仍拒绝新换取 AuthKey 时返回 `plugin.upstream_gacha_unavailable`。两者均不使 CK 失效；海外角色返回 `plugin.account_region_unsupported`。

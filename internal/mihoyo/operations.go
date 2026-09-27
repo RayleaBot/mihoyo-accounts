@@ -20,6 +20,10 @@ type operation struct {
 	defaults      map[string]string
 	post          bool
 	inputs        []string
+	// order lists ZZZ-Plugin's query keys for a mainland ZZZ record in its
+	// order (tool.js zzzUrlMap), which its DS signs; appended are the
+	// data.query keys getUrl adds after signing.
+	order, appended []string
 }
 
 // Only these business operations can send authenticated requests. Neither the
@@ -45,12 +49,12 @@ var operations = map[string]operation{
 	"starrail.challenge":                {game: "starrail", path: "/game_record/app/hkrpg/api/challenge", inputs: words("schedule_type need_all")},
 	"starrail.story":                    {game: "starrail", path: "/game_record/app/hkrpg/api/challenge_story", inputs: words("schedule_type need_all")},
 	"starrail.boss":                     {game: "starrail", path: "/game_record/app/hkrpg/api/challenge_boss", inputs: words("schedule_type need_all")},
-	"zzz.profile":                       {game: "zzz", path: "/event/game_record_zzz/api/zzz/index"},
-	"zzz.note":                          {game: "zzz", path: "/event/game_record_zzz/api/zzz/note"},
-	"zzz.characters":                    {game: "zzz", path: "/event/game_record_zzz/api/zzz/avatar/basic"},
-	"zzz.character":                     {game: "zzz", path: "/event/game_record_zzz/api/zzz/avatar/info", inputs: words("id_list")},
-	"zzz.buddies":                       {game: "zzz", path: "/event/game_record_zzz/api/zzz/buddy/info"},
-	"zzz.challenge":                     {game: "zzz", path: "/event/game_record_zzz/api/zzz/hadal_info_v2", inputs: words("schedule_type")},
+	"zzz.profile":                       {game: "zzz", path: "/event/game_record_zzz/api/zzz/index", order: words("lang role_id server")},
+	"zzz.note":                          {game: "zzz", path: "/event/game_record_zzz/api/zzz/note", order: words("role_id server")},
+	"zzz.characters":                    {game: "zzz", path: "/event/game_record_zzz/api/zzz/avatar/basic", order: words("lang role_id server")},
+	"zzz.character":                     {game: "zzz", path: "/event/game_record_zzz/api/zzz/avatar/info", inputs: words("id_list"), order: words("lang role_id server need_wiki"), appended: words("id_list[]")},
+	"zzz.buddies":                       {game: "zzz", path: "/event/game_record_zzz/api/zzz/buddy/info", order: words("lang role_id server")},
+	"zzz.challenge":                     {game: "zzz", path: "/event/game_record_zzz/api/zzz/hadal_info_v2", inputs: words("schedule_type"), order: words("lang role_id server schedule_type")},
 }
 
 func words(s string) []string { return strings.Fields(s) }
@@ -237,7 +241,13 @@ func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accou
 			query.Set("lang", "zh-cn")
 		}
 	}
-	data, err := c.request(ctx, name, host, spec.path, profile, query, post, tokens)
+	var data map[string]any
+	var err error
+	if len(spec.order) > 0 && tokens.Realm != "os" {
+		data, err = c.requestWire(ctx, name, host, spec.path, profile, upstreamQuery(spec, query), tokens)
+	} else {
+		data, err = c.request(ctx, name, host, spec.path, profile, query, post, tokens)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +259,29 @@ func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accou
 		return nil, invalid(name)
 	}
 	return result, nil
+}
+
+// upstreamQuery writes a mainland ZZZ record's query as ZZZ-Plugin's getUrl
+// does: the fixed query in upstream's order, which the DS signs, then the
+// data.query, neither sorted; brackets stay literal as in id_list[]. An
+// appended key without a value is sent empty, as upstream asks the default
+// month with "month=".
+func upstreamQuery(spec operation, query url.Values) wireQuery {
+	pairs := []string{}
+	for _, key := range spec.order {
+		pairs = append(pairs, key+"="+url.QueryEscape(query.Get(key)))
+	}
+	signed := strings.Join(pairs, "&")
+	for _, key := range spec.appended {
+		values := query[key]
+		if len(values) == 0 {
+			values = []string{""}
+		}
+		for _, value := range values {
+			pairs = append(pairs, key+"="+url.QueryEscape(value))
+		}
+	}
+	return wireQuery{sent: strings.Join(pairs, "&"), signed: signed}
 }
 
 func stringNumber(value any) string {

@@ -50,3 +50,67 @@ func TestRecordProfilesSignExactWireQueryAndBody(t *testing.T) {
 		})
 	}
 }
+
+// ZZZ-Plugin's tool.js writes each mainland record's query in its own order
+// and getUrl appends data.query after the DS has signed it.
+func TestZZZRecordsSendZZZPluginQueries(t *testing.T) {
+	const base = "role_id=10000001&server=prod_gf_cn"
+	const byUID = "uid=10000001&region=prod_gf_cn"
+	for _, tc := range []struct {
+		name         string
+		input        map[string]any
+		signed, sent string
+		host, path   string
+	}{
+		{"zzz.profile", nil, "lang=zh-cn&" + base, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/index"},
+		{"zzz.note", nil, base, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/note"},
+		{"zzz.characters", nil, "lang=zh-cn&" + base, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/avatar/basic"},
+		{"zzz.character", map[string]any{"id_list": []any{"1041"}}, "lang=zh-cn&" + base + "&need_wiki=false", "&id_list[]=1041", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/avatar/info"},
+		{"zzz.buddies", nil, "lang=zh-cn&" + base, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/buddy/info"},
+		{"zzz.challenge", map[string]any{"schedule_type": 2}, "lang=zh-cn&" + base + "&schedule_type=2", "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/hadal_info_v2"},
+		{"zzz.deadly", nil, "lang=zh-cn&" + byUID + "&schedule_type=1", "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/hadal_mem_detail_v2"},
+		{"zzz.holo_boss", map[string]any{"schedule_type": 2}, "lang=zh-cn&" + byUID + "&schedule_type=2", "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/holo_boss_detail"},
+		{"zzz.tower", nil, "lang=zh-cn&" + byUID, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/climbing_tower_detail"},
+		{"zzz.void_front", nil, "lang=zh-cn&" + byUID + "&schedule_type=1", "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/void_front_battle_period_detail"},
+		{"zzz.hollow_zero", nil, "lang=zh-cn&" + base, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/abyss_abstract"},
+		{"zzz.hollow_zero_detail", nil, "lang=zh-cn&" + base + "&type=3", "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/abyss_detail"},
+		{"zzz.lost_void", nil, "lang=zh-cn&" + byUID, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/abysss2_abstract"},
+		{"zzz.zenkov", nil, "lang=zh-cn&" + byUID, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/zenkov_abstract_info"},
+		{"zzz.zenkov_detail", nil, "lang=zh-cn&" + byUID, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/zenkov_detail"},
+		{"zzz.exploration", nil, byUID, "", "api-takumi-record.mihoyo.com", "/event/game_record_zzz/api/zzz/exploration_detail"},
+		{"zzz.monthly", nil, byUID, "&month=", "api-takumi.mihoyo.com", "/event/nap_ledger/month_info"},
+		{"zzz.monthly", map[string]any{"month": "202503"}, byUID, "&month=202503", "api-takumi.mihoyo.com", "/event/nap_ledger/month_info"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := New(doerFunc(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Host != tc.host || req.URL.Path != tc.path {
+					t.Fatalf("endpoint = %s%s", req.URL.Host, req.URL.Path)
+				}
+				if req.URL.RawQuery != tc.signed+tc.sent || req.URL.RequestURI() != tc.path+"?"+tc.signed+tc.sent {
+					t.Fatalf("query = %q, request URI %q", req.URL.RawQuery, req.URL.RequestURI())
+				}
+				ds := strings.Split(req.Header.Get("DS"), ",")
+				if len(ds) != 3 {
+					t.Fatal("missing DS")
+				}
+				// The DS covers only the fixed query and the empty GET body.
+				digest := md5.Sum([]byte("salt=xV8v4Qu54lUKrEYFZkJhB8cuOh9Asafs&t=" + ds[0] + "&r=" + ds[1] + "&b=&q=" + tc.signed))
+				if ds[2] != hex.EncodeToString(digest[:]) {
+					t.Fatal("DS did not sign the fixed query")
+				}
+				return reply(map[string]any{"retcode": 0, "data": map[string]any{"avatar_list": []any{}}}), nil
+			}), nil)
+			role := accounts.Role{Game: "zzz", UID: "10000001", Region: "prod_gf_cn"}
+			if _, err := client.Execute(t.Context(), accounts.Tokens{DeviceID: "test-device", DeviceFP: "syntheticfingerprint"}, role, tc.name, tc.input); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	// Every mainland ZZZ record the provider sends has upstream's order.
+	for _, name := range OperationNames() {
+		spec := operations[name]
+		if spec.game == "zzz" && spec.path != "" && len(spec.order) == 0 {
+			t.Errorf("%s has no upstream query order", name)
+		}
+	}
+}
