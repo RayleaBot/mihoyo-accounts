@@ -3,137 +3,136 @@ package app
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 )
 
-// The host gives an event 60 seconds by default
-// (runtime.plugin_event_timeout_seconds) and does not tell a plugin the value
-// it uses; the SDK sets a deadline only on service requests. A chat event
-// starts new work for eventTime of that, and a login followed in its event
-// leaves resultTime of it for saving, drawing and sending the result.
-const (
-	eventTime  = 40 * time.Second
-	resultTime = 20 * time.Second
-	actionTime = 4 * time.Second
-)
+// answerTime is kept before the background deadline for the last answer: a
+// chat login still open then ends as upstream's 验证超时.
+const answerTime = 10 * time.Second
 
-// maxFollowers is how many 扫码登录 events wait for their logins at once.
-// Each holds one of the plugin's event slots; beyond it, the per-minute task
-// answers the login.
-const maxFollowers = 2
-
-// loginTaskRequest creates the per-minute login task; creating it again keeps
-// the one task.
-func loginTaskRequest() rayleabot.SchedulerCreateRequest {
-	return rayleabot.SchedulerCreateRequest{TaskID: loginTask, Cron: "* * * * *", LogLabel: "米游社扫码结果", Payload: map[string]any{"kind": "login_notifications"}}
+// chatLogin answers 扫码登录 in a private chat or a group as
+// xiaoyao-cvs-plugin's qrCodeLogin, in one background event: it sends the
+// code, @ing the sender in a group, and follows the login until it ends.
+func (a *App) chatLogin(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy, owner accounts.Subject) error {
+	// Only an administrator initializes the account store and chooses how its
+	// key is protected; a chat user must not decide that by logging in first.
+	if a.Vault.State() == "uninitialized" {
+		return event.SendText(message("plugin.vault_uninitialized"))
+	}
+	result, err := a.Manage(ctx, store, policy, "login.start", map[string]any{"subject": owner})
+	if err != nil {
+		return event.SendText(publicError(err).Message)
+	}
+	view := result["login"].(LoginView)
+	s, err := a.getLogin(view.Ref)
+	if err != nil {
+		return event.SendText(publicError(err).Message)
+	}
+	// The code is sent once the event is in the background, so a plugin too
+	// busy to follow the login shows no code.
+	if detached, err := background(ctx, event); !detached {
+		_, _ = a.cancelLogin(view.Ref)
+		if err != nil {
+			return err
+		}
+		return event.SendText(busyText)
+	}
+	code := rayleabot.Image("base64://" + strings.TrimPrefix(view.QRCode, "data:image/png;base64,"))
+	segments := []rayleabot.Segment{rayleabot.Text("请扫码以完成绑定\n"), code}
+	if event.Event.Target.Type != "private" {
+		segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}
+	}
+	sent, err := event.Actions().MessageSend(ctx, chatMessage(event, segments...))
+	if err != nil && !unconfirmed(err) {
+		_, _ = a.cancelLogin(view.Ref)
+		return err
+	}
+	shown := ""
+	if owner.SourceProtocol == "onebot11" {
+		shown = stringValue(sent["message_id"])
+	}
+	return a.followLogin(ctx, event, store, policy, owner, s, shown)
 }
 
-// followLogin waits for a chat login inside its 扫码登录 event, as
-// xiaoyao-cvs-plugin's GetQrCode polls it: it says once that the code was
-// scanned, recalls the code once it is due and sends the result as soon as
-// the login ends, recalling a code still shown. It follows until
-// followWindow after the event started, or resultTime before the context's
-// deadline when that is sooner; a login still open then is left to the
-// per-minute task. A login canceled elsewhere ends it at once.
-func (a *App) followLogin(parent context.Context, started time.Time, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy, s *login) {
-	select {
-	case a.followers <- struct{}{}:
-		defer func() { <-a.followers }()
-	default:
-		return
+// followLogin follows a chat login as xiaoyao-cvs-plugin's GetQrCode polls
+// it: the worker polls the code every five seconds and wakes the event on
+// each change. The event says once that the code was scanned, recalls the
+// shown code recallDelay after sending it and, when the login ends, recalls
+// a code still shown and answers. The login expires by itself three minutes
+// after the code or the confirmation; one still open answerTime before the
+// background deadline is expired then.
+func (a *App) followLogin(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy, owner accounts.Subject, s *login, shown string) error {
+	recall := time.NewTimer(a.recallDelay)
+	defer recall.Stop()
+	due := recall.C
+	if shown == "" {
+		due = nil
 	}
-	until := started.Add(a.followWindow)
-	if deadline, ok := parent.Deadline(); ok && deadline.Add(-resultTime).Before(until) {
-		until = deadline.Add(-resultTime)
-	}
-	end := time.NewTimer(time.Until(until))
-	defer end.Stop()
+	expire := time.NewTimer(time.Until(event.Deadline().Add(-answerTime)))
+	defer expire.Stop()
+	noticed := false
 	for {
 		s.mu.Lock()
-		done := terminal(s.view.State) || s.ready || s.ctx.Err() != nil
-		scanned := !s.scanNoticed && s.view.State == "scanned" && s.view.Phase == "scan"
-		s.scanNoticed = s.scanNoticed || scanned
-		code, recallAt := s.qrMessage, s.recallAt
+		ended := terminal(s.view.State) || s.ready || s.ctx.Err() != nil
+		scanned := s.view.State == "scanned" && s.view.Phase == "scan"
 		s.mu.Unlock()
-		if done {
-			a.finishFollow(parent, event, store, policy, s)
-			return
+		if ended {
+			break
 		}
-		if scanned {
+		if scanned && !noticed {
+			noticed = true
 			// As upstream, a reply to the 扫码登录 message.
-			ctx, cancel := context.WithTimeout(parent, actionTime)
-			_, _ = event.Actions().MessageSend(ctx, rayleabot.MessageSendRequest{SourceAdapter: event.Event.SourceAdapter, SourceProtocol: event.Event.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, ReplyToEventID: event.Event.EventID, FallbackToSendIfMissing: true, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.Text("二维码已扫描，请确认登录")}}})
-			cancel()
-		}
-		recall := time.NewTimer(time.Until(recallAt))
-		due := recall.C
-		if code == "" {
-			due = nil
+			_, _ = event.Actions().MessageSend(ctx, quote(event, "二维码已扫描，请确认登录"))
 		}
 		select {
-		case <-parent.Done():
-			recall.Stop()
-			return
-		case <-end.C:
-			recall.Stop()
-			a.handOver(parent, event)
-			return
-		case <-s.ctx.Done():
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-expire.C:
+			s.mu.Lock()
+			s.expire()
+			s.mu.Unlock()
 		case <-s.changed:
+		case <-s.ctx.Done():
 		case <-due:
-			a.recallCode(parent, event, s, true)
+			recallCode(ctx, event, owner.SourceAdapter, shown)
+			shown, due = "", nil
 		}
-		recall.Stop()
 	}
-}
-
-// finishFollow recalls a code still shown, saves the ended login and sends
-// its result; what it cannot finish is left to the per-minute task.
-func (a *App) finishFollow(parent context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy, s *login) {
-	a.recallCode(parent, event, s, false)
-	ctx, cancel := context.WithTimeout(parent, resultTime)
-	defer cancel()
+	recallCode(ctx, event, owner.SourceAdapter, shown)
 	s.mu.Lock()
 	ref := s.view.Ref
 	s.mu.Unlock()
 	result, err := a.Manage(ctx, store, policy, "login.poll", map[string]any{"login_ref": ref})
-	if err == nil {
-		view := result["login"].(LoginView)
-		if terminal(view.State) && a.sendLoginResult(ctx, event, store, s, view) == nil {
-			return
+	if err != nil {
+		return event.SendText(publicError(err).Message)
+	}
+	view := result["login"].(LoginView)
+	switch view.State {
+	case "expired":
+		// As upstream, a code not confirmed in time.
+		if _, err := event.Actions().MessageSend(ctx, quote(event, "验证超时")); err != nil {
+			return err
+		}
+	case "bound", "failed":
+		if err := a.sendLoginResult(ctx, event, store, owner, view); err != nil {
+			return err
 		}
 	}
-	a.handOver(parent, event)
+	// A login canceled by 取消登录, a newer 扫码登录 or the management page
+	// ends without an answer here; each of those answers for itself.
+	return event.Result(map[string]any{"handled": true})
 }
 
-// handOver leaves a login to the per-minute task, creating the task again in
-// case it ended meanwhile.
-func (a *App) handOver(parent context.Context, event *rayleabot.EventContext) {
-	ctx, cancel := context.WithTimeout(parent, actionTime)
-	defer cancel()
-	if _, err := event.Actions().SchedulerCreate(ctx, loginTaskRequest()); err != nil {
-		_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: "扫码结果任务未能创建，可发送“登录状态”查看结果。"})
-	}
-}
-
-// recallCode recalls the code a login sent to its chat, once: with due set
-// only when its time came, otherwise at once. As upstream, a failed recall is
-// logged, not retried.
-func (a *App) recallCode(parent context.Context, event *rayleabot.EventContext, s *login, due bool) {
-	s.mu.Lock()
-	id, adapter := "", s.owner.SourceAdapter
-	if s.qrMessage != "" && (!due || !time.Now().Before(s.recallAt)) {
-		id, s.qrMessage = s.qrMessage, ""
-	}
-	s.mu.Unlock()
+// recallCode recalls the code sent to the chat. As upstream, a failed recall
+// is logged, not retried.
+func recallCode(ctx context.Context, event *rayleabot.EventContext, adapter, id string) {
 	if id == "" {
 		return
 	}
-	ctx, cancel := context.WithTimeout(parent, actionTime)
-	defer cancel()
 	if _, err := event.Actions().ForOneBotAdapter(adapter).MessageDelete(ctx, id); err != nil {
 		fields := map[string]any{}
 		var failure *rayleabot.ActionError
@@ -144,47 +143,20 @@ func (a *App) recallCode(parent context.Context, event *rayleabot.EventContext, 
 	}
 }
 
-// claimResult marks an ended login's result as sent before it is sent, so
-// it is sent once; given a chat, only when the login came from that chat. It
-// is false when the result was already sent or has no chat to go to.
-func (s *login) claimResult(chat *rayleabot.Target) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.notified || s.chat.Type == "" || !terminal(s.view.State) || chat != nil && (s.chat.Type != chat.Type || s.chat.ID != chat.ID) {
-		return false
-	}
-	s.notified = true
-	return true
-}
-
-// sendLoginResult sends an ended login's result to the chat it came from,
-// once, @ing the sender in a group. When the chat does not take the card, the
-// text is sent instead; when nothing was sent, the claim is dropped for the
-// per-minute task to retry. A send that may have gone through is not repeated.
-func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, s *login, view LoginView) error {
-	if !s.claimResult(nil) {
-		return nil
-	}
-	return a.postLoginResult(ctx, event, store, s, view)
-}
-
-// postLoginResult sends a result claimResult marked, as sendLoginResult does.
-func (a *App) postLoginResult(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, s *login, view LoginView) error {
-	s.mu.Lock()
-	owner, chat := s.owner, s.chat
-	s.mu.Unlock()
+// sendLoginResult answers an ended login in the chat 扫码登录 came from,
+// @ing the sender in a group. When the chat does not take the card, the text
+// is sent instead; a send that may have gone through is not repeated.
+func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, owner accounts.Subject, view LoginView) error {
 	if view.State == "failed" && view.Failure != nil {
 		_, _ = event.Actions().LoggerWrite(ctx, rayleabot.LoggerWriteRequest{Level: "warn", Message: loginText(view), Fields: map[string]any{"code": view.ErrorCode, "login_stage": view.Failure.Stage, "operation": view.Failure.Operation, "retcode": view.Failure.RetCode, "http_status": view.Failure.HTTPStatus, "reason": view.Failure.Reason}})
 	}
 	send := func(segments []rayleabot.Segment) error {
-		request := rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: "private", TargetID: owner.ActorID, Message: rayleabot.MessageOut{Segments: segments}}
-		if chat.Type != "private" {
-			request.TargetType, request.TargetID = chat.Type, chat.ID
+		if event.Event.Target.Type != "private" {
 			first := segments[0]
 			first.Data = map[string]any{"text": "\n" + stringValue(first.Data["text"])}
-			request.Message.Segments = append([]rayleabot.Segment{rayleabot.At(owner.ActorID), first}, segments[1:]...)
+			segments = append([]rayleabot.Segment{rayleabot.At(owner.ActorID), first}, segments[1:]...)
 		}
-		_, err := event.Actions().MessageSend(ctx, request)
+		_, err := event.Actions().MessageSend(ctx, chatMessage(event, segments...))
 		return err
 	}
 	segments, image := a.loginResult(ctx, event, store, view)
@@ -193,12 +165,21 @@ func (a *App) postLoginResult(ctx context.Context, event *rayleabot.EventContext
 		err = send([]rayleabot.Segment{rayleabot.Text(loginText(view))})
 	}
 	if err != nil && !unconfirmed(err) {
-		s.mu.Lock()
-		s.notified = false
-		s.mu.Unlock()
 		return err
 	}
 	return nil
+}
+
+// chatMessage is a message to the chat an event came from.
+func chatMessage(event *rayleabot.EventContext, segments ...rayleabot.Segment) rayleabot.MessageSendRequest {
+	return rayleabot.MessageSendRequest{SourceAdapter: event.Event.SourceAdapter, SourceProtocol: event.Event.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: segments}}
+}
+
+// quote is a reply quoting the event's message, as upstream's reply(msg, true).
+func quote(event *rayleabot.EventContext, text string) rayleabot.MessageSendRequest {
+	request := chatMessage(event, rayleabot.Text(text))
+	request.ReplyToEventID, request.FallbackToSendIfMissing = event.Event.EventID, true
+	return request
 }
 
 // unconfirmed is a send that may still arrive, which is not repeated.

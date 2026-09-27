@@ -146,3 +146,13 @@ func TestCKCommandWordsFollowUpstream(t *testing.T) {
 		}
 	}
 }
+
+func TestTriggerOfAnUnknownTaskDeletesIt(t *testing.T) {
+	a, store, _ := setup(t, &fakeAPI{})
+	host := newChatHost(t, a, store)
+	reply, actions := host.trigger("mihoyo.accounts.login", map[string]any{"kind": "login_notifications"})
+	deletes := actionsNamed(actions, "scheduler.delete")
+	if reply["type"] != "result" || len(deletes) != 1 || deletes[0].Data["task_id"] != "mihoyo.accounts.login" {
+		t.Fatalf("the unknown task was not deleted: %v %v", reply, actions)
+	}
+}

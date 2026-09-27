@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
@@ -36,11 +35,9 @@ type LoginFailure struct {
 	Reason     string `json:"reason,omitempty"`
 }
 
-// login is a login job. chat is the chat 扫码登录 came from, which is sent
-// the result; logins started on the management page have none. qrMessage is
-// the code sent to the chat, recalled from recallAt on. changed wakes the
-// 扫码登录 event following the job when the worker moved it on, and
-// scanNoticed is set once that event said the code was scanned.
+// login is a login job. changed wakes the 扫码登录 event following the job
+// when the worker moved it on; logins started on the management page are
+// polled by the page instead.
 type login struct {
 	mu          sync.Mutex
 	ctx         context.Context
@@ -51,11 +48,6 @@ type login struct {
 	tokens      accounts.Tokens
 	roles       []accounts.Role
 	ready       bool
-	chat        rayleabot.Target
-	notified    bool
-	scanNoticed bool
-	qrMessage   string
-	recallAt    time.Time
 	changed     chan struct{}
 	retries     int
 	nextAttempt time.Time

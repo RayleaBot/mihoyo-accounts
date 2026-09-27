@@ -84,11 +84,11 @@ func TestLoginCardFallsBackToText(t *testing.T) {
 		}
 	})
 	t.Run("picture refused", func(t *testing.T) {
-		_, host := handedOver(t)
-		host.imageFails = true
-		reply, actions := host.loginTrigger()
-		sends := actionsNamed(actions, "message.send")
-		if reply["type"] != "result" || len(sends) != 2 || !strings.Contains(actionText(sends[1]), "登录成功，已发现 3 个游戏角色") || len(actionsNamed(actions, "scheduler.delete")) != 1 {
+		_, host := chatLogin(t, &fakeAPI{})
+		host.cardRefused = true
+		reply, actions := host.message("group", "#扫码登录", "扫码登录")
+		results := resultSends(actions)
+		if reply["type"] != "result" || len(results) != 2 || !strings.Contains(actionText(results[1]), "登录成功，已发现 3 个游戏角色") {
 			t.Fatalf("the refused card was not replaced by text: %v", actions)
 		}
 	})

@@ -76,12 +76,8 @@ type App struct {
 	refreshMu    sync.Mutex
 	refreshes    map[string]*refreshFlight
 	pollInterval time.Duration
-	// followWindow is how long a 扫码登录 event follows its login,
-	// recallDelay how long its code stays in the chat, and followers holds a
-	// slot for each event following one.
-	followWindow time.Duration
-	recallDelay  time.Duration
-	followers    chan struct{}
+	// recallDelay is how long a 扫码登录 code stays in the chat.
+	recallDelay time.Duration
 }
 type accountLock struct {
 	permit chan struct{}
@@ -97,7 +93,7 @@ func New(directory string, api API) (*App, error) {
 		api = mihoyo.New(nil, nil)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &App{Vault: manager, API: api, ctx: ctx, cancel: cancel, locks: map[string]*accountLock{}, jobs: map[string]*login{}, owners: map[accounts.Subject]string{}, refreshes: map[string]*refreshFlight{}, pollInterval: 5 * time.Second, followWindow: eventTime, recallDelay: 30 * time.Second, followers: make(chan struct{}, maxFollowers)}, nil
+	return &App{Vault: manager, API: api, ctx: ctx, cancel: cancel, locks: map[string]*accountLock{}, jobs: map[string]*login{}, owners: map[accounts.Subject]string{}, refreshes: map[string]*refreshFlight{}, pollInterval: 5 * time.Second, recallDelay: 30 * time.Second}, nil
 }
 func (a *App) Close() {
 	a.cancel()

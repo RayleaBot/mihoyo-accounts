@@ -60,11 +60,18 @@ func (a *App) Services() []rayleabot.Service {
 // serviceMethods are the accounts v1 methods; info.json declares the same.
 var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "ark.status", "uids.bind", "uids.remove", "uids.use", "uids.current", "gacha.link", "device.bind", "device.unbind", "device.default"}
 
+// resultTime bounds 刷新CK, which reads each game's roles after refreshing;
+// actionTime bounds the other local HTTP work of an event.
+const (
+	resultTime = 20 * time.Second
+	actionTime = 4 * time.Second
+)
+
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	// Ordinary event deadlines are owned by the host; keep local HTTP work
-	// shorter than the standard host event window as well. The login task and
-	// a group 扫码登录 that follows its login use the event's own context.
-	started, parent := time.Now(), ctx
+	// shorter than the standard host event window as well. 扫码登录 uses the
+	// event's own context.
+	parent := ctx
 	ctx, cancel := context.WithTimeout(ctx, actionTime)
 	defer cancel()
 	store, policy := sdkStore{event}, policyFor(event)
@@ -83,7 +90,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		return event.Result(result)
 	}
 	if event.Event.EventType == "scheduler.trigger" {
-		return a.notifyLogins(parent, event, store, policy)
+		return dropTask(ctx, event)
 	}
 	if event.Event.EventType != "message.private" && event.Event.EventType != "message.group" {
 		return event.Result(map[string]any{"handled": false})
@@ -121,44 +128,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		return a.associationCommand(ctx, event, store, owner, command)
 	}
 	if event.Event.Command() == "扫码登录" {
-		// Only an administrator initializes the account store and chooses how its
-		// key is protected; a chat user must not decide that by logging in first.
-		if a.Vault.State() == "uninitialized" {
-			return event.SendText(message("plugin.vault_uninitialized"))
-		}
-		result, err := a.Manage(ctx, store, policy, "login.start", map[string]any{"subject": owner})
-		if err != nil {
-			return event.SendText(publicError(err).Message)
-		}
-		view := result["login"].(LoginView)
-		job, _ := a.getLogin(view.Ref)
-		job.mu.Lock()
-		job.chat = event.Event.Target
-		job.mu.Unlock()
-		if _, err := event.Actions().SchedulerCreate(ctx, loginTaskRequest()); err != nil {
-			_, _ = a.cancelLogin(view.Ref)
-			return event.SendText("扫码任务未能创建，请稍后重试。")
-		}
-		// As xiaoyao-cvs-plugin's 扫码登录, in a private chat as in a group:
-		// the code, @ing the sender in a group, is recalled after 30 seconds,
-		// and the event waits for the login. The per-minute task answers what
-		// the event leaves.
-		code := rayleabot.Image("base64://" + strings.TrimPrefix(view.QRCode, "data:image/png;base64,"))
-		segments := []rayleabot.Segment{rayleabot.Text("请扫码以完成绑定\n"), code}
-		if event.Event.Target.Type != "private" {
-			segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}
-		}
-		sent, err := event.Actions().MessageSend(ctx, rayleabot.MessageSendRequest{SourceAdapter: owner.SourceAdapter, SourceProtocol: owner.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: segments}})
-		if id := stringValue(sent["message_id"]); err == nil && id != "" && owner.SourceProtocol == "onebot11" {
-			job.mu.Lock()
-			job.qrMessage, job.recallAt = id, time.Now().Add(a.recallDelay)
-			job.mu.Unlock()
-		}
-		// A code that was not sent still gets its result: 二维码已过期.
-		if err == nil {
-			a.followLogin(parent, started, event, store, policy, job)
-		}
-		return event.Result(map[string]any{"handled": true})
+		return a.chatLogin(parent, event, store, policy, owner)
 	}
 	if event.Event.Command() == "登录状态" || event.Event.Command() == "取消登录" {
 		a.jobsMu.Lock()
@@ -172,16 +142,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		if err != nil {
 			return event.SendText(publicError(err).Message)
 		}
-		// In the chat the login came from, an ended login's reply is its
-		// result, which the per-minute task then does not send again.
-		view := result["login"].(LoginView)
-		if job, _ := a.getLogin(ref); job != nil && job.claimResult(&event.Event.Target) {
-			resultCtx, cancel := context.WithTimeout(parent, resultTime)
-			defer cancel()
-			_ = a.postLoginResult(resultCtx, event, store, job, view)
-			return event.Result(map[string]any{"handled": true})
-		}
-		return event.SendText(loginText(view))
+		return event.SendText(loginText(result["login"].(LoginView)))
 	}
 	listed, err := a.Manage(ctx, store, policy, "accounts.list", map[string]any{"subject": owner})
 	if err != nil {
@@ -364,54 +325,27 @@ const deviceHelp = `[绑定设备]
 [解绑设备]
 发送“解绑设备”即可`
 
-// loginTask sends chat logins their result once a minute while any is open,
-// and recalls the codes sent to chats, when their 扫码登录 events did not.
-const loginTask = "mihoyo.accounts.login"
-
-func (a *App) notifyLogins(parent context.Context, event *rayleabot.EventContext, store accounts.SecretStore, policy Policy) error {
-	ctx, cancel := context.WithTimeout(parent, eventTime)
-	defer cancel()
-	a.jobsMu.Lock()
-	jobs := make([]*login, 0, len(a.jobs))
-	for _, s := range a.jobs {
-		jobs = append(jobs, s)
-	}
-	a.jobsMu.Unlock()
-	for _, s := range jobs {
-		a.recallCode(ctx, event, s, true)
-	}
-	for _, s := range jobs {
-		s.mu.Lock()
-		notify := s.chat.Type != "" && !s.notified
-		ref := s.view.Ref
-		s.mu.Unlock()
-		if !notify {
-			continue
+// dropTask deletes the task a scheduler trigger came from: the plugin keeps
+// no scheduled tasks, so it knows no task a trigger can name.
+func dropTask(ctx context.Context, event *rayleabot.EventContext) error {
+	if id := event.Event.TaskID(); id != "" {
+		if _, err := event.Actions().SchedulerDelete(ctx, id); err != nil {
+			return err
 		}
-		result, err := a.Manage(ctx, store, policy, "login.poll", map[string]any{"login_ref": ref})
-		if err != nil {
-			continue
-		}
-		view := result["login"].(LoginView)
-		if !terminal(view.State) {
-			continue
-		}
-		if err := a.sendLoginResult(ctx, event, store, s, view); err != nil {
-			return event.Fail("plugin.account_notification_failed", "扫码结果通知未发送，将在下次任务中重试。")
-		}
-	}
-	// With every chat login answered and every code recalled, the per-minute
-	// task is no longer needed; the next 扫码登录 creates it again.
-	a.jobsMu.Lock()
-	pending := false
-	for _, s := range a.jobs {
-		s.mu.Lock()
-		pending = pending || s.chat.Type != "" && !s.notified || s.qrMessage != ""
-		s.mu.Unlock()
-	}
-	a.jobsMu.Unlock()
-	if !pending {
-		_, _ = event.Actions().SchedulerDelete(ctx, loginTask)
 	}
 	return event.Result(map[string]any{"handled": true})
+}
+
+// busyText answers a chat command the plugin cannot move to the background.
+const busyText = "当前处理中的请求较多，请稍后重试。"
+
+// background moves a chat command that can outlast its event deadline to
+// the background. It is false with no error when the plugin already holds the
+// host's limit of background events; the command is then answered busyText.
+func background(ctx context.Context, event *rayleabot.EventContext) (bool, error) {
+	_, err := event.Detach(ctx, map[string]any{"handled": true})
+	if isFailure(err, "platform.rate_limited") {
+		return false, nil
+	}
+	return err == nil, err
 }
