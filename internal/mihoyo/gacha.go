@@ -33,25 +33,6 @@ var gachaProfiles = map[string]gachaProfile{
 var recordDigits = regexp.MustCompile(`^[0-9]{1,19}$`)
 var zzzPools = map[string]string{"1001": "1", "2001": "2", "3001": "3", "5001": "5", "12001": "102", "13001": "103"}
 
-// Delegated reads accept paging coordinates only; identities and credentials
-// always come from the authorized account record.
-func ValidGachaDelegation(name string, input map[string]any) bool {
-	game := strings.TrimSuffix(name, ".gacha")
-	if (name != "genshin.gacha" && name != "zzz.gacha" && name != "starrail.gacha") || len(input) != 3 {
-		return false
-	}
-	var q struct {
-		Pool  string `json:"gacha_type"`
-		EndID string `json:"end_id"`
-		Page  int    `json:"page"`
-	}
-	raw, err := json.Marshal(input)
-	if err != nil || json.Unmarshal(raw, &q) != nil {
-		return false
-	}
-	return slices.Contains(gachaProfiles[game].pools, q.Pool) && recordDigits.MatchString(q.EndID) && q.Page >= 1 && q.Page <= 10000
-}
-
 func allowedGachaEndpoint(host, path, profile string) bool {
 	if profile != "gacha" {
 		return false

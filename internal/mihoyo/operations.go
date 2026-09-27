@@ -285,17 +285,6 @@ func upstreamQuery(spec operation, query url.Values) wireQuery {
 	return wireQuery{sent: strings.Join(pairs, "&"), signed: signed}
 }
 
-// ValidCharacterDelegation is whether a delegated read asks the details of a
-// single ZZZ character, as the rest of an 更新面板 is read on its task.
-func ValidCharacterDelegation(input map[string]any) bool {
-	list, ok := input["id_list"].([]any)
-	if !ok || len(input) != 1 || len(list) != 1 {
-		return false
-	}
-	id, err := strconv.Atoi(stringNumber(list[0]))
-	return err == nil && id >= 1 && id <= 1000000000
-}
-
 func stringNumber(value any) string {
 	switch value := value.(type) {
 	case float64:
