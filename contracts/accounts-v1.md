@@ -89,7 +89,7 @@ statistics 从加密账号目录分页汇总保存账号数、完整聊天主体
 
 密钥文件可能包含早期版本留下的多代密钥，全部保留用于读取历史记录，新记录只用最新一代密钥加密。
 
-角色详情的属性元数据随业务结果返回：原神 `property_map`，星铁 `property_info`。`starrail.character` 增加可选 `character_ids`（1–50 个正整数），由提供者筛选已认证响应中的角色，不把未登记的查询参数传给官方；省略时兼容原角色列表。三游戏的返回结果不包含 CK 或活动会话。
+角色详情的属性元数据随业务结果返回：原神 `property_map`，星铁 `property_info`。`starrail.character` 增加可选 `character_ids`（1–50 个正整数），由提供者筛选已认证响应中的角色，不把未登记的查询参数传给官方；省略时兼容原角色列表。`zzz.character` 的 `input` 只有 `id_list`：恰好一个正整数角色 ID（1–1000000000），与 ZZZ-Plugin 每次请求一个角色相同；为空、多于一个或不是列表时返回 `plugin.upstream_request_invalid`，不请求官方。逐个读取之间的等待由游戏插件负责。三游戏的返回结果不包含 CK 或活动会话。
 
 `starrail.gacha_summary` 是独立的国服官方小程序摘要查询，输入 `gacha_type`（1/2/11/12/21/22，默认 11），可选 `version_id` 和 `max_id` 一并作为五星记录分页游标。返回 `coverage=five_star_and_pool_summary`、`pool`、`five_star`、`gacha_type`；不写入逐抽档案。账号插件通过固定 `common/badge/v1/login/account` 获取临时活动 Cookie，仅在内存使用，再访问固定官方 `act-api-takumi.mihoyo.com/event/rpg_gacha_record/` 下 `pool_stat` 与 `five_star_list`。该摘要不代表完整逐抽历史，不改变完整抽卡同步受限状态。
 

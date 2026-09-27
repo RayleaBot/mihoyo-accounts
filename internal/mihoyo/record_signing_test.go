@@ -114,3 +114,17 @@ func TestZZZRecordsSendZZZPluginQueries(t *testing.T) {
 		}
 	}
 }
+
+func TestZZZCharacterTakesOneCharacterARequest(t *testing.T) {
+	client := New(doerFunc(func(*http.Request) (*http.Response, error) {
+		t.Fatal("a refused character list reached upstream")
+		return nil, nil
+	}), nil)
+	role := accounts.Role{Game: "zzz", UID: "10000001", Region: "prod_gf_cn"}
+	for _, input := range []map[string]any{nil, {"id_list": []any{}}, {"id_list": []any{"1041", "1191"}}, {"id_list": "1041"}, {"id_list": []any{"0"}}} {
+		_, err := client.Execute(t.Context(), accounts.Tokens{}, role, "zzz.character", input)
+		if failure, ok := err.(*Error); !ok || failure.Code != "plugin.upstream_request_invalid" {
+			t.Fatalf("%v: %v", input, err)
+		}
+	}
+}

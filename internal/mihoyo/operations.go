@@ -194,7 +194,8 @@ func (c *Client) Execute(ctx context.Context, tokens accounts.Tokens, role accou
 				continue
 			}
 			list, ok := input[key].([]any)
-			if !ok || len(list) == 0 || len(list) > 50 {
+			// ZZZ-Plugin reads one character a request; a list is refused.
+			if !ok || len(list) == 0 || len(list) > 50 || name == "zzz.character" && len(list) != 1 {
 				return nil, invalidInput(name)
 			}
 			ids := make([]int, 0, len(list))
