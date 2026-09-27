@@ -59,7 +59,9 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 	}
 	for _, role := range record.Roles {
 		gacha := input.Operation == role.Game+".gacha" && (role.Game == "genshin" || role.Game == "zzz" || role.Game == "starrail" && record.Tokens.Realm == "os")
-		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || gacha || input.Operation == "genshin.billing" && role.Game == "genshin" || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
+		// zzz.character lets 更新面板 read on its task what its event could not.
+		character := input.Operation == "zzz.character" && role.Game == "zzz"
+		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || gacha || character || input.Operation == "genshin.billing" && role.Game == "genshin" || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
 			valid = true
 		}
 	}
@@ -117,11 +119,16 @@ func (a *App) admitDelegation(ctx context.Context, store accounts.SecretStore, c
 		gacha := d.Operation == "genshin.gacha" || d.Operation == "zzz.gacha" || d.Operation == "starrail.gacha" && record.Tokens.Realm == "os"
 		billing := d.Operation == "genshin.billing"
 		community := strings.HasSuffix(d.Operation, ".community_run")
-		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || gacha && !mihoyo.ValidGachaDelegation(d.Operation, object(req.Params["input"])) || billing && !mihoyo.ValidBillingDelegation(object(req.Params["input"])) || !gacha && !billing && !community && len(object(req.Params["input"])) != 0 {
+		character := d.Operation == "zzz.character"
+		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || gacha && !mihoyo.ValidGachaDelegation(d.Operation, object(req.Params["input"])) || billing && !mihoyo.ValidBillingDelegation(object(req.Params["input"])) || character && !mihoyo.ValidCharacterDelegation(object(req.Params["input"])) || !gacha && !billing && !community && !character && len(object(req.Params["input"])) != 0 {
 			return failure("plugin.account_delegation_denied")
 		}
 		if community {
 			interval = 3000
+		}
+		// ZZZ-Plugin waits at least 100 ms between two characters.
+		if character {
+			interval = 100
 		}
 		if gacha || billing {
 			interval = 1000

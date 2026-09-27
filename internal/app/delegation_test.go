@@ -340,3 +340,61 @@ func TestOneTaskHoldsADelegationPerOperation(t *testing.T) {
 		assertCode(t, err, "plugin.account_delegation_denied")
 	}
 }
+
+func TestCharacterDelegationReadsOneCharacterAtAShortInterval(t *testing.T) {
+	api := &fakeAPI{}
+	a, store, record := setup(t, api)
+	create := request("zzz", record.Ref)
+	create.Method = "delegation.create"
+	create.Params["operation"] = "zzz.character"
+	create.Params["task_id"] = "game.panel.test"
+	create.Params["days"] = 1
+	result, err := a.Service(t.Context(), store, policy(), create)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant := result["delegation"].(accounts.Delegation)
+	req := request("zzz", record.Ref)
+	req.Params["operation"] = "zzz.character"
+	req.Params["delegation_ref"] = grant.Ref
+	req.Origin = rayleabot.ServiceOrigin{EventID: "tick", EventType: "scheduler.trigger", SourceProtocol: "scheduler", SourceAdapter: "scheduler.internal", TaskID: grant.TaskID}
+	for _, input := range []map[string]any{{}, {"id_list": []any{"1041", "1191"}}, {"id_list": []any{"1041"}, "need_wiki": true}, {"id_list": "1041"}, {"id_list": []any{"0"}}} {
+		req.Params["input"] = input
+		_, err = a.Service(t.Context(), store, policy(), req)
+		assertCode(t, err, "plugin.account_delegation_denied")
+	}
+	if api.executeCalls.Load() != 0 {
+		t.Fatal("a refused read reached upstream")
+	}
+	req.Params["input"] = map[string]any{"id_list": []any{"1041"}}
+	if _, err = a.Service(t.Context(), store, policy(), req); err != nil {
+		t.Fatal(err)
+	}
+	// Reads are spaced by ZZZ-Plugin's shortest wait between characters,
+	// 100 ms, not the minutes other delegations wait.
+	lastUsed := func(ms int64) {
+		cipher, _ := a.Vault.Cipher()
+		saved, err := a.Repo.Get(t.Context(), store, cipher, record.Ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		saved.Delegations[0].LastUsedAtMS = ms
+		if err = a.Repo.Update(t.Context(), store, cipher, saved, saved.Revision); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lastUsed(time.Now().Add(time.Minute).UnixMilli())
+	_, err = a.Service(t.Context(), store, policy(), req)
+	assertCode(t, err, "plugin.account_delegation_throttled")
+	lastUsed(time.Now().Add(-500 * time.Millisecond).UnixMilli())
+	if _, err = a.Service(t.Context(), store, policy(), req); err != nil || api.executeCalls.Load() != 2 {
+		t.Fatal("a read after the wait was refused", err)
+	}
+	other := request("genshin", record.Ref)
+	other.Method = "delegation.create"
+	other.Params["operation"] = "genshin.character"
+	other.Params["task_id"] = "game.panel.genshin"
+	other.Params["days"] = 1
+	_, err = a.Service(t.Context(), store, policy(), other)
+	assertCode(t, err, "plugin.account_operation_denied")
+}
