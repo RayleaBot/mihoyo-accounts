@@ -93,6 +93,77 @@ func TestDelegatedReadIsBoundToCallerTaskRoleAndExpiry(t *testing.T) {
 	}
 }
 
+func TestDelegatedGachaAllowsOnlyBoundedPagingAndPersistsAdmission(t *testing.T) {
+	api := &fakeAPI{}
+	a, store, record := setup(t, api)
+	ctx := t.Context()
+	create := request("genshin", record.Ref)
+	create.Method = "delegation.create"
+	create.Params["operation"] = "genshin.gacha"
+	create.Params["task_id"] = "game.sync.test"
+	create.Params["days"] = 7
+	result, err := a.Service(ctx, store, policy(), create)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant := result["delegation"].(accounts.Delegation)
+	scheduled := func() rayleabot.ServiceRequest {
+		r := request("genshin", record.Ref)
+		r.Params["operation"] = "genshin.gacha"
+		r.Params["delegation_ref"] = grant.Ref
+		r.Params["input"] = map[string]any{"gacha_type": "100", "end_id": "0", "page": 1}
+		r.Origin = rayleabot.ServiceOrigin{EventID: "tick", EventType: "scheduler.trigger", SourceProtocol: "scheduler", SourceAdapter: "scheduler.internal", TaskID: grant.TaskID}
+		return r
+	}
+	for _, input := range []map[string]any{
+		{"gacha_type": "100", "end_id": "0", "page": 1, "uid": "999999999"},
+		{"gacha_type": "100", "end_id": "0", "page": 1, "authkey": "synthetic"},
+		{"gacha_type": "invalid", "end_id": "0", "page": 1},
+		{"gacha_type": "100", "end_id": 123, "page": 1},
+		{"gacha_type": "100", "end_id": "0", "page": 1.5},
+		{"gacha_type": "100", "end_id": "0", "page": 10001},
+		{"gacha_type": "100", "end_id": "12345678901234567890", "page": 1},
+	} {
+		r := scheduled()
+		r.Params["input"] = input
+		_, err = a.Service(ctx, store, policy(), r)
+		assertCode(t, err, "plugin.account_delegation_denied")
+	}
+	store.fail = true
+	_, err = a.Service(ctx, store, policy(), scheduled())
+	if err == nil || api.executeCalls.Load() != 0 {
+		t.Fatal("failed admission reached upstream")
+	}
+	store.fail = false
+	if _, err = a.Service(ctx, store, policy(), scheduled()); err != nil {
+		t.Fatal(err)
+	}
+	_, err = a.Service(ctx, store, policy(), scheduled())
+	assertCode(t, err, "plugin.account_delegation_throttled")
+	cipher, _ := a.Vault.Cipher()
+	saved, err := a.Repo.Get(ctx, store, cipher, record.Ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved.Delegations[0].LastUsedAtMS = time.Now().Add(-2 * time.Second).UnixMilli()
+	if err = a.Repo.Update(ctx, store, cipher, saved, saved.Revision); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Service(ctx, store, policy(), scheduled()); err != nil {
+		t.Fatal(err)
+	}
+	if api.executeCalls.Load() != 2 {
+		t.Fatal("incorrect paging calls")
+	}
+	sr := request("starrail", record.Ref)
+	sr.Method = "delegation.create"
+	sr.Params["operation"] = "starrail.gacha"
+	sr.Params["task_id"] = "game.sync.sr"
+	sr.Params["days"] = 7
+	_, err = a.Service(ctx, store, policy(), sr)
+	assertCode(t, err, "plugin.account_operation_denied")
+}
+
 func TestChallengeDelegationAllowsOnlyFixedReadAndEmptyInput(t *testing.T) {
 	a, store, record := setup(t, &fakeAPI{})
 	create := request("genshin", record.Ref)
@@ -228,19 +299,17 @@ func TestOneTaskHoldsADelegationPerOperation(t *testing.T) {
 	}
 }
 
-// Paging reads a game plugin follows in one background event are not
-// delegated to its scheduled tasks.
-func TestPagingReadsAreNotDelegated(t *testing.T) {
+// Reads a game plugin follows in one background event from a user's command,
+// 更新充值记录 and 更新面板, are not delegated to its scheduled tasks.
+func TestCommandReadsAreNotDelegated(t *testing.T) {
 	a, store, record := setup(t, &fakeAPI{})
-	for game, operations := range map[string][]string{"genshin": {"genshin.gacha", "genshin.billing"}, "zzz": {"zzz.gacha", "zzz.character"}} {
-		for _, operation := range operations {
-			create := request(game, record.Ref)
-			create.Method = "delegation.create"
-			create.Params["operation"] = operation
-			create.Params["task_id"] = "game.paging.test"
-			create.Params["days"] = 1
-			_, err := a.Service(t.Context(), store, policy(), create)
-			assertCode(t, err, "plugin.account_operation_denied")
-		}
+	for game, operation := range map[string]string{"genshin": "genshin.billing", "zzz": "zzz.character"} {
+		create := request(game, record.Ref)
+		create.Method = "delegation.create"
+		create.Params["operation"] = operation
+		create.Params["task_id"] = "game.command.test"
+		create.Params["days"] = 1
+		_, err := a.Service(t.Context(), store, policy(), create)
+		assertCode(t, err, "plugin.account_operation_denied")
 	}
 }

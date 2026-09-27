@@ -58,7 +58,9 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 		return nil, failure("plugin.account_write_confirmation_required")
 	}
 	for _, role := range record.Roles {
-		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
+		// gacha serves the management page's periodic 每日同步.
+		gacha := input.Operation == role.Game+".gacha" && (role.Game == "genshin" || role.Game == "zzz" || role.Game == "starrail" && record.Tokens.Realm == "os")
+		if role.Ref == input.RoleRef && slices.Contains(games, role.Game) && (input.Operation == role.Game+".note" || input.Operation == role.Game+".monthly" || input.Operation == role.Game+".sign" && req.Params["write_confirmed"] == true || gacha || mihoyo.ChallengeDelegation(input.Operation) && mihoyo.OperationGame(input.Operation) == role.Game) {
 			valid = true
 		}
 	}
@@ -113,12 +115,16 @@ func (a *App) admitDelegation(ctx context.Context, store accounts.SecretStore, c
 		if !allowed {
 			return failure("plugin.account_delegation_denied")
 		}
+		gacha := d.Operation == "genshin.gacha" || d.Operation == "zzz.gacha" || d.Operation == "starrail.gacha" && record.Tokens.Realm == "os"
 		community := strings.HasSuffix(d.Operation, ".community_run")
-		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || !community && len(object(req.Params["input"])) != 0 {
+		if community && !mihoyo.ValidCommunityDelegation(object(req.Params["input"])) || gacha && !mihoyo.ValidGachaDelegation(d.Operation, object(req.Params["input"])) || !gacha && !community && len(object(req.Params["input"])) != 0 {
 			return failure("plugin.account_delegation_denied")
 		}
 		if community {
 			interval = 3000
+		}
+		if gacha {
+			interval = 1000
 		}
 		if d.LastUsedAtMS > now-interval {
 			return failure("plugin.account_delegation_throttled")

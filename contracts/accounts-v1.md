@@ -35,9 +35,9 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 
 `gacha.link` 对应 ZZZ-Plugin 的“获取抽卡链接”：以账号 SToken 换取 `authkey`，按上游格式拼出独家频段的抽卡记录链接交给绝区零插件，由它在原私聊中发出。`authkey` 只能读取抽卡记录、一天后失效，不是账号凭据；这是它离开本插件的唯一途径。群聊、管理页与定时来源一律拒绝，国际服角色返回 `plugin.account_region_unsupported`，与上游不支持国际服一致。
 
-定时委托开放三游戏 `note`、`sign`，以及下文的挑战提醒、`monthly`、`community_run` 与 `cloud_sign`；签到委托创建还必须带 `write_confirmed=true`。抽卡记录、充值记录与角色详情这类逐页读取由调用插件在一个后台事件中完成，不开放委托。每个账号最多 16 项有效委托，同一调用插件、task_id 与 operation 更新同一委托；同一 task_id 可按不同 operation 各持一项委托（如绝区零同时检查式舆防卫战与危局强袭战的提醒），每项委托只准入自己的 operation。创建继续校验聊天主体或正式管理来源，不能从调度事件创建。委托把调用插件、task_id、角色、操作、到期时间一起加密保存在账号记录中。
+定时委托开放三游戏 `note`、`sign`，供管理页“每日同步”这一周期任务使用的原神/绝区零 `gacha`（海外账号另含星铁 `gacha`），以及下文的挑战提醒、`monthly`、`community_run` 与 `cloud_sign`；签到委托创建还必须带 `write_confirmed=true`。用户命令触发的充值记录与角色详情读取由调用插件在该命令的后台事件中完成，不开放委托。每个账号最多 16 项有效委托，同一调用插件、task_id 与 operation 更新同一委托；同一 task_id 可按不同 operation 各持一项委托（如绝区零同时检查式舆防卫战与危局强袭战的提醒），每项委托只准入自己的 operation。创建继续校验聊天主体或正式管理来源，不能从调度事件创建。委托把调用插件、task_id、角色、操作、到期时间一起加密保存在账号记录中。
 
-调度 `execute` 必须携带 `delegation_ref`，来源必须是宿主的 `scheduler.trigger` / `scheduler` / `scheduler.internal`，且宿主 `origin.task_id` 与委托匹配；忽略任何自报用户。`note/sign` 要求 `input` 为空，最少五分钟间隔。委托不得传入 UID、区服、URL、AuthKey 或其他额外字段；账号身份与认证材料仍由提供者取得。每次准入重新检查账号、角色、调用者与有效期，持久写入准入时间后才发起上游请求。普通消息不能借此委托跨主体查询。错误使用 `plugin.account_delegation_denied`、`plugin.account_delegation_throttled`。删除账号或撤销调用插件授权即停止后续准入；
+调度 `execute` 必须携带 `delegation_ref`，来源必须是宿主的 `scheduler.trigger` / `scheduler` / `scheduler.internal`，且宿主 `origin.task_id` 与委托匹配；忽略任何自报用户。`note/sign` 要求 `input` 为空，最少五分钟间隔；`gacha` 仅接受该游戏允许的 `gacha_type`、字符串 `end_id`（1–19 位数字）、整数 `page`（1–10000），至少一秒间隔。委托不得传入 UID、区服、URL、AuthKey 或其他额外字段；账号身份与认证材料仍由提供者取得。每次准入重新检查账号、角色、调用者与有效期，持久写入准入时间后才发起上游请求。普通消息不能借此委托跨主体查询。错误使用 `plugin.account_delegation_denied`、`plugin.account_delegation_throttled`。删除账号或撤销调用插件授权即停止后续准入；
 
 operation 由插件内固定注册表定义，不接受调用方提供任意 URL、Cookie、Authorization、Host 或重定向目标。
 
