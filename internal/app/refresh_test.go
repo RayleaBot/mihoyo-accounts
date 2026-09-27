@@ -23,8 +23,14 @@ func TestRefreshCKReadsTheRolesAgain(t *testing.T) {
 	}}
 	a, store, record := setup(t, api)
 	host := newChatHost(t, a, store)
-	reply, _ := host.message("group", "/刷新CK", "刷新CK")
-	if text := sentText(reply); !strings.Contains(text, "账号凭据已刷新") || !strings.Contains(text, "绝区零角色未能读取") || strings.Contains(text, "原神") {
+	// The refresh and the role reads can outlast the event deadline, so the
+	// command moves to the background and answers with an ordinary send.
+	reply, actions := host.message("group", "/刷新CK", "刷新CK")
+	sends := actionsNamed(actions, "message.send")
+	if reply["type"] != "result" || len(actionsNamed(actions, "event.detach")) != 1 || len(sends) != 1 {
+		t.Fatalf("刷新CK was not answered in the background: %v %v", reply, actions)
+	}
+	if text := actionText(sends[0]); !strings.Contains(text, "账号凭据已刷新") || !strings.Contains(text, "绝区零角色未能读取") || strings.Contains(text, "原神") {
 		t.Fatalf("刷新CK: %q", text)
 	}
 	cipher, _ := a.Vault.Cipher()
@@ -39,5 +45,15 @@ func TestRefreshCKReadsTheRolesAgain(t *testing.T) {
 	}
 	if api.refreshCalls.Load() != 1 || len(saved.Roles) != 2 || uids["genshin"] != "5678" || uids["zzz"] != role("zzz").UID {
 		t.Fatalf("roles after 刷新CK: %+v", saved.Roles)
+	}
+}
+
+func TestBusyPluginDoesNotRefresh(t *testing.T) {
+	api := &fakeAPI{}
+	a, store, _ := setup(t, api)
+	host := newChatHost(t, a, store)
+	host.detachRefused = true
+	if reply, _ := host.message("group", "/刷新CK", "刷新CK"); sentText(reply) != busyText || api.refreshCalls.Load() != 0 {
+		t.Fatalf("the busy plugin refreshed: %v", reply)
 	}
 }

@@ -60,20 +60,9 @@ func (a *App) Services() []rayleabot.Service {
 // serviceMethods are the accounts v1 methods; info.json declares the same.
 var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.create", "delegation.revoke", "public.execute", "ark.request", "ark.status", "uids.bind", "uids.remove", "uids.use", "uids.current", "gacha.link", "device.bind", "device.unbind", "device.default"}
 
-// resultTime bounds 刷新CK, which reads each game's roles after refreshing;
-// actionTime bounds the other local HTTP work of an event.
-const (
-	resultTime = 20 * time.Second
-	actionTime = 4 * time.Second
-)
-
+// Handle answers an event within the deadline the host gave it, which ctx
+// carries; commands that can take longer move to the background.
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
-	// Ordinary event deadlines are owned by the host; keep local HTTP work
-	// shorter than the standard host event window as well. 扫码登录 uses the
-	// event's own context.
-	parent := ctx
-	ctx, cancel := context.WithTimeout(ctx, actionTime)
-	defer cancel()
 	store, policy := sdkStore{event}, policyFor(event)
 	if event.Event.EventType == "management.action" {
 		if event.Event.SourceProtocol != "management" || event.Event.SourceAdapter != "management.ui" {
@@ -128,7 +117,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		return a.associationCommand(ctx, event, store, owner, command)
 	}
 	if event.Event.Command() == "扫码登录" {
-		return a.chatLogin(parent, event, store, policy, owner)
+		return a.chatLogin(ctx, event, store, policy, owner)
 	}
 	if event.Event.Command() == "登录状态" || event.Event.Command() == "取消登录" {
 		a.jobsMu.Lock()
@@ -187,10 +176,14 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		action = "accounts.remove"
 	}
 	if action == "accounts.refresh" {
-		// Refreshing reads each game's roles as well, several requests.
-		var stop context.CancelFunc
-		ctx, stop = context.WithTimeout(parent, resultTime)
-		defer stop()
+		// Refreshing reads each game's roles as well, several requests that
+		// can outlast the event deadline.
+		if detached, err := background(ctx, event); !detached {
+			if err != nil {
+				return err
+			}
+			return event.SendText(busyText)
+		}
 	}
 	ref := items[index-1].Ref
 	if _, err := a.Manage(ctx, store, policy, action, map[string]any{"account_ref": ref, "subject": owner}); err != nil {
