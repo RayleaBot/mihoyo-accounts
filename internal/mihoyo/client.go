@@ -308,6 +308,7 @@ func (c *Client) send(ctx context.Context, operation, host, path, profile string
 	defer clear(raw)
 	var envelope struct {
 		RetCode *int           `json:"retcode"`
+		Message string         `json:"message"`
 		Data    map[string]any `json:"data"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -365,7 +366,9 @@ func (c *Client) send(ctx context.Context, operation, host, path, profile string
 		if strings.HasPrefix(profile, "sign.") && code == "plugin.upstream_auth_invalid" {
 			code = "plugin.upstream_sign_unavailable"
 		}
-		return nil, &Error{Code: code, RetCode: *envelope.RetCode, Operation: operation}
+		// The official message names the refusal, such as 请先登录 for a
+		// replaced Cookie Token; it holds no credential.
+		return nil, &Error{Code: code, RetCode: *envelope.RetCode, Operation: operation, Reason: envelope.Message}
 	}
 	if envelope.Data == nil && (profile == "redeem" || strings.HasPrefix(profile, "birthday") && operation == "genshin.birthday_claim" || strings.HasPrefix(profile, "sign.os.") && strings.HasSuffix(operation, ".sign")) {
 		return map[string]any{}, nil

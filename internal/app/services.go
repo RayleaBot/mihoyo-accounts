@@ -265,7 +265,14 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		return map[string]any{"operation": name, "role": role, "data": clean, "fetched_at_ms": time.Now().UnixMilli()}, nil
 	}
 	if record.Status == "invalid" && !strings.Contains(name, ".cloud_") {
-		return nil, failure("plugin.upstream_auth_invalid")
+		// An account whose credentials were refused reads again only once
+		// its web tokens are re-issued from the SToken.
+		if !record.Summary().CanRefresh {
+			return nil, failure("plugin.upstream_auth_invalid")
+		}
+		if err := a.refreshCredentials(ctx, store, cipher, &record); err != nil {
+			return nil, err
+		}
 	}
 	if scheduled {
 		if err := a.admitDelegation(ctx, store, cipher, &record, request); err != nil {
@@ -292,8 +299,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 // executeRole sends one business request for a role of a saved account the
 // caller holds the lock of. It registers the device fingerprint when there is
 // no current one, lends the default device to an account without its own,
-// renews a rejected cached fingerprint and retries a read once, and marks the
-// account invalid when the credentials are refused; record follows each save.
+// renews a rejected cached fingerprint and retries a read once, re-issues
+// refused web tokens from the SToken and retries once, and marks the account
+// invalid when the credentials stay refused; record follows each save.
 func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, record *accounts.Record, role accounts.Role, name string, input map[string]any) (map[string]any, error) {
 	refreshFingerprint := func() error {
 		lent, err := a.lendDefaultDevice(ctx, store, cipher, record.Tokens)
@@ -337,6 +345,17 @@ func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, ciphe
 		}
 		data, err = execute()
 	}
+	// The Cookie Token expires on the official side while the LToken stays
+	// valid, within hours of a login at times: the game records still read,
+	// the ledgers and sign-in refuse. It is re-issued from the SToken and the
+	// request repeated once, as MihoyoBBSTools refreshes it on failure;
+	// re-issuing a still valid token returns the same one.
+	if publicError(err).Code == "plugin.upstream_auth_invalid" && record.Summary().CanRefresh {
+		if err := a.refreshCredentials(ctx, store, cipher, record); err != nil {
+			return nil, err
+		}
+		data, err = execute()
+	}
 	if err != nil {
 		if publicError(err).Code == "plugin.upstream_auth_invalid" {
 			record.Status = "invalid"
@@ -348,6 +367,26 @@ func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, ciphe
 		return nil, err
 	}
 	return data, nil
+}
+
+// refreshCredentials re-issues the account's LToken and Cookie Token from its
+// SToken, as 刷新CK does, and saves them with the check result; a refused
+// SToken marks the account invalid. record follows the save.
+func (a *App) refreshCredentials(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, record *accounts.Record) error {
+	input := record.Tokens
+	input.LToken = ""
+	tokens, err := a.API.Refresh(ctx, input)
+	record.LastCheck = checkResult("refresh", err)
+	if err == nil {
+		record.Tokens, record.Status = tokens, "valid"
+	} else if publicError(err).Code == "plugin.upstream_auth_invalid" {
+		record.Status = "invalid"
+	}
+	if saveErr := a.Repo.Update(ctx, store, cipher, *record, record.Revision); saveErr != nil {
+		return saveErr
+	}
+	record.Revision++
+	return err
 }
 
 // uidPattern is a game UID as upstream's 绑定uid reads it; ZZZ also has
