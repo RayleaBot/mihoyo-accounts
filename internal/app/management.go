@@ -196,7 +196,20 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		updated, err := a.Repo.SetPublic(ctx, store, cipher, ref, record.Owner, false, 0, nil)
 		return map[string]any{"account": updated.Summary()}, err
 	case "accounts.check":
+		// The roles endpoint answers the LToken alone, so the Cookie Token,
+		// which the ledgers and sign-in need, is probed without it and
+		// re-issued from the SToken when refused.
 		_, checkErr := a.API.RolesForGame(ctx, record.Tokens, "genshin")
+		if checkErr == nil {
+			cookieOnly := record.Tokens
+			cookieOnly.LToken = ""
+			if _, err := a.API.RolesForGame(ctx, cookieOnly, "genshin"); err != nil && publicError(err).Code == "plugin.upstream_auth_invalid" {
+				checkErr = err
+				if record.Summary().CanRefresh {
+					checkErr = a.refreshCredentials(ctx, store, cipher, &record, true)
+				}
+			}
+		}
 		record.LastCheck = checkResult("check", checkErr)
 		if checkErr == nil {
 			record.Status = "valid"
@@ -231,20 +244,10 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		if !sameCredentials(record.Tokens, initial.Tokens) {
 			return map[string]any{"account": record.Summary()}, nil
 		}
-		refreshInput := record.Tokens
-		refreshInput.LToken = ""
-		tokens, refreshErr := a.API.Refresh(ctx, refreshInput)
-		record.LastCheck = checkResult("refresh", refreshErr)
-		if refreshErr != nil {
-			if publicError(refreshErr).Code == "plugin.upstream_auth_invalid" {
-				record.Status = "invalid"
-			}
-			if saveErr := a.Repo.Update(ctx, store, cipher, record, record.Revision); saveErr != nil {
-				return nil, saveErr
-			}
-			return nil, refreshErr
+		if err := a.refreshCredentials(ctx, store, cipher, &record, true); err != nil {
+			return nil, err
 		}
-		record.Tokens, record.Status = tokens, "valid"
+		return map[string]any{"account": record.Summary()}, nil
 	case "accounts.roles":
 		game := stringValue(input["game"])
 		if !slices.Contains([]string{"genshin", "starrail", "zzz"}, game) {

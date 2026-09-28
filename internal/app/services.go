@@ -270,7 +270,7 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		if !record.Summary().CanRefresh {
 			return nil, failure("plugin.upstream_auth_invalid")
 		}
-		if err := a.refreshCredentials(ctx, store, cipher, &record); err != nil {
+		if err := a.refreshCredentials(ctx, store, cipher, &record, false); err != nil {
 			return nil, err
 		}
 	}
@@ -349,9 +349,10 @@ func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, ciphe
 	// valid, within hours of a login at times: the game records still read,
 	// the ledgers and sign-in refuse. It is re-issued from the SToken and the
 	// request repeated once, as MihoyoBBSTools refreshes it on failure;
-	// re-issuing a still valid token returns the same one.
-	if publicError(err).Code == "plugin.upstream_auth_invalid" && record.Summary().CanRefresh {
-		if err := a.refreshCredentials(ctx, store, cipher, record); err != nil {
+	// re-issuing a still valid token returns the same one. A refused request
+	// was not carried out, so a write is repeated as safely as a read.
+	if credentialsRefused(err) && record.Summary().CanRefresh {
+		if err := a.refreshCredentials(ctx, store, cipher, record, false); err != nil {
 			return nil, err
 		}
 		data, err = execute()
@@ -369,10 +370,30 @@ func (a *App) executeRole(ctx context.Context, store accounts.SecretStore, ciphe
 	return data, nil
 }
 
+// credentialsRefused reports an official refusal of the web tokens: a
+// refused LToken or Cookie Token, or the same refusal on a sign-in or
+// birthday endpoint, which keep their own codes so that they never mark the
+// account invalid.
+func credentialsRefused(err error) bool {
+	switch publicError(err).Code {
+	case "plugin.upstream_auth_invalid", "plugin.upstream_sign_unavailable", "plugin.upstream_birthday_unavailable":
+		return true
+	}
+	return false
+}
+
+// refreshRetryInterval is how long automatic refreshes leave a refused
+// SToken alone; an explicit refresh always tries.
+const refreshRetryInterval = 10 * time.Minute
+
 // refreshCredentials re-issues the account's LToken and Cookie Token from its
 // SToken, as 刷新CK does, and saves them with the check result; a refused
-// SToken marks the account invalid. record follows the save.
-func (a *App) refreshCredentials(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, record *accounts.Record) error {
+// SToken marks the account invalid. record follows the save. An automatic
+// refresh answers a recent refusal without asking again.
+func (a *App) refreshCredentials(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, record *accounts.Record, explicit bool) error {
+	if last := record.LastCheck; !explicit && last != nil && last.Kind == "refresh" && last.State == "auth_invalid" && time.Now().UnixMilli()-last.CheckedAtMS < refreshRetryInterval.Milliseconds() {
+		return failure("plugin.upstream_auth_invalid")
+	}
 	input := record.Tokens
 	input.LToken = ""
 	tokens, err := a.API.Refresh(ctx, input)
