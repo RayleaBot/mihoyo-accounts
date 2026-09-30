@@ -214,6 +214,104 @@ print(json.dumps({k[len(p):]:v.decode() if isinstance(v,bytes) else v for k,v in
 				}
 				return
 			}
+			if os.Getenv("MIHOYO_SMOKE_BILLING") == "1" && role.Game == "starrail" {
+				// Logs the self-help list shape per category: list length, item
+				// field names, action names with counts and per-day amounts of
+				// the time-recovered power. No token or account value is printed.
+				base := client.http
+				client.http = doerFunc(func(req *http.Request) (*http.Response, error) {
+					response, err := base.Do(req)
+					if err != nil || !strings.Contains(req.URL.Path, "self_help_inquiry") {
+						return response, err
+					}
+					raw, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes))
+					response.Body.Close()
+					if err != nil {
+						return nil, err
+					}
+					response.Body = io.NopCloser(bytes.NewReader(raw))
+					var envelope struct {
+						RetCode int            `json:"retcode"`
+						Message string         `json:"message"`
+						Data    map[string]any `json:"data"`
+					}
+					if json.Unmarshal(raw, &envelope) == nil {
+						keys := []string{}
+						for key := range envelope.Data {
+							keys = append(keys, key)
+						}
+						sort.Strings(keys)
+						list, _ := envelope.Data["list"].([]any)
+						fields := []string{}
+						if len(list) > 0 {
+							for key := range object(list[0]) {
+								fields = append(fields, key)
+							}
+							sort.Strings(fields)
+						}
+						t.Logf("%s page=%s size=%s retcode=%d message=%q data keys=%v list=%d item fields=%v", req.URL.Path, req.URL.Query().Get("page"), req.URL.Query().Get("page_size"), envelope.RetCode, envelope.Message, keys, len(list), fields)
+					}
+					return response, nil
+				})
+				for _, category := range []string{"stellar", "dreams", "relic", "power"} {
+					t.Run(category, func(t *testing.T) {
+						size := 10
+						if category == "power" {
+							size = 50
+						}
+						actions, days, ids, firstIDs := map[string]int{}, map[string][2]int{}, map[string]bool{}, []string{}
+						cursor := "0"
+						for page := 1; page <= 200; page++ {
+							input := map[string]any{"category": category, "page": page, "end_id": cursor}
+							if size != 10 {
+								input["page_size"] = size
+							}
+							result, err := client.Execute(ctx, tokens, role, "starrail.billing", input)
+							if err != nil {
+								reportLiveError(t, err)
+								return
+							}
+							items, _ := result["items"].([]any)
+							if len(items) > 0 {
+								firstIDs = append(firstIDs, text(object(items[0])["id"])[max(0, len(text(object(items[0])["id"]))-4):]+"@"+text(object(items[0])["time"]))
+							}
+							for _, raw := range items {
+								item := object(raw)
+								if ids[text(item["id"])] {
+									continue
+								}
+								ids[text(item["id"])] = true
+								action := text(item["action"])
+								actions[action]++
+								if category == "power" && action == "随时间回复开拓力" {
+									day := text(item["time"])
+									if len(day) >= 10 {
+										day = day[:10]
+									}
+									count := days[day]
+									if text(item["add_num"]) == "1" {
+										count[0]++
+									} else {
+										count[1]++
+									}
+									days[day] = count
+								}
+							}
+							cursor = text(result["next_end_id"])
+							if category != "power" || result["has_more"] != true {
+								t.Logf("%s pages=%d", category, page)
+								break
+							}
+							time.Sleep(500 * time.Millisecond)
+						}
+						t.Logf("%s distinct=%d actions=%v first item per page (id tail@time)=%v", category, len(ids), actions, firstIDs)
+						if category == "power" {
+							t.Logf("time-recovered power per day [single, bulk]=%v", days)
+						}
+					})
+				}
+				return
+			}
 			if os.Getenv("MIHOYO_SMOKE_PANEL") == "1" {
 				roster, err := client.Execute(ctx, tokens, role, role.Game+".characters", nil)
 				if err != nil {

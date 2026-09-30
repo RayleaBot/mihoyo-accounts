@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -103,5 +104,62 @@ func TestStarRailBillingPageSize(t *testing.T) {
 	genshin := accounts.Role{Game: "genshin", UID: "100000001", Region: "cn_gf01"}
 	if _, err := c.Execute(t.Context(), tokens, genshin, "genshin.billing", map[string]any{"category": "crystal", "page_size": 20}); err == nil {
 		t.Fatal("genshin page size accepted")
+	}
+}
+
+func TestStarRailBillingPagesByCursor(t *testing.T) {
+	tokens := accounts.Tokens{SToken: "synthetic-token"}
+	role := accounts.Role{Game: "starrail", UID: "100000001", Region: "prod_gf_cn"}
+	// 47 records, newest first with IDs 147..101, in pages of 20 after end_id.
+	records := []any{}
+	for id := 147; id > 100; id-- {
+		records = append(records, map[string]any{"id": strconv.Itoa(id), "time": "2026-09-28 12:00:00", "action": "随时间回复开拓力", "add_num": "1", "relic_name": "过客的逢春木簪", "uid": "100000001"})
+	}
+	cursors := []string{}
+	c := New(doerFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path == "/binding/api/genAuthKey" {
+			return reply(map[string]any{"retcode": 0, "data": map[string]any{"authkey": "synthetic-csc-key"}}), nil
+		}
+		end := r.URL.Query().Get("end_id")
+		cursors = append(cursors, end)
+		start := 0
+		for start < len(records) && end != "0" && text(object(records[start])["id"]) != end {
+			start++
+		}
+		if end != "0" {
+			start++
+		}
+		page := records[min(start, len(records)):min(start+20, len(records))]
+		return reply(map[string]any{"retcode": 0, "data": map[string]any{"list": page}}), nil
+	}), nil)
+	read := func(input map[string]any) ([]any, map[string]any) {
+		out, err := c.Execute(t.Context(), tokens, role, "starrail.billing", input)
+		if err != nil {
+			t.Fatal(input, err)
+		}
+		items, _ := out["items"].([]any)
+		return items, out
+	}
+	items, out := read(map[string]any{"category": "power", "page_size": 50})
+	if len(items) != 20 || out["has_more"] != true || out["next_end_id"] != "128" {
+		t.Fatal(len(items), out["has_more"], out["next_end_id"])
+	}
+	if first := object(items[0]); first["item_name"] != "过客的逢春木簪" || first["uid"] != nil {
+		t.Fatal("relic name not kept or unselected field copied:", first)
+	}
+	items, out = read(map[string]any{"category": "power", "end_id": "108"})
+	if len(items) != 7 || out["has_more"] != false || text(object(items[0])["id"]) != "107" {
+		t.Fatal(len(items), out["has_more"])
+	}
+	cursors = nil
+	items, out = read(map[string]any{"category": "stellar", "page": 3})
+	if len(items) != 7 || out["has_more"] != false || strings.Join(cursors, ",") != "0,128,108" {
+		t.Fatal(len(items), out["has_more"], cursors)
+	}
+	if items, _ = read(map[string]any{"category": "stellar", "page": 4}); len(items) != 0 {
+		t.Fatal("a page past the end returned records")
+	}
+	if _, err := c.Execute(t.Context(), tokens, role, "starrail.billing", map[string]any{"category": "stellar", "page": 51}); err == nil {
+		t.Fatal("an unbounded page walk was accepted")
 	}
 }

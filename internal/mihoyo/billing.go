@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -18,6 +19,15 @@ func init() {
 		operations[g+".billing"] = operation{game: g}
 	}
 }
+
+// starrailBillingPage is how many records the Star Rail self-service list
+// returns per page. The list now pages by end_id, the last record's ID, like
+// Genshin's; it ignores the page and page_size it is sent.
+const starrailBillingPage = 20
+
+// starrailBillingWalk bounds how far a page number is walked through the
+// cursors when no end_id is given.
+const starrailBillingWalk = 50
 
 var billingPaths = map[string]map[string]string{"genshin": {"crystal": "GetCrystalLog", "primogem": "GetPrimogemLog"}, "starrail": {"dreams": "Dreams", "stellar": "Stellar", "power": "Power", "relic": "Relic", "cone": "Cone"}}
 
@@ -69,7 +79,7 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 		}
 		page = n
 	}
-	if !recordDigits.MatchString(end) {
+	if !recordDigits.MatchString(end) || role.Game == "starrail" && end == "0" && page > starrailBillingWalk {
 		return nil, invalidInput(name)
 	}
 	// 星铁的开拓力记录很多，StarRail-plugin 的在线时长按每页 50 条读取。
@@ -120,13 +130,36 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 		q.Set("page_id", "4")
 		q.Set("page", strconv.Itoa(page))
 		q.Set("page_size", strconv.Itoa(pageSize))
+		q.Set("end_id", end)
 	}
 	data, err := c.request(ctx, name, host, path, "billing", q, nil, accounts.Tokens{})
 	if err != nil {
 		return nil, err
 	}
 	list, ok := data["list"].([]any)
-	if !ok || len(list) > pageSize {
+	// A page number without a cursor walks the cursors from the first page.
+	for walked := 1; role.Game == "starrail" && end == "0" && walked < page && ok && len(list) >= starrailBillingPage; walked++ {
+		cursor := text(object(list[len(list)-1])["id"])
+		if !recordDigits.MatchString(cursor) || cursor == q.Get("end_id") {
+			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "billing_cursor_invalid"}
+		}
+		q.Set("end_id", cursor)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(300 * time.Millisecond):
+		}
+		if data, err = c.request(ctx, name, host, path, "billing", q, nil, accounts.Tokens{}); err != nil {
+			return nil, err
+		}
+		list, ok = data["list"].([]any)
+		if walked+1 < page && len(list) < starrailBillingPage {
+			list = []any{}
+		}
+	}
+	// A page may hold more records than asked for: the Star Rail list answers
+	// its own page length whatever page_size says.
+	if !ok || len(list) > max(pageSize, starrailBillingPage) {
 		return nil, invalid(name)
 	}
 	out := []any{}
@@ -137,6 +170,10 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 			if value, exists := item[field]; exists {
 				clean[field] = value
 			}
+		}
+		// Relic records name the relic in fields of their own.
+		if _, exists := clean["item_name"]; !exists && text(item["relic_name"]) != "" {
+			clean["item_name"] = item["relic_name"]
 		}
 		if v, exists := clean["id"]; exists {
 			clean["id"] = text(v)
@@ -150,10 +187,16 @@ func (c *Client) billing(ctx context.Context, tokens accounts.Tokens, role accou
 		out = append(out, clean)
 	}
 	next := ""
-	hasMore := len(list) == pageSize
-	if hasMore && role.Game == "genshin" {
+	// A full page may have another after it. Star Rail pages are full at the
+	// list's own length, or at a smaller page_size should it be honoured again.
+	full := pageSize
+	if role.Game == "starrail" {
+		full = min(pageSize, starrailBillingPage)
+	}
+	hasMore := len(list) > 0 && len(list) >= full
+	if hasMore {
 		next = text(object(list[len(list)-1])["id"])
-		if !recordDigits.MatchString(next) || next == end {
+		if !recordDigits.MatchString(next) || next == q.Get("end_id") {
 			return nil, &Error{Code: "plugin.upstream_response_invalid", Operation: name, Reason: "billing_cursor_invalid"}
 		}
 	}
