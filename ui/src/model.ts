@@ -3,7 +3,7 @@ export interface Bot { source_protocol: string; source_adapter: string; id: stri
 export interface Role { ref: string; game: string; uid: string; region: string; nickname: string; level: number }
 export interface Account { realm?: 'cn'|'os'; shared?:boolean; cloud_configured?:string[]; ref: string; revision: number; owner: Subject; account_label: string; roles: Role[]; allowed_callers: string[]; status: string; can_refresh: boolean; updated_at_ms: number; last_check?: {kind:'check'|'refresh';state:string;code?:string;checked_at_ms:number}; public_query?: { enabled: boolean; games: string[]; daily_limit: number; day: string; used: number } }
 export const checkNames: Record<string,string> = {available:'通过',auth_invalid:'登录失效',device_required:'需要设备验证',challenge_required:'需要官方验证',unavailable:'暂未确认'}
-export interface Status { vault_state: 'uninitialized' | 'locked' | 'unlocked' | 'missing'; native_key_available: boolean; key_protection: string; allowed_plugins: { plugin_id: string; games: string[] }[]; bots: Bot[] }
+export interface Status { vault_state: 'uninitialized' | 'locked' | 'unlocked' | 'missing'; vault_error?: { code: string; message: string; details?: { reason?: string } }; native_key_available: boolean; key_protection: string; allowed_plugins: { plugin_id: string; games: string[] }[]; bots: Bot[] }
 export interface Login { ref: string; state: string; phase: string; expires_at_ms: number; qr_code?: string; account?: Account; role_states: Record<string, string>; error_code?: string; error_message?: string; failure?: { stage: string; operation?: string; retcode?: number; http_status?: number; reason?: string } }
 
 export const gameNames: Record<string, string> = { genshin: '原神', starrail: '星穹铁道', zzz: '绝区零' }

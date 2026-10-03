@@ -18,6 +18,7 @@ var ErrLocked = errors.New("credential key is locked")
 var ErrMissingKey = errors.New("credential key file is missing")
 var ErrPassword = errors.New("key passphrase must contain 12 to 128 bytes")
 var ErrNativeUnavailable = errors.New("operating system key protection is not available")
+var ErrNativeKeyUnavailable = errors.New("credential key cannot be unprotected by the current system user")
 
 const keyFileName = "master-key.json"
 const passwordIterations = 600000
@@ -108,6 +109,9 @@ func loadKeyPayload(directory, password string) ([]byte, error) {
 	switch file.Mode {
 	case "dpapi":
 		plain, err = unprotectNative(wrapped)
+		if err != nil {
+			return nil, ErrNativeKeyUnavailable
+		}
 	case "password":
 		if validPassword(password) != nil || file.Iterations != passwordIterations {
 			return nil, ErrLocked

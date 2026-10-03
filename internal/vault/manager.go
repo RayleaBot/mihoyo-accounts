@@ -14,6 +14,7 @@ type Manager struct {
 	mu        sync.RWMutex
 	directory string
 	current   *Cipher
+	unlockErr error
 	transport *rsa.PrivateKey
 }
 
@@ -27,13 +28,12 @@ func NewManager(directory string) (*Manager, error) {
 	}
 	m := &Manager{directory: directory, transport: transport}
 	// A DPAPI key unlocks itself at start; a passphrase key waits for the admin.
-	if keys, err := LoadKeyRing(directory, ""); err == nil {
+	keys, err := LoadKeyRing(directory, "")
+	if err == nil {
 		m.current, err = NewRingCipher(keys)
 		clearKeys(keys)
-		if err != nil {
-			m.current = nil
-		}
 	}
+	m.unlockErr = err
 	return m, nil
 }
 
@@ -53,6 +53,9 @@ func (m *Manager) Cipher() (*Cipher, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.current == nil {
+		if errors.Is(m.unlockErr, ErrNativeKeyUnavailable) {
+			return nil, ErrNativeKeyUnavailable
+		}
 		return nil, ErrLocked
 	}
 	return m.current, nil
@@ -80,10 +83,12 @@ func (m *Manager) Initialize(password string, hasEncryptedRecords bool) error {
 		keys = []Key{key}
 	}
 	if err != nil {
+		m.unlockErr = err
 		return err
 	}
 	defer clearKeys(keys)
 	m.current, err = NewRingCipher(keys)
+	m.unlockErr = err
 	return err
 }
 
@@ -92,10 +97,14 @@ func (m *Manager) Unlock(password string) error {
 	defer m.mu.Unlock()
 	keys, err := LoadKeyRing(m.directory, password)
 	if err != nil {
+		if m.current == nil {
+			m.unlockErr = err
+		}
 		return err
 	}
 	defer clearKeys(keys)
 	m.current, err = NewRingCipher(keys)
+	m.unlockErr = err
 	return err
 }
 

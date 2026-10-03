@@ -166,7 +166,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
 
     <template v-else>
       <div class="toolbar">
-        <div><strong>{{ vaultNames[status.vault_state] }}</strong><p>一次登录，供已授权的游戏插件使用。</p></div>
+        <div><strong>{{ status.vault_error ? '需要恢复账号库密钥' : vaultNames[status.vault_state] }}</strong><p>一次登录，供已授权的游戏插件使用。</p></div>
         <div class="actions">
           <button v-if="unlocked" type="button" :disabled="busy" @click="lockVault">锁定账号库</button>
           <button v-if="unlocked && !showLogin" type="button" class="primary" :disabled="busy" @click="showLogin = true; login = null">扫码添加账号</button>
@@ -174,19 +174,22 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
       </div>
 
       <section v-if="!unlocked" class="vault-panel" aria-labelledby="vault-heading">
-        <h2 id="vault-heading">{{ status.vault_state === 'missing' ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
+        <h2 id="vault-heading">{{ status.vault_state === 'missing' || status.vault_error ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
+        <p v-if="status.vault_error" role="alert">{{ status.vault_error.message }}</p>
         <p v-if="status.vault_state === 'missing'">检测到已保存账号，但缺少对应密钥。请恢复本插件数据目录中的原密钥文件，再重新加载插件。</p>
         <form v-else @submit.prevent="openVault">
           <p v-if="status.vault_state === 'uninitialized'">账号将在保存前加密。请选择密钥保护方式，并将密钥文件与数据库一同备份。</p>
           <label v-if="status.vault_state === 'uninitialized' && status.native_key_available">密钥保护方式
             <select v-model="protection" :disabled="busy"><option value="dpapi">当前 Windows 用户</option><option value="password">恢复口令</option></select>
           </label>
-          <p v-if="!needsPassword" class="muted">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要换机或更强的隔离时，可在解锁后改用恢复口令。</p>
+          <p v-if="!needsPassword && !status.vault_error" class="muted">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要换机或更强的隔离时，可在解锁后改用恢复口令。</p>
+          <p v-if="status.vault_error" class="muted">复制原环境更新后的 master-key.json 后，刷新状态，再输入恢复口令解锁。现有账号数据会保留。</p>
           <label v-if="needsPassword">恢复口令
             <input v-model="password" type="password" :disabled="busy" :autocomplete="status.vault_state === 'uninitialized' ? 'new-password' : 'current-password'" required aria-describedby="password-help">
             <span id="password-help" class="hint">至少 12 字节。请妥善保存；丢失口令后无法恢复账号。</span>
           </label>
           <button class="primary" :disabled="busy" type="submit">{{ busy ? '正在处理…' : status.vault_state === 'uninitialized' ? '初始化账号库' : '解锁账号库' }}</button>
+          <button v-if="status.vault_error" :disabled="busy" type="button" @click="run(load)">刷新状态</button>
         </form>
       </section>
 

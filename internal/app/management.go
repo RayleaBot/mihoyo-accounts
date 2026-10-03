@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"slices"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
 
 func (a *App) Manage(ctx context.Context, store accounts.SecretStore, policy Policy, action string, input map[string]any) (result map[string]any, err error) {
@@ -105,6 +107,8 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		}
 		return map[string]any{"state": a.Vault.State()}, nil
 	case "status":
+		a.vaultGate.RLock()
+		defer a.vaultGate.RUnlock()
 		state := a.Vault.State()
 		if state == "uninitialized" {
 			has, readErr := a.Repo.HasRecords(ctx, store)
@@ -115,7 +119,12 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 				state = "missing"
 			}
 		}
-		return map[string]any{"vault_state": state, "key_protection": a.Vault.Mode(), "native_key_available": runtime.GOOS == "windows", "allowed_plugins": policy.AllowedPlugins, "operations": mihoyo.OperationNames()}, nil
+		result := map[string]any{"vault_state": state, "key_protection": a.Vault.Mode(), "native_key_available": runtime.GOOS == "windows", "allowed_plugins": policy.AllowedPlugins, "operations": mihoyo.OperationNames()}
+		if _, cipherErr := a.Vault.Cipher(); errors.Is(cipherErr, vault.ErrNativeKeyUnavailable) {
+			failure := publicError(cipherErr)
+			result["vault_error"] = map[string]any{"code": failure.Code, "message": failure.Message, "details": failure.Details}
+		}
+		return result, nil
 	}
 	a.vaultGate.RLock()
 	defer a.vaultGate.RUnlock()

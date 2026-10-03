@@ -1,15 +1,87 @@
 package app
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"math/big"
+	"os"
+	"path/filepath"
 	"testing"
 
+	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
 )
+
+func TestUnavailableNativeKeyExplainsManagementAndGroupFailures(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "master-key.json")
+	keyFile := []byte(`{"version":1,"mode":"dpapi","wrapped":"AQIDBA=="}`)
+	if err := os.WriteFile(path, keyFile, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(directory, &fakeAPI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(a.Close)
+	store := &memoryStore{values: map[string]string{}}
+	check := func(err error) {
+		t.Helper()
+		assertCode(t, err, "plugin.vault_locked")
+		failure := publicError(err)
+		if failure.Details["reason"] != "native_key_unavailable" {
+			t.Fatalf("native recovery reason was lost: %v", failure)
+		}
+		if failure.Message == message("plugin.vault_locked") {
+			t.Fatal("native key rejection was presented as an ordinary lock")
+		}
+	}
+	status, err := a.Manage(t.Context(), store, policy(), "status", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status["vault_state"] != "locked" || status["key_protection"] != "dpapi" {
+		t.Fatalf("incorrect vault status: %v", status)
+	}
+	diagnostic, ok := status["vault_error"].(map[string]any)
+	if !ok {
+		t.Fatal("management status omitted the recovery diagnostic")
+	}
+	check(&rayleabot.ActionError{Code: stringValue(diagnostic["code"]), Message: stringValue(diagnostic["message"]), Details: object(diagnostic["details"])})
+	_, err = a.Manage(t.Context(), store, policy(), "vault.unlock", nil)
+	check(err)
+	for _, game := range []string{"genshin", "starrail", "zzz"} {
+		groupRequest := request(game, "fixture-account")
+		groupRequest.Origin.EventType = "message.group"
+		_, err = a.Service(t.Context(), store, policy(), groupRequest)
+		check(err)
+	}
+	if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, keyFile) || len(store.values) != 0 {
+		t.Fatal("failed requests modified the key or account store", err)
+	}
+	recoveryDirectory := t.TempDir()
+	password := "synthetic-recovery-password"
+	if _, err = vault.CreateKeyFile(recoveryDirectory, password); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := os.ReadFile(filepath.Join(recoveryDirectory, "master-key.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, restored, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Manage(t.Context(), store, policy(), "vault.unlock", map[string]any{"password_ciphertext": sealPassword(t, a, password)}); err != nil {
+		t.Fatal("restored password key could not be unlocked", err)
+	}
+	status, err = a.Manage(t.Context(), store, policy(), "status", nil)
+	if err != nil || status["vault_state"] != "unlocked" || status["vault_error"] != nil {
+		t.Fatal("successful recovery kept the old failure", status, err)
+	}
+}
 
 func sealPassword(t *testing.T, a *App, value string) string {
 	t.Helper()

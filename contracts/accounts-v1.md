@@ -85,6 +85,8 @@ statistics 从加密账号目录分页汇总保存账号数、完整聊天主体
 
 账号库只由管理页初始化，初始化时选择密钥保护方式：`dpapi` 使用当前 Windows 用户保护，插件启动时自动解锁；`password` 使用 12 到 128 字节的恢复口令，每次启动后在管理页解锁。非 Windows 系统只提供恢复口令。聊天命令不会初始化账号库：未初始化时 `扫码登录` 返回 `plugin.vault_uninitialized`，提示管理员先完成初始化。
 
+DPAPI 主密钥无法由当前系统用户解密时，账号库仍为 `locked`，需要账号的请求返回 `plugin.vault_locked`，并带 `details.reason=native_key_unavailable`。此原因区别于主动锁定或等待恢复口令；提示管理员在原 Windows 用户环境解锁、切换为恢复口令，再迁移同一把主密钥。`status` 此时附带 `vault_error`，形状为 `{code,message,details}`，管理页据此显示恢复说明。解锁成功后清除此诊断；失败不覆盖密钥或账号记录。游戏插件保留该原因对应的提示，不替换为普通解锁说明。
+
 `vault.mode` 在账号库已解锁时切换保护方式：`mode` 为 `dpapi` 或 `password`；当前为恢复口令时须提供 `password_ciphertext`，目标为恢复口令时须提供 `new_password_ciphertext`，两者都用 `vault.public_key` 返回的公钥加密。切换只用新方式重新包装同一把数据密钥并原子替换密钥文件，数据库记录不重新加密；口令错误返回 `plugin.vault_locked`，口令长度不符返回 `plugin.vault_password_invalid`，系统不支持 DPAPI 时返回 `plugin.vault_native_unavailable`，失败均不改变密钥文件。`password` 切换到 `password` 即修改恢复口令。
 
 密钥文件可能包含早期版本留下的多代密钥，全部保留用于读取历史记录，新记录只用最新一代密钥加密。

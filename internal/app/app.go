@@ -165,7 +165,12 @@ func publicError(err error) *rayleabot.ActionError {
 		}
 		return &rayleabot.ActionError{Code: upstream.Code, Message: msg, Details: map[string]any{"operation": upstream.Operation, "retcode": upstream.RetCode, "http_status": upstream.HTTPStatus, "reason": upstream.Reason}}
 	case errors.As(err, &typed):
+		if typed.Code == "plugin.vault_locked" && typed.Details["reason"] == "native_key_unavailable" {
+			return nativeKeyUnavailableError()
+		}
 		return failure(typed.Code)
+	case errors.Is(err, vault.ErrNativeKeyUnavailable):
+		return nativeKeyUnavailableError()
 	case errors.Is(err, vault.ErrLocked):
 		return failure("plugin.vault_locked")
 	case errors.Is(err, vault.ErrMissingKey):
@@ -186,6 +191,14 @@ func publicError(err error) *rayleabot.ActionError {
 		return failure("plugin.account_operation_canceled")
 	default:
 		return failure("plugin.account_operation_failed")
+	}
+}
+
+func nativeKeyUnavailableError() *rayleabot.ActionError {
+	return &rayleabot.ActionError{
+		Code:    "plugin.vault_locked",
+		Message: "当前系统用户无法解密 Windows 保护的账号库，请管理员在原 Windows 用户环境解锁、切换为恢复口令后迁移密钥。",
+		Details: map[string]any{"reason": "native_key_unavailable"},
 	}
 }
 

@@ -2,11 +2,81 @@ package vault
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestUnavailableNativeKeyIsPreservedUntilRestored(t *testing.T) {
+	directory := t.TempDir()
+	unavailable, err := json.Marshal(keyFile{Version: 1, Mode: "dpapi", Wrapped: "AQIDBA=="})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, keyFileName)
+	if err = os.WriteFile(path, unavailable, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m, err := NewManager(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.State() != "locked" {
+		t.Fatal("unreadable native key must keep the store locked")
+	}
+	if _, err = m.Cipher(); !errors.Is(err, ErrNativeKeyUnavailable) {
+		t.Fatalf("startup diagnostic = %v", err)
+	}
+	for _, open := range []func() error{
+		func() error { return m.Unlock("") },
+		func() error { return m.Initialize("", true) },
+	} {
+		if err = open(); !errors.Is(err, ErrNativeKeyUnavailable) {
+			t.Fatalf("native key rejection = %v", err)
+		}
+		if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, unavailable) {
+			t.Fatal("a failed unlock replaced the original key file", err)
+		}
+	}
+
+	recoveryDirectory := t.TempDir()
+	password := "synthetic-recovery-password"
+	key, err := CreateKeyFile(recoveryDirectory, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealer, err := NewCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := sealer.Seal("account.fixture", []byte("synthetic-credential"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := os.ReadFile(filepath.Join(recoveryDirectory, keyFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, restored, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err = m.Unlock(password); err != nil {
+		t.Fatal("restored password key did not unlock", err)
+	}
+	reader, err := m.Cipher()
+	if err != nil {
+		t.Fatal("restored key kept the startup failure", err)
+	}
+	if plain, err := reader.Open("account.fixture", sealed); err != nil || string(plain) != "synthetic-credential" {
+		t.Fatal("restored key could not read its existing record", err)
+	}
+	m.Lock()
+	if _, err = m.Cipher(); !errors.Is(err, ErrLocked) {
+		t.Fatalf("explicit lock retained a stale native key error: %v", err)
+	}
+}
 
 // Key files written by earlier releases must keep opening: a bare single key,
 // and a version 2 ring whose older generations still read old records.
