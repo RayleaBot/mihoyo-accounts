@@ -3,7 +3,7 @@
   "name": "米游社账号",
   "version": "0.1.0",
   "manifest_version": "4",
-  "min_core_version": "0.7.0",
+  "min_core_version": "0.4.0",
   "license": "AGPL-3.0-only",
   "metadata": {
     "description": "米游社扫码登录、加密账号库与三游戏账号共享",
