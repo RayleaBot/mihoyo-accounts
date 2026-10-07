@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
 var ErrNotFound = errors.New("account is not available")

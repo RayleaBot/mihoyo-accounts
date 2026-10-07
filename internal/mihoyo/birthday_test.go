@@ -1,7 +1,7 @@
 package mihoyo
 
 import (
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 	"net/http"
 	"strings"
 	"testing"

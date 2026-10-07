@@ -2,7 +2,7 @@ package mihoyo
 
 import (
 	"encoding/json"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 	"net/http"
 	"strconv"
 	"strings"

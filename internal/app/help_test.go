@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	plugin "github.com/RayleaBot/plugin-mihoyo-accounts"
+	plugin "github.com/RayleaBot/mihoyo-accounts"
 )
 
 func TestHelpWritesCommandsWithThePluginPrefix(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 func TestRefreshCKReadsTheRolesAgain(t *testing.T) {

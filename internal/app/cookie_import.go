@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 	"crypto/rand"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 	"slices"
 	"sync"
 	"time"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 // A read the official API refuses as unauthenticated is repeated once with

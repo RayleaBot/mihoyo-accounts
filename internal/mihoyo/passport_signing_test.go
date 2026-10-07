@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 func TestTokenEndpointsUseTheirOwnAuthenticationProfiles(t *testing.T) {

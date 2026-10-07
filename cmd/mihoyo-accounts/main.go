@@ -5,8 +5,8 @@ import (
 	"os"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	plugin "github.com/RayleaBot/plugin-mihoyo-accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/app"
+	plugin "github.com/RayleaBot/mihoyo-accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/app"
 )
 
 func main() {

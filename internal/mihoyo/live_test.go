@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 // This check creates an unauthenticated, expiring login QR and polls it once.

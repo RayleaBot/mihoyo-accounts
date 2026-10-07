@@ -2,7 +2,7 @@ package app
 
 import (
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/pluginmeta"
+	"github.com/RayleaBot/mihoyo-accounts/internal/pluginmeta"
 	"strings"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 // Fingerprint registers the account's stable logical device with the official

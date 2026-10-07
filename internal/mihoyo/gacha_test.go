@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 func gachaRecord(uid, pool, id string) map[string]any {

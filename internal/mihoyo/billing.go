@@ -3,7 +3,7 @@ package mihoyo
 import (
 	"context"
 	"errors"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 	"net/url"
 	"slices"
 	"strconv"

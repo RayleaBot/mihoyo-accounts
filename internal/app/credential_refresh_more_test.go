@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 // A sign-in read refused as unauthenticated is repeated with re-issued

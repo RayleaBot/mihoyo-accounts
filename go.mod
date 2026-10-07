@@ -1,4 +1,4 @@
-module github.com/RayleaBot/plugin-mihoyo-accounts
+module github.com/RayleaBot/mihoyo-accounts
 
 go 1.26.6
 

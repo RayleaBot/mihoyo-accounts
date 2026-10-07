@@ -3,7 +3,7 @@ package mihoyo
 import (
 	"context"
 	"encoding/json"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 	"net/url"
 	"regexp"
 	"slices"

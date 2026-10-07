@@ -5,7 +5,7 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
 // UIDBinding is a game's UIDs a user bound without an account, as upstream's

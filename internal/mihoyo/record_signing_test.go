@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 func TestRecordProfilesSignExactWireQueryAndBody(t *testing.T) {

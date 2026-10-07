@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 // actionText is the text of a message.send action.

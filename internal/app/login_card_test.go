@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 const genshinHead = "https://act-webstatic.mihoyo.com/hk4e/synthetic-head.png"

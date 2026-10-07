@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 func deviceRequest(ref, method, eventType string) rayleabot.ServiceRequest {

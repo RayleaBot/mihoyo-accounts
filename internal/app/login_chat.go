@@ -7,7 +7,7 @@ import (
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 // answerTime is kept before the background deadline for the last answer: a

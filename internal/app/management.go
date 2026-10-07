@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
 func (a *App) Manage(ctx context.Context, store accounts.SecretStore, policy Policy, action string, input map[string]any) (result map[string]any, err error) {

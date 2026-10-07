@@ -11,8 +11,8 @@ import (
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 func startBatch(t *testing.T, a *App, s *memoryStore, mode string, items ...accounts.Record) batchView {

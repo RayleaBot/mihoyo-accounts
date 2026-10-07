@@ -10,10 +10,10 @@ import (
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/pluginmeta"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/pluginmeta"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
 type API interface {

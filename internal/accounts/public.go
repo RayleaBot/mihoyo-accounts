@@ -3,7 +3,7 @@ package accounts
 import (
 	"context"
 	"errors"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 	"slices"
 	"time"
 )

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 type QR struct {

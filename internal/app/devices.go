@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
 var deviceIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{16,64}$`)

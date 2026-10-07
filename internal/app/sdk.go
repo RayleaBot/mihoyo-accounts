@@ -11,7 +11,7 @@ import (
 	"time"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 type sdkStore struct{ event *rayleabot.EventContext }

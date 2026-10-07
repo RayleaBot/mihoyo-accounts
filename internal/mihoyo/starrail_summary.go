@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"slices"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/accounts"
+	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
 func (c *Client) starRailGachaSummary(ctx context.Context, tokens accounts.Tokens, role accounts.Role, input map[string]any) (map[string]any, error) {

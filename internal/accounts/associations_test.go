@@ -1,7 +1,7 @@
 package accounts
 
 import (
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 	"strings"
 	"testing"
 )

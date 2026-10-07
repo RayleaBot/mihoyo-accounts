@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/mihoyo"
+	"github.com/RayleaBot/mihoyo-accounts/internal/mihoyo"
 )
 
 func TestConfirmedLoginIsProcessedWithoutWaitingForPolls(t *testing.T) {

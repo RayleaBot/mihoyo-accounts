@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"github.com/RayleaBot/plugin-mihoyo-accounts/internal/vault"
+	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 	"slices"
 	"time"
 )
