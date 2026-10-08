@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@rayleabot/plugin-ui": "link:../.rayleabot/sdk/vue",
-    "vue": "3.5.41"
+    "vue": "3.5.43"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
