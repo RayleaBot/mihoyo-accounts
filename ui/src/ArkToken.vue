@@ -53,12 +53,12 @@ onMounted(async () => {
 
 <template>
   <section class="ark-token" aria-labelledby="ark-token-heading">
-    <h2 id="ark-token-heading">ark 授权令牌</h2>
+    <h3 id="ark-token-heading">ark 授权令牌</h3>
     <p class="hint">
       原神与星铁插件的云排名、高级筛选和云面板授权查询使用 ark（ark.ivny.cn）令牌。令牌与账号一样加密保存，只由本插件发送给 ark，游戏插件拿不到它。
       当前：{{ configured ? '已配置' : '未配置' }}。
     </p>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <p v-if="error" class="danger-text" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <form @submit.prevent="save">
       <fieldset :disabled="working || busy">
@@ -76,35 +76,5 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.ark-token {
-  display: grid;
-  gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid var(--raylea-color-border);
-}
-
-.ark-token fieldset {
-  display: grid;
-  gap: 16px;
-  justify-items: start;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.ark-token label {
-  display: grid;
-  gap: 6px;
-  width: min(100%, 420px);
-}
-
-.ark-token .actions {
-  display: flex;
-  gap: 8px;
-}
-
-.ark-token .hint {
-  max-width: 74ch;
-}
+.ark-token, .ark-token fieldset { display: grid; gap: 14px; min-width: 0; }
 </style>

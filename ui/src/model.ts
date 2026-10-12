@@ -1,5 +1,4 @@
 export interface Subject { source_protocol: string; bot_id: string; actor_id: string }
-export interface Bot { source_protocol: string; id: string; nickname?: string }
 export interface Role { ref: string; game: string; uid: string; region: string; nickname: string; level: number }
 export interface Account { realm?: 'cn'|'os'; shared?:boolean; cloud_configured?:string[]; ref: string; revision: number; owner: Subject; account_label: string; roles: Role[]; allowed_callers: string[]; status: string; can_refresh: boolean; updated_at_ms: number; last_check?: {kind:'check'|'refresh';state:string;code?:string;checked_at_ms:number}; public_query?: { enabled: boolean; games: string[]; daily_limit: number; day: string; used: number } }
 export const checkNames: Record<string,string> = {available:'通过',auth_invalid:'登录失效',device_required:'需要设备验证',challenge_required:'需要官方验证',unavailable:'暂未确认'}
@@ -7,8 +6,10 @@ export interface Status { vault_state: 'uninitialized' | 'locked' | 'unlocked' |
 export interface Login { ref: string; state: string; phase: string; expires_at_ms: number; qr_code?: string; account?: Account; role_states: Record<string, string>; error_code?: string; error_message?: string; failure?: { stage: string; operation?: string; retcode?: number; http_status?: number; reason?: string } }
 
 export const gameNames: Record<string, string> = { genshin: '原神', starrail: '星穹铁道', zzz: '绝区零' }
+export const gameShortNames: Record<string, string> = { genshin: '原神', starrail: '星铁', zzz: '绝区零' }
 export const vaultNames: Record<string, string> = { unlocked: '账号库已解锁', locked: '账号库已锁定', uninitialized: '首次使用', missing: '需要恢复密钥' }
 export const accountNames: Record<string, string> = { valid: '可用', invalid: '需重新登录', unknown: '待检查' }
+export const protectionNames: Record<string, string> = { dpapi: '当前 Windows 用户', password: '恢复口令' }
 export function finished(login: Login): boolean { return ['bound', 'expired', 'canceled', 'failed'].includes(login.state) }
 export function loginLabel(login: Login): string {
   if (login.state === 'bound') return '登录成功，账号已保存'
@@ -21,12 +22,37 @@ export function loginLabel(login: Login): string {
   if (login.state === 'scanned') return '已扫描，请在米游社确认'
   return '打开米游社，扫码并确认登录'
 }
-export function botLabel(bot: Bot): string { return bot.nickname ? `${bot.nickname}（${bot.id}）` : bot.id }
-export function ownerBotLabel(owner: Subject, bots: Bot[]): string {
-  const bot = bots.find(bot => bot.source_protocol === owner.source_protocol && bot.id === owner.bot_id)
-  return bot ? botLabel(bot) : owner.bot_id
-}
 export function errorText(error: unknown): string { return error instanceof Error ? error.message : '操作未完成，请重试。' }
+
+// A flag marks a card that needs the operator: red when the owner must log in
+// again, amber when the saved state is unconfirmed or needs official verification.
+export interface Flag { tone: 'red' | 'amber'; text: string }
+export function flagOf(account: Account): Flag | null {
+  if (account.status === 'invalid') return { tone: 'red', text: '需重新登录' }
+  if (account.last_check?.state === 'device_required') return { tone: 'amber', text: '需设备验证' }
+  if (account.last_check?.state === 'challenge_required') return { tone: 'amber', text: '需官方验证' }
+  if (account.status !== 'valid') return { tone: 'amber', text: '待检查' }
+  return null
+}
+// The card's status word follows the flag, so the word, the flag and the filters agree.
+export function statusOf(account: Account): string { return flagOf(account)?.text ?? accountNames[account.status] ?? '待检查' }
+export function realmName(account: Account): string { return account.realm === 'os' ? 'HoYoLab' : '米游社' }
+export function shortDate(ms: number, now = Date.now()): string {
+  const sameYear = new Date(ms).getFullYear() === new Date(now).getFullYear()
+  return new Intl.DateTimeFormat('zh-CN', { year: sameYear ? undefined : 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(ms)
+}
+const flagResults: Record<string, string> = { auth_invalid: '需重新登录', device_required: '需设备验证', challenge_required: '需官方验证' }
+// proofOf states where the card's status comes from: the latest check or
+// refresh, its result unless the status word already says it, and its time.
+export function proofOf(account: Account): string {
+  const check = account.last_check
+  if (!check) return '尚未检查'
+  const kind = check.kind === 'refresh' ? '刷新' : '检查'
+  const time = shortDate(check.checked_at_ms)
+  if (check.state === 'available') return `${kind}通过 · ${time}`
+  if (flagOf(account)?.text === flagResults[check.state]) return `${kind} · ${time}`
+  return `${kind}：${checkNames[check.state] || '暂未确认'} · ${time}`
+}
 
 export async function encryptPassword(password: string, jwk: JsonWebKey): Promise<string> {
   if (!globalThis.crypto?.subtle) throw new Error('当前连接无法加密口令，请使用 HTTPS 或本机地址打开管理页。')

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { encryptPassword, errorText } from './model'
+import Icon from './Icon.vue'
+import { encryptPassword, errorText, protectionNames } from './model'
 
 const props = defineProps<{
   invoke: <T>(action: string, payload?: Record<string, unknown>) => Promise<T>
@@ -18,7 +19,6 @@ const working = ref(false)
 const error = ref('')
 const notice = ref('')
 
-const protectionNames: Record<string, string> = { dpapi: '当前 Windows 用户', password: '恢复口令' }
 const choices = computed(() => props.nativeAvailable ? ['password', 'dpapi'] : ['password'])
 const needsCurrent = computed(() => props.protection === 'password')
 const needsNext = computed(() => target.value === 'password')
@@ -58,64 +58,40 @@ async function submit() {
 
 <template>
   <section class="key-protection" aria-labelledby="key-protection-heading">
-    <h2 id="key-protection-heading">密钥保护方式</h2>
-    <p class="hint">
-      当前：{{ protectionNames[protection] || '未知' }}。切换只重新包装同一把密钥，已保存的账号不会重新加密。
-      Windows 用户方式在启动时自动解锁，但同一台电脑上以相同用户运行的程序都能解开；恢复口令需要每次启动后手动解锁。
-    </p>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <h3 id="key-protection-heading">密钥保护方式</h3>
+    <p>使用{{ protectionNames[protection] || '未知方式' }}保护</p>
+    <p class="hint">切换只重新包装同一把密钥，已保存的账号不会重新加密。Windows 用户方式在启动时自动解锁，但同一台电脑上以相同用户运行的程序都能解开；恢复口令需要每次启动后手动解锁。</p>
+    <p v-if="error" class="danger-text" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <form @submit.prevent="submit">
-      <fieldset :disabled="working || busy">
-        <legend class="sr-only">切换密钥保护方式</legend>
-        <label>改为
-          <select v-model="target">
-            <option v-for="choice in choices" :key="choice" :value="choice">{{ protectionNames[choice] }}</option>
-          </select>
-        </label>
-        <label v-if="needsCurrent">当前恢复口令
-          <input v-model="current" type="password" autocomplete="current-password" required>
-        </label>
-        <template v-if="needsNext">
-          <label>{{ protection === 'password' ? '新恢复口令' : '恢复口令' }}
-            <input v-model="next" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+    <details class="disclosure">
+      <summary><Icon name="key" :size="18" /><span>更改保护方式</span><Icon class="chevron" name="chevron" :size="16" /></summary>
+      <form class="disclosure-body" @submit.prevent="submit">
+        <fieldset :disabled="working || busy">
+          <legend class="sr-only">切换密钥保护方式</legend>
+          <label>改为
+            <select v-model="target">
+              <option v-for="choice in choices" :key="choice" :value="choice">{{ protectionNames[choice] }}</option>
+            </select>
           </label>
-          <label>再次输入
-            <input v-model="confirmation" type="password" autocomplete="new-password" required>
+          <label v-if="needsCurrent">当前恢复口令
+            <input v-model="current" type="password" autocomplete="current-password" required>
           </label>
-          <p class="hint">12 到 128 字节。丢失口令后无法恢复账号。</p>
-        </template>
-        <button type="submit" :disabled="unchanged">{{ working ? '正在切换…' : '切换保护方式' }}</button>
-      </fieldset>
-    </form>
+          <template v-if="needsNext">
+            <label>{{ protection === 'password' ? '新恢复口令' : '恢复口令' }}
+              <input v-model="next" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+            </label>
+            <label>再次输入
+              <input v-model="confirmation" type="password" autocomplete="new-password" required>
+            </label>
+            <p class="hint">12 到 128 字节。丢失口令后无法恢复账号。</p>
+          </template>
+          <div class="actions"><button type="submit" :disabled="unchanged">{{ working ? '正在切换…' : '切换保护方式' }}</button></div>
+        </fieldset>
+      </form>
+    </details>
   </section>
 </template>
 
 <style scoped>
-.key-protection {
-  display: grid;
-  gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid var(--raylea-color-border);
-}
-
-.key-protection fieldset {
-  display: grid;
-  gap: 16px;
-  justify-items: start;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.key-protection label {
-  display: grid;
-  gap: 6px;
-  width: min(100%, 420px);
-}
-
-.key-protection .hint {
-  max-width: 74ch;
-}
+.key-protection, .key-protection fieldset { display: grid; gap: 14px; min-width: 0; }
 </style>
