@@ -306,7 +306,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
         <span class="cover-tab">{{ status.vault_state === 'uninitialized' ? '未初始化' : status.vault_state === 'missing' || status.vault_error ? '缺少密钥' : '已锁定' }}</span>
         <section class="vault-panel" aria-labelledby="vault-heading">
         <h2 id="vault-heading">{{ status.vault_state === 'missing' || status.vault_error ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
-        <p class="vault-state">{{ status.vault_error ? '需要恢复账号库密钥' : vaultNames[status.vault_state] }} · 一次登录，供已授权的游戏插件使用。</p>
+        <p class="vault-state">一次登录，供已授权的游戏插件使用。</p>
         <p v-if="status.vault_error" class="danger-text" role="alert">{{ status.vault_error.message }}</p>
         <p v-if="status.vault_state === 'missing'">检测到已保存账号，但缺少对应密钥。请恢复本插件数据目录中的原密钥文件，再重新加载插件。</p>
         <form v-else @submit.prevent="openVault">

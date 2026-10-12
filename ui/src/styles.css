@@ -1,7 +1,6 @@
 :root {
   color-scheme: light dark;
   --font: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', 'Hiragino Sans GB', system-ui, sans-serif;
-  --font-display: 'Segoe UI Variable Display', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', 'Hiragino Sans GB', system-ui, sans-serif;
   /* Binder sheet, desk and inside cover: three neutral grounds, cards on top. */
   --page: light-dark(#eceff3, #111317);
   --desk: light-dark(#e1e5eb, #0b0d10);
@@ -81,7 +80,7 @@ legend { margin-bottom: 10px; padding: 0; font-weight: 650; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .feedback { display: flex; gap: 10px; align-items: center; padding: 10px 12px 10px 14px; border-radius: 12px; background: var(--card); box-shadow: var(--card-shadow); }
-.feedback > .icon { color: var(--accent-ink); }
+.feedback > .icon { color: var(--ink-2); }
 .feedback.danger > .icon { color: var(--danger); }
 .feedback button { margin-left: auto; }
 
@@ -94,7 +93,7 @@ legend { margin-bottom: 10px; padding: 0; font-weight: 650; }
 .cover-slot { display: grid; justify-self: center; width: min(100%, 560px); margin-top: 6vh; padding-top: 24px; isolation: isolate; }
 .cover-tab { position: relative; z-index: -1; justify-self: start; margin: 0 0 -14px 28px; padding: 3px 10px 16px; border-radius: 7px 7px 0 0; background: var(--ink); color: var(--card); font-size: 12px; font-weight: 650; line-height: 18px; letter-spacing: .02em; }
 .vault-panel { display: grid; gap: 14px; padding: 36px; border-radius: 18px; background: var(--card); box-shadow: var(--card-shadow); }
-.vault-panel h2 { font-family: var(--font-display); font-size: 22px; }
+.vault-panel h2 { font-size: 22px; }
 .vault-state { color: var(--ink-2); }
 .vault-panel form { display: grid; gap: 16px; justify-items: stretch; }
 .vault-panel label { max-width: 420px; }
@@ -231,7 +230,8 @@ dialog .actions { justify-content: flex-end; }
 }
 @media (max-width: 720px), (pointer: coarse) {
   button, input, select { min-height: 44px; }
-  .tab, .segmented button { min-height: 40px; }
+  .icon-button { width: 44px; }
+  .select-all { min-height: 44px; }
   .checks label, label.check { min-height: 44px; align-items: center; }
 }
 @media (forced-colors: active) {

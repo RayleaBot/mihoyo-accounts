@@ -75,7 +75,7 @@ const contact = computed(() => showID.value || (props.owned ?? 0) > 1)
 .row dd { overflow: hidden; margin: 0; text-overflow: ellipsis; white-space: nowrap; }
 .row.pass dt { grid-column: 1 / 4; }
 .row.note dd { grid-column: 2 / -1; color: var(--ink-2); }
-.level { color: var(--ink-2); text-align: right; }
+.level { color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
 .num { font-variant-numeric: tabular-nums; text-align: right; letter-spacing: .01em; }
 .contact .num { text-align: left; }
 .foot { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--rule); }
@@ -87,5 +87,6 @@ const contact = computed(() => showID.value || (props.owned ?? 0) > 1)
 .acts .icon { color: var(--ink-2); }
 .acts button:hover:not(:disabled) .icon { color: var(--ink); }
 .pull { margin-left: auto; }
+@media (max-width: 720px), (pointer: coarse) { .mark { width: 44px; height: 44px; margin: -12px -12px 0 0; } }
 @media (forced-colors: active) { .card { border: 1px solid CanvasText; } .card.marked { outline: 3px solid Highlight; } .flag { border: 1px solid CanvasText; } }
 </style>
