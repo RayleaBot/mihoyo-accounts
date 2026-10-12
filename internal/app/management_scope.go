@@ -60,11 +60,11 @@ func (a *App) ManageEvent(ctx context.Context, store accounts.SecretStore, polic
 		return nil, failure("plugin.account_subject_denied")
 	}
 	switch action {
-	case "accounts.list", "accounts.check", "accounts.refresh", "accounts.remove", "accounts.remove_invalid", "accounts.roles", "accounts.permissions", "accounts.public.disable", "accounts.cloud.save", "accounts.cloud.clear", "accounts.device.status", "accounts.device.import", "accounts.device.reset", "accounts.associations.list", "accounts.associations.remove", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.batch.start", "accounts.batch.step", "accounts.batch.cancel", "login.start", "login.poll", "login.cancel", "subjects.get", "subjects.select", "subjects.uids.bind", "subjects.uids.remove", "subjects.uids.use":
+	case "accounts.list", "accounts.check", "accounts.refresh", "accounts.remove", "accounts.remove_invalid", "accounts.roles", "accounts.permissions", "accounts.public.disable", "accounts.cloud.save", "accounts.cloud.clear", "accounts.device.status", "accounts.device.import", "accounts.device.reset", "accounts.associations.list", "accounts.associations.remove", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.batch.start", "accounts.batch.step", "accounts.batch.cancel", "login.start", "login.poll", "login.cancel":
 	default:
 		return nil, failure("plugin.account_operation_denied")
 	}
-	if action == "login.start" || action == "accounts.import.start" || strings.HasPrefix(action, "subjects.") {
+	if action == "login.start" || action == "accounts.import.start" {
 		owner := accounts.Subject{SourceProtocol: bot.SourceProtocol, BotID: bot.BotID, ActorID: strings.TrimSpace(stringValue(input["actor_id"]))}
 		if raw, exists := input["subject"]; exists {
 			if decode(raw, &owner) != nil {

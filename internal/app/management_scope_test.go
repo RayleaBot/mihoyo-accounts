@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/json"
 	"reflect"
-	"sync"
 	"testing"
 
 	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
@@ -50,11 +49,11 @@ func TestManagementAccountBoundary(t *testing.T) {
 	if err != nil || listed["total"] != 1 || len(listed["items"].([]accounts.Summary)) != 1 || listed["items"].([]accounts.Summary)[0].Ref != first.Ref {
 		t.Fatal(listed, err)
 	}
-	for _, action := range []string{"accounts.list", "accounts.check", "accounts.remove", "login.start", "login.poll", "login.cancel", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.associations.list", "subjects.get", "subjects.uids.bind", "accounts.batch.start", "accounts.batch.step", "accounts.batch.cancel"} {
+	for _, action := range []string{"accounts.list", "accounts.check", "accounts.remove", "login.start", "login.poll", "login.cancel", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.associations.list", "accounts.batch.start", "accounts.batch.step", "accounts.batch.cancel"} {
 		_, err := call(nil, action, map[string]any{"subject": first.Owner, "account_ref": first.Ref})
 		assertCode(t, err, "platform.invalid_request")
 	}
-	for _, action := range []string{"accounts.check", "accounts.refresh", "accounts.remove", "accounts.remove_invalid", "accounts.roles", "accounts.permissions", "accounts.public.disable", "accounts.device.status", "accounts.device.import", "accounts.device.reset", "accounts.cloud.save", "accounts.cloud.clear", "subjects.select"} {
+	for _, action := range []string{"accounts.check", "accounts.refresh", "accounts.remove", "accounts.remove_invalid", "accounts.roles", "accounts.permissions", "accounts.public.disable", "accounts.device.status", "accounts.device.import", "accounts.device.reset", "accounts.cloud.save", "accounts.cloud.clear"} {
 		_, err := call(&first.Owner, action, map[string]any{"actor_id": first.Owner.ActorID, "account_ref": second.Ref, "game": "genshin", "role_ref": role("genshin").Ref})
 		assertCode(t, err, "plugin.account_subject_denied")
 	}
@@ -233,41 +232,5 @@ func TestManagementServiceOrigins(t *testing.T) {
 	req.Params = map[string]any{"subject": other, "game": "genshin", "uid": "100000001"}
 	if _, err := a.Service(t.Context(), store, policy(), req); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestScopedConcurrentWritesPreserveOtherBotsAndSettings(t *testing.T) {
-	a, store, first := setup(t, &fakeAPI{})
-	cipher, _ := a.Vault.Cipher()
-	if err := a.Repo.WriteSetting(t.Context(), store, cipher, "ark.token", "synthetic-setting"); err != nil {
-		t.Fatal(err)
-	}
-	owners := []accounts.Subject{first.Owner, first.Owner}
-	owners[1].SourceProtocol = "qqofficial"
-	var wg sync.WaitGroup
-	for _, owner := range owners {
-		wg.Go(func() {
-			for _, uid := range []string{"100000001", "100000002"} {
-				_, err := a.ManageEvent(t.Context(), store, policy(), managementEvent(&owner, "subjects.uids.bind", map[string]any{"actor_id": owner.ActorID, "game": "genshin", "uid": uid}))
-				if err != nil {
-					t.Error(err)
-				}
-			}
-		})
-	}
-	wg.Wait()
-	for _, owner := range owners {
-		bindings, err := a.Repo.UIDBindings(t.Context(), store, cipher, owner)
-		if err != nil || len(bindings["genshin"].UIDs) != 2 {
-			t.Fatal(bindings, err)
-		}
-	}
-	var setting string
-	_, err := a.Repo.ReadSetting(t.Context(), store, cipher, "ark.token", &setting)
-	if err != nil || setting != "synthetic-setting" {
-		t.Fatal("global setting lost", setting, err)
-	}
-	if _, err := a.Repo.Get(t.Context(), store, cipher, first.Ref); err != nil {
-		t.Fatal("account lost", err)
 	}
 }

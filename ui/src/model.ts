@@ -1,5 +1,5 @@
-export interface Subject { source_protocol: string; bot_id: string; actor_id: string; source_adapter?: string }
-export interface Bot { source_protocol: string; source_adapter?: string; id: string; nickname?: string }
+export interface Subject { source_protocol: string; bot_id: string; actor_id: string }
+export interface Bot { source_protocol: string; id: string; nickname?: string }
 export interface Role { ref: string; game: string; uid: string; region: string; nickname: string; level: number }
 export interface Account { realm?: 'cn'|'os'; shared?:boolean; cloud_configured?:string[]; ref: string; revision: number; owner: Subject; account_label: string; roles: Role[]; allowed_callers: string[]; status: string; can_refresh: boolean; updated_at_ms: number; last_check?: {kind:'check'|'refresh';state:string;code?:string;checked_at_ms:number}; public_query?: { enabled: boolean; games: string[]; daily_limit: number; day: string; used: number } }
 export const checkNames: Record<string,string> = {available:'通过',auth_invalid:'登录失效',device_required:'需要设备验证',challenge_required:'需要官方验证',unavailable:'暂未确认'}

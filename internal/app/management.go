@@ -138,9 +138,6 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	if strings.HasPrefix(action, "ark.") {
 		return a.manageArk(ctx, store, cipher, action, input)
 	}
-	if strings.HasPrefix(action, "subjects.") {
-		return a.manageSubject(ctx, store, cipher, action, input)
-	}
 	switch action {
 	case "accounts.list":
 		if bot, ok := scopedBot(ctx); ok {
@@ -378,62 +375,4 @@ func (a *App) shareRefresh(ctx context.Context, ref string, run func() (map[stri
 	close(flight.done)
 	a.refreshMu.Unlock()
 	return flight.result, flight.err
-}
-
-func (a *App) manageSubject(ctx context.Context, store accounts.SecretStore, cipher *vault.Cipher, action string, input map[string]any) (map[string]any, error) {
-	var owner accounts.Subject
-	if decode(input["subject"], &owner) != nil || owner.Validate() != nil {
-		return nil, failure("plugin.account_input_invalid")
-	}
-	if err := checkManagementOwner(ctx, owner); err != nil {
-		return nil, err
-	}
-	if action == "subjects.get" {
-		items, err := a.Repo.ListForBotSubject(ctx, store, cipher, owner)
-		if err != nil {
-			return nil, err
-		}
-		defaults, err := a.Repo.Defaults(ctx, store, cipher, owner)
-		if err != nil {
-			return nil, err
-		}
-		for game, selected := range defaults {
-			valid := false
-			for _, item := range items {
-				for _, role := range item.Roles {
-					if item.Ref == selected.AccountRef && role.Ref == selected.RoleRef && role.Game == game {
-						valid = true
-					}
-				}
-			}
-			if !valid {
-				delete(defaults, game)
-			}
-		}
-		bindings, err := a.Repo.UIDBindings(ctx, store, cipher, owner)
-		return map[string]any{"items": items, "default_roles": defaults, "uid_bindings": bindings}, err
-	}
-	if action == "subjects.select" {
-		ref := stringValue(input["account_ref"])
-		release, err := a.acquire(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		defer release()
-		record, err := a.Repo.Get(ctx, store, cipher, ref)
-		if err != nil {
-			return nil, err
-		}
-		if err := checkManagementOwner(ctx, record.Owner); err != nil {
-			return nil, err
-		}
-		selection, err := a.Repo.Select(ctx, store, cipher, owner, ref, stringValue(input["role_ref"]))
-		return map[string]any{"selection": selection}, err
-	}
-	game, uid := stringValue(input["game"]), stringValue(input["uid"])
-	if (game != "genshin" && game != "starrail" && game != "zzz") || !uidPattern.MatchString(uid) || game != "zzz" && len(uid) != 9 && len(uid) != 10 {
-		return nil, failure("plugin.account_input_invalid")
-	}
-	binding, err := a.Repo.ChangeUIDBinding(ctx, store, cipher, owner, game, strings.TrimPrefix(action, "subjects.uids."), uid)
-	return map[string]any{"binding": binding}, err
 }
