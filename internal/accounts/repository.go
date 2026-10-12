@@ -26,7 +26,11 @@ type SecretStore interface {
 	Write(context.Context, map[string]string) error
 }
 
-type Repository struct{ mu sync.Mutex }
+type Repository struct {
+	mu       sync.Mutex
+	migrated bool
+	pending  []Subject
+}
 type catalog struct {
 	Pages  int `json:"pages"`
 	Active int `json:"active"`
@@ -90,6 +94,15 @@ func writeEncrypted(ctx context.Context, store SecretStore, cipher *vault.Cipher
 }
 
 func (r *Repository) Get(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) (Record, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.getLocked(ctx, store, cipher, ref)
+}
+
+func (r *Repository) getLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) (Record, error) {
+	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
+		return Record{}, err
+	}
 	if ref == "" || len(ref) > 64 || strings.ContainsAny(ref, "/\\.") {
 		return Record{}, ErrNotFound
 	}
@@ -110,16 +123,19 @@ func (r *Repository) List(ctx context.Context, store SecretStore, cipher *vault.
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if err := r.migrateOwnerLocked(ctx, store, cipher, owner); err != nil {
+		return nil, err
+	}
 	var refs index
 	if _, err := readEncrypted(ctx, store, cipher, owner.Key(), &refs); err != nil {
 		return nil, err
 	}
-	links, err := r.Associations(ctx, store, cipher)
+	links, err := r.associationsLocked(ctx, store, cipher)
 	if err != nil {
 		return nil, err
 	}
 	for _, link := range links {
-		if link.Secondary == owner {
+		if link.Secondary.Equal(owner) {
 			var shared index
 			if _, err = readEncrypted(ctx, store, cipher, link.Primary.Key(), &shared); err != nil {
 				return nil, err
@@ -133,16 +149,16 @@ func (r *Repository) List(ctx context.Context, store SecretStore, cipher *vault.
 	}
 	items := make([]Summary, 0, len(refs.Refs))
 	for _, ref := range refs.Refs {
-		record, err := r.Get(ctx, store, cipher, ref)
+		record, err := r.getLocked(ctx, store, cipher, ref)
 		if errors.Is(err, ErrNotFound) {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		if record.Owner == owner || slices.ContainsFunc(links, func(a Association) bool { return a.Primary == record.Owner && a.Secondary == owner }) {
+		if record.Owner.Equal(owner) || slices.ContainsFunc(links, func(a Association) bool { return a.Primary.Equal(record.Owner) && a.Secondary.Equal(owner) }) {
 			summary := record.Summary()
-			summary.Shared = record.Owner != owner
+			summary.Shared = !record.Owner.Equal(owner)
 			summary.Owner = owner
 			items = append(items, summary)
 		}
@@ -157,6 +173,9 @@ func (r *Repository) ListPage(ctx context.Context, store SecretStore, cipher *va
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	result := Page{Items: []Summary{}}
+	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
+		return result, err
+	}
 	var all catalog
 	if _, err := readEncrypted(ctx, store, cipher, catalogKey, &all); err != nil {
 		return result, err
@@ -170,7 +189,7 @@ func (r *Repository) ListPage(ctx context.Context, store SecretStore, cipher *va
 		return result, err
 	}
 	for _, ref := range refs.Refs {
-		record, err := r.Get(ctx, store, cipher, ref)
+		record, err := r.getLocked(ctx, store, cipher, ref)
 		if errors.Is(err, ErrNotFound) {
 			continue
 		}
@@ -198,18 +217,21 @@ func (r *Repository) Bind(ctx context.Context, store SecretStore, cipher *vault.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var owned index
+	if err := r.migrateOwnerLocked(ctx, store, cipher, owner); err != nil {
+		return Record{}, err
+	}
 	if _, err := readEncrypted(ctx, store, cipher, owner.Key(), &owned); err != nil {
 		return Record{}, err
 	}
 	for _, ref := range owned.Refs {
-		record, err := r.Get(ctx, store, cipher, ref)
+		record, err := r.getLocked(ctx, store, cipher, ref)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				continue
 			}
 			return Record{}, err
 		}
-		if record.Owner == owner && record.Tokens.AccountID == tokens.AccountID && record.Tokens.RealmName() == tokens.RealmName() {
+		if record.Owner.Equal(owner) && record.Tokens.AccountID == tokens.AccountID && record.Tokens.RealmName() == tokens.RealmName() {
 			record.LastCheck = nil
 			if tokens.CloudGenshin == "" {
 				tokens.CloudGenshin = record.Tokens.CloudGenshin
@@ -256,11 +278,11 @@ func (r *Repository) Bind(ctx context.Context, store SecretStore, cipher *vault.
 func (r *Repository) Update(ctx context.Context, store SecretStore, cipher *vault.Cipher, record Record, expected uint64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	current, err := r.Get(ctx, store, cipher, record.Ref)
+	current, err := r.getLocked(ctx, store, cipher, record.Ref)
 	if err != nil {
 		return err
 	}
-	if current.Revision != expected || current.Owner != record.Owner {
+	if current.Revision != expected || !current.Owner.Equal(record.Owner) {
 		return ErrConflict
 	}
 	record.Revision = current.Revision + 1
@@ -272,7 +294,7 @@ func (r *Repository) Update(ctx context.Context, store SecretStore, cipher *vaul
 func (r *Repository) Remove(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.Get(ctx, store, cipher, ref)
+	record, err := r.getLocked(ctx, store, cipher, ref)
 	if err != nil {
 		return err
 	}
@@ -284,7 +306,7 @@ func (r *Repository) Remove(ctx context.Context, store SecretStore, cipher *vaul
 func (r *Repository) RemoveIfInvalid(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string, revision uint64) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.Get(ctx, store, cipher, ref)
+	record, err := r.getLocked(ctx, store, cipher, ref)
 	if err != nil {
 		return false, err
 	}

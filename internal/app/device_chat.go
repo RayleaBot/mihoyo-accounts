@@ -31,7 +31,7 @@ type deviceWait struct {
 // binds.
 type deviceWaits struct {
 	mu    sync.Mutex
-	items map[accounts.Subject]deviceWait
+	items map[string]deviceWait
 }
 
 func (w *deviceWaits) start(owner accounts.Subject, ref string) {
@@ -39,27 +39,27 @@ func (w *deviceWaits) start(owner accounts.Subject, ref string) {
 	defer w.mu.Unlock()
 	now := time.Now()
 	if w.items == nil {
-		w.items = map[accounts.Subject]deviceWait{}
+		w.items = map[string]deviceWait{}
 	}
 	for other, wait := range w.items {
 		if now.After(wait.until) {
 			delete(w.items, other)
 		}
 	}
-	w.items[owner] = deviceWait{ref: ref, until: now.Add(2 * time.Minute)}
+	w.items[owner.Key()] = deviceWait{ref: ref, until: now.Add(2 * time.Minute)}
 }
 
 func (w *deviceWaits) waiting(owner accounts.Subject) (string, bool) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	wait, ok := w.items[owner]
+	wait, ok := w.items[owner.Key()]
 	return wait.ref, ok && time.Now().Before(wait.until)
 }
 
 func (w *deviceWaits) end(owner accounts.Subject) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	delete(w.items, owner)
+	delete(w.items, owner.Key())
 }
 
 var zzzOverseasRegions = []string{"prod_gf_us", "prod_gf_eu", "prod_gf_jp", "prod_gf_sg"}
@@ -194,7 +194,7 @@ func deviceReply(err error) string {
 // is asked again and one with 取消 ends the wait. handled is false for other
 // messages, which leave the wait running.
 func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore) (bool, error) {
-	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Bot.ID, ActorID: event.Event.Actor.ID}
+	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
 	ref, ok := a.devices.waiting(owner)
 	if !ok {
 		return false, nil

@@ -72,7 +72,7 @@ type App struct {
 	defaultDev   defaultDeviceCache
 	jobsMu       sync.Mutex
 	jobs         map[string]*login
-	owners       map[accounts.Subject]string
+	owners       map[string]string
 	refreshMu    sync.Mutex
 	refreshes    map[string]*refreshFlight
 	pollInterval time.Duration
@@ -93,7 +93,7 @@ func New(directory string, api API) (*App, error) {
 		api = mihoyo.New(nil, nil)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &App{Vault: manager, API: api, ctx: ctx, cancel: cancel, locks: map[string]*accountLock{}, jobs: map[string]*login{}, owners: map[accounts.Subject]string{}, refreshes: map[string]*refreshFlight{}, pollInterval: 5 * time.Second, recallDelay: 30 * time.Second}, nil
+	return &App{Vault: manager, API: api, ctx: ctx, cancel: cancel, locks: map[string]*accountLock{}, jobs: map[string]*login{}, owners: map[string]string{}, refreshes: map[string]*refreshFlight{}, pollInterval: 5 * time.Second, recallDelay: 30 * time.Second}, nil
 }
 func (a *App) Close() {
 	a.cancel()

@@ -71,8 +71,8 @@ func TestEncryptedAccountsDeduplicateAndDoNotExposeTokens(t *testing.T) {
 	other := owner
 	other.SourceAdapter = "other-adapter"
 	visible, err := repo.List(ctx, store, cipher, other)
-	if err != nil || len(visible) != 0 {
-		t.Fatal("account leaked across adapter identity")
+	if err != nil || len(visible) != 1 {
+		t.Fatal("account lost after replacing the connection")
 	}
 }
 

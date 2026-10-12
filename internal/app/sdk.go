@@ -16,6 +16,15 @@ import (
 
 type sdkStore struct{ event *rayleabot.EventContext }
 
+func (s sdkStore) ResolveBotID(protocol, adapter string) string {
+	for _, bot := range s.event.Bots {
+		if bot.SourceProtocol == protocol && bot.SourceAdapter == adapter {
+			return bot.ID
+		}
+	}
+	return ""
+}
+
 func (s sdkStore) Read(ctx context.Context, key string) (string, bool, error) {
 	result, err := s.event.Actions().SecretRead(ctx, key)
 	if err != nil {
@@ -65,7 +74,7 @@ var serviceMethods = []string{"list", "roles", "select", "execute", "delegation.
 func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	store, policy := sdkStore{event}, policyFor(event)
 	if event.Event.EventType == "management.action" {
-		if event.Event.SourceProtocol != "management" || event.Event.SourceAdapter != "management.ui" {
+		if event.Event.SourceProtocol != "management" {
 			return event.Fail("plugin.account_subject_denied", message("plugin.account_subject_denied"))
 		}
 		result, err := a.Manage(ctx, store, policy, stringValue(event.Event.Payload["action"]), object(event.Event.Payload["payload"]))
@@ -109,7 +118,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if command == "我的CK" && event.Event.Target.Type != "private" {
 		return event.SendText("请私聊查看")
 	}
-	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Bot.ID, ActorID: event.Event.Actor.ID}
+	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
 	if owner.Validate() != nil {
 		return event.SendText(message("plugin.account_subject_denied"))
 	}
@@ -121,7 +130,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	}
 	if event.Event.Command() == "登录状态" || event.Event.Command() == "取消登录" {
 		a.jobsMu.Lock()
-		ref := a.owners[owner]
+		ref := a.owners[owner.Key()]
 		a.jobsMu.Unlock()
 		action := "login.poll"
 		if event.Event.Command() == "取消登录" {

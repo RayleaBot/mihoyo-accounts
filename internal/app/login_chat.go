@@ -46,7 +46,8 @@ func (a *App) chatLogin(ctx context.Context, event *rayleabot.EventContext, stor
 	if event.Event.Target.Type != "private" {
 		segments = []rayleabot.Segment{rayleabot.At(owner.ActorID), rayleabot.Text("\n请扫码以完成绑定\n"), code}
 	}
-	sent, err := event.Actions().MessageSend(ctx, chatMessage(event, segments...))
+	address, _ := event.Address()
+	sent, err := event.Actions().SendTo(ctx, address, segments...)
 	if err != nil && !unconfirmed(err) {
 		_, _ = a.cancelLogin(view.Ref)
 		return err
@@ -98,11 +99,11 @@ func (a *App) followLogin(ctx context.Context, event *rayleabot.EventContext, st
 		case <-s.changed:
 		case <-s.ctx.Done():
 		case <-due:
-			recallCode(ctx, event, owner.SourceAdapter, shown)
+			recallCode(ctx, event, owner.BotID, shown)
 			shown, due = "", nil
 		}
 	}
-	recallCode(ctx, event, owner.SourceAdapter, shown)
+	recallCode(ctx, event, owner.BotID, shown)
 	s.mu.Lock()
 	ref := s.view.Ref
 	s.mu.Unlock()
@@ -129,11 +130,11 @@ func (a *App) followLogin(ctx context.Context, event *rayleabot.EventContext, st
 
 // recallCode recalls the code sent to the chat. As upstream, a failed recall
 // is logged, not retried.
-func recallCode(ctx context.Context, event *rayleabot.EventContext, adapter, id string) {
+func recallCode(ctx context.Context, event *rayleabot.EventContext, botID, id string) {
 	if id == "" {
 		return
 	}
-	if _, err := event.Actions().ForOneBotAdapter(adapter).MessageDelete(ctx, id); err != nil {
+	if _, err := event.Actions().ForOneBotAccount(botID).MessageDelete(ctx, id); err != nil {
 		fields := map[string]any{}
 		var failure *rayleabot.ActionError
 		if errors.As(err, &failure) {
@@ -156,7 +157,8 @@ func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext
 			first.Data = map[string]any{"text": "\n" + stringValue(first.Data["text"])}
 			segments = append([]rayleabot.Segment{rayleabot.At(owner.ActorID), first}, segments[1:]...)
 		}
-		_, err := event.Actions().MessageSend(ctx, chatMessage(event, segments...))
+		address, _ := event.Address()
+		_, err := event.Actions().SendTo(ctx, address, segments...)
 		return err
 	}
 	segments, image := a.loginResult(ctx, event, store, view)
@@ -170,16 +172,9 @@ func (a *App) sendLoginResult(ctx context.Context, event *rayleabot.EventContext
 	return nil
 }
 
-// chatMessage is a message to the chat an event came from.
-func chatMessage(event *rayleabot.EventContext, segments ...rayleabot.Segment) rayleabot.MessageSendRequest {
-	return rayleabot.MessageSendRequest{SourceAdapter: event.Event.SourceAdapter, SourceProtocol: event.Event.SourceProtocol, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, Message: rayleabot.MessageOut{Segments: segments}}
-}
-
 // quote is a reply quoting the event's message, as upstream's reply(msg, true).
 func quote(event *rayleabot.EventContext, text string) rayleabot.MessageSendRequest {
-	request := chatMessage(event, rayleabot.Text(text))
-	request.ReplyToEventID, request.FallbackToSendIfMissing = event.Event.EventID, true
-	return request
+	return rayleabot.MessageSendRequest{SourceProtocol: event.Event.SourceProtocol, BotID: event.Event.BotID, TargetType: event.Event.Target.Type, TargetID: event.Event.Target.ID, ReplyToEventID: event.Event.EventID, FallbackToSendIfMissing: true, Message: rayleabot.MessageOut{Segments: []rayleabot.Segment{rayleabot.Text(text)}}}
 }
 
 // unconfirmed is a send that may still arrive, which is not repeated.

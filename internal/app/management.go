@@ -86,6 +86,7 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		defer a.vaultGate.Unlock()
 		// A new or reopened store is read again.
 		a.defaultDev.forget()
+		a.Repo.ResetMigration()
 		password := ""
 		if value := stringValue(input["password_ciphertext"]); value != "" {
 			password, err = a.Vault.DecodePassword(value)
@@ -194,7 +195,7 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		if err != nil {
 			return nil, err
 		}
-		if !allowed || action == "accounts.remove" && record.Owner != owner {
+		if !allowed || action == "accounts.remove" && !record.Owner.Equal(owner) {
 			return nil, failure("plugin.account_subject_denied")
 		}
 	}

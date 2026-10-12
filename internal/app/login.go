@@ -143,8 +143,8 @@ func (a *App) startLogin(ctx context.Context, owner accounts.Subject) (LoginView
 				item.expire()
 			}
 			delete(a.jobs, ref)
-			if a.owners[item.owner] == ref {
-				delete(a.owners, item.owner)
+			if a.owners[item.owner.Key()] == ref {
+				delete(a.owners, item.owner.Key())
 			}
 		}
 		item.mu.Unlock()
@@ -170,14 +170,14 @@ func (a *App) startLogin(ctx context.Context, owner accounts.Subject) (LoginView
 		cancel()
 		return LoginView{}, failure("plugin.login_limit")
 	}
-	if old := a.jobs[a.owners[owner]]; old != nil {
+	if old := a.jobs[a.owners[owner.Key()]]; old != nil {
 		old.mu.Lock()
 		if !terminal(old.view.State) {
 			old.finish("canceled")
 		}
 		old.mu.Unlock()
 	}
-	a.jobs[s.view.Ref], a.owners[owner] = s, s.view.Ref
+	a.jobs[s.view.Ref], a.owners[owner.Key()] = s, s.view.Ref
 	s.mu.Lock()
 	view := s.snapshot()
 	s.mu.Unlock()
@@ -392,7 +392,7 @@ func (a *App) cancelLogins() {
 func (a *App) cancelOwnerLogin(owner accounts.Subject) {
 	a.jobsMu.Lock()
 	defer a.jobsMu.Unlock()
-	if s := a.jobs[a.owners[owner]]; s != nil {
+	if s := a.jobs[a.owners[owner.Key()]]; s != nil {
 		s.mu.Lock()
 		if !terminal(s.view.State) {
 			s.finish("canceled")

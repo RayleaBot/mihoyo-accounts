@@ -34,10 +34,10 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 		ref := stringValue(req.Params["delegation_ref"])
 		record.Delegations = slices.DeleteFunc(active, func(d accounts.Delegation) bool {
 			grantOwner := d.Owner
-			if grantOwner.Validate() != nil {
+			if grantOwner == (accounts.Subject{}) {
 				grantOwner = record.Owner
 			}
-			return d.Caller == req.CallerPluginID && d.Ref == ref && (management(req.Origin) || grantOwner == owner)
+			return d.Caller == req.CallerPluginID && d.Ref == ref && (management(req.Origin) || grantOwner.Equal(owner))
 		})
 		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
 			return nil, err
@@ -75,10 +75,10 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 	})
 	if index >= 0 {
 		previousOwner := active[index].Owner
-		if previousOwner.Validate() != nil {
+		if previousOwner == (accounts.Subject{}) {
 			previousOwner = record.Owner
 		}
-		if previousOwner != owner && !management(req.Origin) {
+		if !previousOwner.Equal(owner) && !management(req.Origin) {
 			return nil, failure("plugin.account_subject_denied")
 		}
 		next.Ref = active[index].Ref
@@ -105,7 +105,7 @@ func (a *App) admitDelegation(ctx context.Context, store accounts.SecretStore, c
 		}
 		interval := int64(5 * time.Minute / time.Millisecond)
 		owner := d.Owner
-		if owner.Validate() != nil {
+		if owner == (accounts.Subject{}) {
 			owner = record.Owner
 		}
 		allowed, err := a.Repo.CanAccess(ctx, store, cipher, record.Owner, owner)

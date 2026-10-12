@@ -1,6 +1,6 @@
 import { webcrypto } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { encryptPassword, subjectFor } from '../src/model'
+import { botAccounts, encryptPassword, subjectFor } from '../src/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -24,9 +24,15 @@ describe('key input transport', () => {
   })
 })
 
-it('keeps adapter and bot scope when binding the same user ID', () => {
-  const first = subjectFor({ source_protocol: 'onebot11', source_adapter: 'first', id: 'bot-a' }, 'user')
-  const second = subjectFor({ source_protocol: 'onebot11', source_adapter: 'second', id: 'bot-b' }, 'user')
-  expect(first).not.toEqual(second)
-  expect(first.actor_id).toBe(second.actor_id)
+it('selects bot accounts and ignores replacement connections in subjects', () => {
+  const first = { source_protocol: 'onebot11', source_adapter: 'first', id: 'bot-a' }
+  const second = { ...first, source_adapter: 'replacement' }
+  const otherBot = { ...first, id: 'bot-b' }
+  const otherProtocol = { ...first, source_protocol: 'qqofficial' }
+  const subject = subjectFor(first, 'user')
+  expect(subject).toEqual(subjectFor(second, 'user'))
+  expect(subject).not.toHaveProperty('source_adapter')
+  expect(subject).not.toEqual(subjectFor(otherBot, 'user'))
+  expect(subject).not.toEqual(subjectFor(otherProtocol, 'user'))
+  expect(botAccounts([first, second, otherBot, otherProtocol])).toHaveLength(3)
 })

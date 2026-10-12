@@ -56,7 +56,7 @@ func chatLogin(t *testing.T, api *fakeAPI) (*App, *chatHost) {
 func currentJob(a *App) *login {
 	a.jobsMu.Lock()
 	defer a.jobsMu.Unlock()
-	return a.jobs[a.owners[subject()]]
+	return a.jobs[a.owners[subject().Key()]]
 }
 
 // scannedThenConfirmed is scanned for 200ms after its first poll, then
@@ -105,6 +105,14 @@ func TestGroupLoginIsFollowedInTheBackground(t *testing.T) {
 	// The code was recalled once when due, while the login was still open.
 	if len(recalls) != 1 || recalls[0].Data["message_id"] != "sent-1" || recalls[0].At.Sub(sends[0].At) < a.recallDelay || position(actions, recalls[0]) > position(actions, results[0]) {
 		t.Fatalf("the code was not recalled once when due: %v", actions)
+	}
+	for _, action := range append(sends, recalls...) {
+		if action.Data["bot_id"] != subject().BotID || action.Data["source_adapter"] != nil {
+			t.Fatalf("chat action still routes by connection: %s %v", action.Name, action.Data)
+		}
+		if action.Name == "message.send" && action.Data["source_protocol"] != subject().SourceProtocol {
+			t.Fatalf("message lacks the account protocol: %v", action.Data)
+		}
 	}
 }
 

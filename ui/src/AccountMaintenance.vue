@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref } from 'vue'
 import { driveBatch, type Batch, type Invoke } from './batch'
-import { errorText, gameNames, type Account } from './model'
-const props = defineProps<{ selected: Account[]; disabled: boolean; invoke: Invoke }>()
+import { errorText, gameNames, ownerBotLabel, type Account, type Bot } from './model'
+const props = defineProps<{ selected: Account[]; bots: Bot[]; disabled: boolean; invoke: Invoke }>()
 const emit = defineEmits<{ working: [value: boolean]; changed: [] }>()
 const busy = ref(false), error = ref(''), batch = ref<Batch | null>(null), labels = ref<Record<string, string>>({})
 const confirmation = ref<HTMLDialogElement | null>(null), candidates = ref<{ account_ref: string; revision: number; label: string }[]>([])
@@ -10,7 +10,7 @@ const active = computed(() => batch.value?.state === 'running')
 const invalid = computed(() => props.selected.filter(a => a.status === 'invalid'))
 const modeNames = { check: '检查登录状态', refresh: '刷新凭据', remove_invalid: '清理失效账号', statistics: '统计账号' }
 let controller: AbortController | undefined, disposed = false
-function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id} · ${account.owner.source_adapter}` }
+function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id} · ${ownerBotLabel(account.owner, props.bots)}` }
 function time(ms?: number) { return ms ? new Date(ms).toLocaleString('zh-CN') : '尚未完成' }
 function finishedWork() { busy.value = false; emit('working', false) }
 async function perform(mode?: Batch['mode'], items?: { account_ref: string; revision: number }[]) {

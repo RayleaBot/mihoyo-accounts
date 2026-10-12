@@ -142,7 +142,12 @@ func TestOneAccountServesThreeGamesWithoutCredentials(t *testing.T) {
 	api := &fakeAPI{}
 	a, store, record := setup(t, api)
 	for _, game := range []string{"genshin", "starrail", "zzz"} {
-		result, err := a.Service(t.Context(), store, policy(), request(game, record.Ref))
+		req := request(game, record.Ref)
+		req.Origin.SourceAdapter = "replacement"
+		if game == "zzz" {
+			req.Origin.SourceAdapter = ""
+		}
+		result, err := a.Service(t.Context(), store, policy(), req)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -164,7 +169,8 @@ func TestOneAccountServesThreeGamesWithoutCredentials(t *testing.T) {
 	for name, mutate := range map[string]func(*rayleabot.ServiceRequest){
 		"caller":           func(r *rayleabot.ServiceRequest) { r.CallerPluginID = "another-plugin" },
 		"owner":            func(r *rayleabot.ServiceRequest) { r.Origin.Actor.ID = "user-2" },
-		"adapter":          func(r *rayleabot.ServiceRequest) { r.Origin.SourceAdapter = "secondary" },
+		"bot":              func(r *rayleabot.ServiceRequest) { r.Origin.BotID = "other-bot" },
+		"protocol":         func(r *rayleabot.ServiceRequest) { r.Origin.SourceProtocol = "qqofficial" },
 		"role":             func(r *rayleabot.ServiceRequest) { r.Params["role_ref"] = role("zzz").Ref },
 		"operation":        func(r *rayleabot.ServiceRequest) { r.Params["operation"] = "zzz.note" },
 		"subject override": func(r *rayleabot.ServiceRequest) { r.Params["subject"] = subject() },

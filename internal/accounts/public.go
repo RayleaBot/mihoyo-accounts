@@ -31,11 +31,11 @@ func (r *Repository) PublicRefs(ctx context.Context, store SecretStore, cipher *
 func (r *Repository) SetPublic(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string, owner Subject, enabled bool, limit int, games []string) (Record, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.Get(ctx, store, cipher, ref)
+	record, err := r.getLocked(ctx, store, cipher, ref)
 	if err != nil {
 		return record, err
 	}
-	if record.Owner != owner {
+	if !record.Owner.Equal(owner) {
 		return record, ErrNotFound
 	}
 	var pool index
@@ -80,7 +80,7 @@ func (r *Repository) SetPublic(ctx context.Context, store SecretStore, cipher *v
 func (r *Repository) ReservePublic(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref, caller, game string, following bool, now time.Time) (Record, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.Get(ctx, store, cipher, ref)
+	record, err := r.getLocked(ctx, store, cipher, ref)
 	if err != nil {
 		return record, err
 	}

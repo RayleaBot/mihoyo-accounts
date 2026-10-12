@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import{ref}from'vue'
-interface Subject{source_protocol:string;source_adapter:string;bot_id:string;actor_id:string}
+import{ownerBotLabel,type Subject,type Bot}from'./model'
 interface Link{ref:string;primary:Subject;secondary:Subject;created_ms:number}
-const props=defineProps<{invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>;disabled:boolean}>()
+const props=defineProps<{bots:Bot[];invoke:<T>(action:string,payload?:Record<string,unknown>)=>Promise<T>;disabled:boolean}>()
 const items=ref<Link[]>([]),busy=ref(false),error=ref(''),candidate=ref(''),loaded=ref(false)
-function label(s:Subject){return `${s.source_protocol} / ${s.source_adapter} / 机器人${s.bot_id} / 用户${s.actor_id}`}
+function label(s:Subject){return `${s.source_protocol} / 机器人${ownerBotLabel(s,props.bots)} / 用户${s.actor_id}`}
 async function load(){if(busy.value||props.disabled)return;busy.value=true;error.value='';try{items.value=(await props.invoke<{items:Link[]}>('accounts.associations.list')).items;loaded.value=true}catch(e){error.value=e instanceof Error?e.message:'关联列表读取失败。'}finally{busy.value=false}}
 async function remove(){busy.value=true;error.value='';try{await props.invoke('accounts.associations.remove',{ref:candidate.value,confirm:true});items.value=items.value.filter(v=>v.ref!==candidate.value);candidate.value=''}catch(e){error.value=e instanceof Error?e.message:'解除关联未完成。'}finally{busy.value=false}}
 </script>

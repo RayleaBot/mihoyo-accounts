@@ -25,7 +25,7 @@ type associationRequests struct {
 
 func (s *associationRequests) clear() { s.mu.Lock(); defer s.mu.Unlock(); s.items = nil }
 func subjectLabel(s accounts.Subject) string {
-	return fmt.Sprintf("%s / %s / 机器人%s / 用户%s", s.SourceProtocol, s.SourceAdapter, s.BotID, s.ActorID)
+	return fmt.Sprintf("%s / 机器人%s / 用户%s", s.SourceProtocol, s.BotID, s.ActorID)
 }
 func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, owner accounts.Subject, command string, args []string) (string, error) {
 	if owner.Validate() != nil {
@@ -42,7 +42,9 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 		if err != nil {
 			return "", err
 		}
-		links = slices.DeleteFunc(links, func(link accounts.Association) bool { return link.Primary != owner && link.Secondary != owner })
+		links = slices.DeleteFunc(links, func(link accounts.Association) bool {
+			return !link.Primary.Equal(owner) && !link.Secondary.Equal(owner)
+		})
 		if command == "关联列表" {
 			if len(links) == 0 {
 				return "当前聊天身份没有账号关联。", nil
@@ -87,7 +89,7 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 		hasOwn := false
 		for _, v := range list {
 			record, e := a.Repo.Get(ctx, store, cipher, v.Ref)
-			if e == nil && record.Owner == owner {
+			if e == nil && record.Owner.Equal(owner) {
 				hasOwn = true
 				break
 			}
@@ -96,7 +98,7 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 			return "请先在此聊天身份完成一次账号登录。", nil
 		}
 		for ref, v := range a.associations.items {
-			if v.Primary == owner {
+			if v.Primary.Equal(owner) {
 				delete(a.associations.items, ref)
 			}
 		}
@@ -116,14 +118,14 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 	}
 	switch command {
 	case "申请关联":
-		if len(args) != 1 || owner == v.Primary || v.Secondary.Validate() == nil && v.Secondary != owner {
+		if len(args) != 1 || owner.Equal(v.Primary) || v.Secondary.Validate() == nil && !v.Secondary.Equal(owner) {
 			return "", failure("plugin.account_subject_denied")
 		}
 		v.Secondary = owner
 		a.associations.items[v.Ref] = v
 		return "此身份已登记，尚未共享账号。请回到发起聊天查看关联进度并完成确认。", nil
 	case "关联进度":
-		if owner != v.Primary {
+		if !owner.Equal(v.Primary) {
 			return "", failure("plugin.account_subject_denied")
 		}
 		if v.Secondary.Validate() != nil {
@@ -131,7 +133,7 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 		}
 		return "将共享此主身份账号给：\n" + subjectLabel(v.Secondary) + "\n确认是你本人后，发送：\n完成关联 " + v.Ref + " " + v.Secondary.ActorID, nil
 	case "完成关联":
-		if owner != v.Primary || len(args) != 2 || v.Secondary.Validate() != nil || args[1] != v.Secondary.ActorID {
+		if !owner.Equal(v.Primary) || len(args) != 2 || v.Secondary.Validate() != nil || args[1] != v.Secondary.ActorID {
 			return "", failure("plugin.account_subject_denied")
 		}
 		if _, err = a.Repo.Associate(ctx, store, cipher, v.Primary, v.Secondary); err != nil {
@@ -140,7 +142,7 @@ func (a *App) associationFlow(ctx context.Context, store accounts.SecretStore, o
 		delete(a.associations.items, v.Ref)
 		return "本人账号关联已完成。附属身份现在可使用主身份已授权给插件的账号；不需要重新获取CK。", nil
 	case "取消关联":
-		if owner != v.Primary && owner != v.Secondary {
+		if !owner.Equal(v.Primary) && !owner.Equal(v.Secondary) {
 			return "", failure("plugin.account_subject_denied")
 		}
 		delete(a.associations.items, v.Ref)
