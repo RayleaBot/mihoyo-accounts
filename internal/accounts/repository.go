@@ -26,10 +26,7 @@ type SecretStore interface {
 	Write(context.Context, map[string]string) error
 }
 
-type Repository struct {
-	mu       sync.Mutex
-	migrated bool
-}
+type Repository struct{ mu sync.Mutex }
 type catalog struct {
 	Pages  int `json:"pages"`
 	Active int `json:"active"`
@@ -93,15 +90,6 @@ func writeEncrypted(ctx context.Context, store SecretStore, cipher *vault.Cipher
 }
 
 func (r *Repository) Get(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) (Record, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.getLocked(ctx, store, cipher, ref)
-}
-
-func (r *Repository) getLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) (Record, error) {
-	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
-		return Record{}, err
-	}
 	if ref == "" || len(ref) > 64 || strings.ContainsAny(ref, "/\\.") {
 		return Record{}, ErrNotFound
 	}
@@ -132,14 +120,11 @@ func (r *Repository) list(ctx context.Context, store SecretStore, cipher *vault.
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if err := r.migrateOwnerLocked(ctx, store, cipher, owner); err != nil {
-		return nil, err
-	}
 	var refs index
 	if _, err := readEncrypted(ctx, store, cipher, owner.Key(), &refs); err != nil {
 		return nil, err
 	}
-	links, err := r.associationsLocked(ctx, store, cipher)
+	links, err := r.Associations(ctx, store, cipher)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +143,7 @@ func (r *Repository) list(ctx context.Context, store SecretStore, cipher *vault.
 	}
 	items := make([]Summary, 0, len(refs.Refs))
 	for _, ref := range refs.Refs {
-		record, err := r.getLocked(ctx, store, cipher, ref)
+		record, err := r.Get(ctx, store, cipher, ref)
 		if errors.Is(err, ErrNotFound) {
 			continue
 		}
@@ -185,9 +170,6 @@ func (r *Repository) ListPage(ctx context.Context, store SecretStore, cipher *va
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	result := Page{Items: []Summary{}}
-	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
-		return result, err
-	}
 	var all catalog
 	if _, err := readEncrypted(ctx, store, cipher, catalogKey, &all); err != nil {
 		return result, err
@@ -201,7 +183,7 @@ func (r *Repository) ListPage(ctx context.Context, store SecretStore, cipher *va
 		return result, err
 	}
 	for _, ref := range refs.Refs {
-		record, err := r.getLocked(ctx, store, cipher, ref)
+		record, err := r.Get(ctx, store, cipher, ref)
 		if errors.Is(err, ErrNotFound) {
 			continue
 		}
@@ -229,14 +211,11 @@ func (r *Repository) Bind(ctx context.Context, store SecretStore, cipher *vault.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var owned index
-	if err := r.migrateOwnerLocked(ctx, store, cipher, owner); err != nil {
-		return Record{}, err
-	}
 	if _, err := readEncrypted(ctx, store, cipher, owner.Key(), &owned); err != nil {
 		return Record{}, err
 	}
 	for _, ref := range owned.Refs {
-		record, err := r.getLocked(ctx, store, cipher, ref)
+		record, err := r.Get(ctx, store, cipher, ref)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				continue
@@ -283,14 +262,14 @@ func (r *Repository) Bind(ctx context.Context, store SecretStore, cipher *vault.
 	owned.Refs = append(owned.Refs, ref)
 	refs.Refs = append(refs.Refs, ref)
 	all.Active++
-	err := writeEncrypted(ctx, store, cipher, map[string]any{catalogKey: all, pageKey(page): refs, owner.Key(): owned, owner.Key() + ".owner": owner, "account." + ref: record})
+	err := writeEncrypted(ctx, store, cipher, map[string]any{catalogKey: all, pageKey(page): refs, owner.Key(): owned, "account." + ref: record})
 	return record, err
 }
 
 func (r *Repository) Update(ctx context.Context, store SecretStore, cipher *vault.Cipher, record Record, expected uint64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	current, err := r.getLocked(ctx, store, cipher, record.Ref)
+	current, err := r.Get(ctx, store, cipher, record.Ref)
 	if err != nil {
 		return err
 	}
@@ -306,7 +285,7 @@ func (r *Repository) Update(ctx context.Context, store SecretStore, cipher *vaul
 func (r *Repository) Remove(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.getLocked(ctx, store, cipher, ref)
+	record, err := r.Get(ctx, store, cipher, ref)
 	if err != nil {
 		return err
 	}
@@ -318,7 +297,7 @@ func (r *Repository) Remove(ctx context.Context, store SecretStore, cipher *vaul
 func (r *Repository) RemoveIfInvalid(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string, revision uint64) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	record, err := r.getLocked(ctx, store, cipher, ref)
+	record, err := r.Get(ctx, store, cipher, ref)
 	if err != nil {
 		return false, err
 	}

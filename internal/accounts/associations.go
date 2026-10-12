@@ -21,33 +21,18 @@ type Association struct {
 }
 
 func (r *Repository) Associations(ctx context.Context, store SecretStore, cipher *vault.Cipher) ([]Association, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.associationsLocked(ctx, store, cipher)
-}
-
-func (r *Repository) associationsLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher) ([]Association, error) {
-	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
-		return nil, err
-	}
 	items := []Association{}
 	_, err := readEncrypted(ctx, store, cipher, associationsKey, &items)
 	return items, err
 }
 func (r *Repository) CanAccess(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner, actor Subject) (bool, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.canAccessLocked(ctx, store, cipher, owner, actor)
-}
-
-func (r *Repository) canAccessLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner, actor Subject) (bool, error) {
 	if owner.Validate() != nil || actor.Validate() != nil {
 		return false, nil
 	}
 	if owner.Equal(actor) {
 		return true, nil
 	}
-	items, err := r.associationsLocked(ctx, store, cipher)
+	items, err := r.Associations(ctx, store, cipher)
 	if err != nil {
 		return false, err
 	}
@@ -59,7 +44,7 @@ func (r *Repository) Associate(ctx context.Context, store SecretStore, cipher *v
 	if primary.Validate() != nil || secondary.Validate() != nil || primary.Equal(secondary) {
 		return Association{}, ErrAssociation
 	}
-	items, err := r.associationsLocked(ctx, store, cipher)
+	items, err := r.Associations(ctx, store, cipher)
 	if err != nil {
 		return Association{}, err
 	}
@@ -72,18 +57,12 @@ func (r *Repository) Associate(ctx context.Context, store SecretStore, cipher *v
 		}
 	}
 	var owned index
-	if err := r.migrateOwnerLocked(ctx, store, cipher, primary); err != nil {
-		return Association{}, err
-	}
-	if err := r.migrateOwnerLocked(ctx, store, cipher, secondary); err != nil {
-		return Association{}, err
-	}
 	if _, err = readEncrypted(ctx, store, cipher, primary.Key(), &owned); err != nil {
 		return Association{}, err
 	}
 	has := false
 	for _, ref := range owned.Refs {
-		record, e := r.getLocked(ctx, store, cipher, ref)
+		record, e := r.Get(ctx, store, cipher, ref)
 		if e == nil && record.Owner.Equal(primary) {
 			has = true
 			break
@@ -102,7 +81,7 @@ func (r *Repository) Associate(ctx context.Context, store SecretStore, cipher *v
 func (r *Repository) Dissociate(ctx context.Context, store SecretStore, cipher *vault.Cipher, ref string, actor *Subject) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	items, err := r.associationsLocked(ctx, store, cipher)
+	items, err := r.Associations(ctx, store, cipher)
 	if err != nil {
 		return err
 	}
@@ -115,15 +94,12 @@ func (r *Repository) Dissociate(ctx context.Context, store SecretStore, cipher *
 		return ErrAssociation
 	}
 	defaultsKey := link.Secondary.Key() + ".defaults"
-	if link.Secondary.BotID == "" {
-		defaultsKey = legacySubjectKey(link.Secondary) + ".defaults"
-	}
 	defaults := map[string]Selection{}
 	if _, err := readEncrypted(ctx, store, cipher, defaultsKey, &defaults); err != nil {
 		return err
 	}
 	for game, choice := range defaults {
-		record, e := r.getLocked(ctx, store, cipher, choice.AccountRef)
+		record, e := r.Get(ctx, store, cipher, choice.AccountRef)
 		if e != nil || !record.Owner.Equal(link.Secondary) {
 			delete(defaults, game)
 		}

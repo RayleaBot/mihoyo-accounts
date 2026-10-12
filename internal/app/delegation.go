@@ -34,17 +34,13 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 		ref := stringValue(req.Params["delegation_ref"])
 		if management(req.Origin) {
 			for _, grant := range active {
-				if grant.Ref == ref && grant.Owner.SourceProtocol != "" && !ownsBot(rayleabot.BotAccount(*req.Origin.Bot), grant.Owner) {
+				if grant.Ref == ref && !ownsBot(rayleabot.BotAccount(*req.Origin.Bot), grant.Owner) {
 					return nil, failure("plugin.account_subject_denied")
 				}
 			}
 		}
 		record.Delegations = slices.DeleteFunc(active, func(d accounts.Delegation) bool {
-			grantOwner := d.Owner
-			if grantOwner == (accounts.Subject{}) {
-				grantOwner = record.Owner
-			}
-			return d.Caller == req.CallerPluginID && d.Ref == ref && (management(req.Origin) || grantOwner.Equal(owner))
+			return d.Caller == req.CallerPluginID && d.Ref == ref && (management(req.Origin) || d.Owner.Equal(owner))
 		})
 		if err := a.Repo.Update(ctx, store, cipher, record, record.Revision); err != nil {
 			return nil, err
@@ -82,9 +78,6 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 	})
 	if index >= 0 {
 		previousOwner := active[index].Owner
-		if previousOwner == (accounts.Subject{}) {
-			previousOwner = record.Owner
-		}
 		if !previousOwner.Equal(owner) && !management(req.Origin) {
 			return nil, failure("plugin.account_subject_denied")
 		}
@@ -114,11 +107,7 @@ func (a *App) admitDelegation(ctx context.Context, store accounts.SecretStore, c
 			continue
 		}
 		interval := int64(5 * time.Minute / time.Millisecond)
-		owner := d.Owner
-		if owner == (accounts.Subject{}) {
-			owner = record.Owner
-		}
-		allowed, err := a.Repo.CanAccess(ctx, store, cipher, record.Owner, owner)
+		allowed, err := a.Repo.CanAccess(ctx, store, cipher, record.Owner, d.Owner)
 		if err != nil {
 			return err
 		}

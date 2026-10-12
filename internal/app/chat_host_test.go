@@ -75,7 +75,7 @@ func newChatHost(t *testing.T, a *App, store *memoryStore) *chatHost {
 		close(h.lines)
 	}()
 	s := subject()
-	h.exchange("init", map[string]any{"type": "init", "request_id": "init", "protocol_version": "4", "plugin_id": "raylea.mihoyo-accounts", "bots": []any{map[string]any{"source_adapter": s.SourceAdapter, "source_protocol": s.SourceProtocol, "id": s.BotID}}, "config": policy(), "super_admins": []string{}, "command_prefixes": []string{"/", "*", "~"}, "timezone": "Asia/Shanghai", "concurrency": 4})
+	h.exchange("init", map[string]any{"type": "init", "request_id": "init", "protocol_version": "4", "plugin_id": "raylea.mihoyo-accounts", "bots": []any{map[string]any{"source_adapter": "primary", "source_protocol": s.SourceProtocol, "id": s.BotID}}, "config": policy(), "super_admins": []string{}, "command_prefixes": []string{"/", "*", "~"}, "timezone": "Asia/Shanghai", "concurrency": 4})
 	return h
 }
 
@@ -212,7 +212,7 @@ func (h *chatHost) message(targetType, text, command string, args ...string) (ma
 	if command != "" {
 		payload = map[string]any{"command": command, "args": args}
 	}
-	return h.exchange(id, eventFrame(id, time.Now().Add(eventTimeout), map[string]any{"event_id": id, "event_type": "message." + targetType, "source_protocol": s.SourceProtocol, "source_adapter": s.SourceAdapter, "bot_id": s.BotID, "timestamp": time.Now().UnixMilli(), "actor": map[string]any{"id": s.ActorID}, "target": map[string]any{"type": targetType, "id": targetID}, "message": map[string]any{"plain_text": text, "segments": []any{map[string]any{"type": "text", "data": map[string]any{"text": text}}}}, "payload": payload}))
+	return h.exchange(id, eventFrame(id, time.Now().Add(eventTimeout), map[string]any{"event_id": id, "event_type": "message." + targetType, "source_protocol": s.SourceProtocol, "source_adapter": "primary", "bot_id": s.BotID, "timestamp": time.Now().UnixMilli(), "actor": map[string]any{"id": s.ActorID}, "target": map[string]any{"type": targetType, "id": targetID}, "message": map[string]any{"plain_text": text, "segments": []any{map[string]any{"type": "text", "data": map[string]any{"text": text}}}}, "payload": payload}))
 }
 
 // trigger sends the scheduler event of a task created with payload.

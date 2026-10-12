@@ -194,7 +194,7 @@ func deviceReply(err error) string {
 // is asked again and one with 取消 ends the wait. handled is false for other
 // messages, which leave the wait running.
 func (a *App) deviceMessage(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore) (bool, error) {
-	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
+	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
 	ref, ok := a.devices.waiting(owner)
 	if !ok {
 		return false, nil

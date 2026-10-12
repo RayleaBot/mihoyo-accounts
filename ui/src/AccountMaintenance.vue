@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref } from 'vue'
 import { driveBatch, type Batch, type Invoke } from './batch'
-import { errorText, gameNames, ownerBotLabel, type Account, type Bot } from './model'
-const props = defineProps<{ selected: Account[]; bots: Bot[]; disabled: boolean; invoke: Invoke }>()
+import { errorText, gameNames, type Account } from './model'
+const props = defineProps<{ selected: Account[]; disabled: boolean; invoke: Invoke }>()
 const emit = defineEmits<{ working: [value: boolean]; changed: [] }>()
 const busy = ref(false), error = ref(''), batch = ref<Batch | null>(null), labels = ref<Record<string, string>>({})
 const confirmation = ref<HTMLDialogElement | null>(null), candidates = ref<{ account_ref: string; revision: number; label: string }[]>([])
@@ -10,7 +10,7 @@ const active = computed(() => batch.value?.state === 'running')
 const invalid = computed(() => props.selected.filter(a => a.status === 'invalid'))
 const modeNames = { check: '检查登录状态', refresh: '刷新凭据', remove_invalid: '清理失效账号', statistics: '统计账号' }
 let controller: AbortController | undefined, disposed = false
-function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id} · ${account.owner.source_protocol} / ${ownerBotLabel(account.owner, props.bots)}` }
+function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id}` }
 function time(ms?: number) { return ms ? new Date(ms).toLocaleString('zh-CN') : '尚未完成' }
 function finishedWork() { busy.value = false; emit('working', false) }
 async function perform(mode?: Batch['mode'], items?: { account_ref: string; revision: number }[]) {
@@ -59,7 +59,7 @@ onUnmounted(() => { disposed = true; if (controller) controller.abort(); else if
       <button :disabled="disabled || busy || active || !selected.length" @click="perform('check')">检查所选账号</button>
       <button :disabled="disabled || busy || active || !selected.length" @click="perform('refresh')">刷新所选凭据</button>
       <button class="danger-text" :disabled="disabled || busy || active || !invalid.length" @click="askRemove">清理所选失效账号（{{ invalid.length }}）</button>
-      <button :disabled="disabled || busy || active" @click="perform('statistics')">统计全部账号</button>
+      <button :disabled="disabled || busy || active" @click="perform('statistics')">统计已绑定账号</button>
     </div>
     <p v-if="error" role="alert" class="feedback danger">{{ error }}</p>
     <div v-if="batch" class="batch-result">

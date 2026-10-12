@@ -8,13 +8,11 @@ import CloudAuthorizations from './CloudAuthorizations.vue'
 import DeviceSettings from './DeviceSettings.vue'
 import AccountAssociations from './AccountAssociations.vue'
 import CookieAuthorization from './CookieAuthorization.vue'
-import HistoryRecords from './HistoryRecords.vue'
 import SubjectBindings from './SubjectBindings.vue'
 import GlobalSettings from './GlobalSettings.vue'
-import { botLabel, ownerBotLabel, accountNames, checkNames, encryptPassword, errorText, finished, gameNames, loginLabel, vaultNames, type Account, type Login, type Status } from './model'
+import { accountNames, checkNames, encryptPassword, errorText, finished, gameNames, loginLabel, vaultNames, type Account, type Login, type Status } from './model'
 
 const host = usePluginHost()
-const isGlobal = computed(() => host.page.value?.scope === 'global')
 const status = ref<Status | null>(null)
 const accounts = ref<Account[]>([])
 const marked=ref<string[]>([])
@@ -56,7 +54,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   return await host.client.invokeAction(action, payload) as unknown as T
 }
 async function reloadAccounts() {
-  const result = await invoke<{ items: Account[]; total: number; next_page?: number }>(isGlobal.value ? 'maintenance.list' : 'accounts.list', { page: page.value })
+  const result = await invoke<{ items: Account[]; total: number; next_page?: number }>('accounts.list', { page: page.value })
   accounts.value = result.items
   marked.value=marked.value.filter(ref=>accounts.value.some(a=>a.ref===ref))
   total.value = result.total
@@ -172,14 +170,12 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
       <div class="toolbar">
         <div><strong>{{ status.vault_error ? '需要恢复账号库密钥' : vaultNames[status.vault_state] }}</strong><p>一次登录，供已授权的游戏插件使用。</p></div>
         <div class="actions">
-          <button v-if="unlocked && isGlobal" type="button" :disabled="busy" @click="lockVault">锁定账号库</button>
-          <button v-if="unlocked && !isGlobal && !showLogin" type="button" class="primary" :disabled="busy" @click="showLogin = true; login = null">扫码添加账号</button>
+          <button v-if="unlocked" type="button" :disabled="busy" @click="lockVault">锁定账号库</button>
+          <button v-if="unlocked && !showLogin" type="button" class="primary" :disabled="busy" @click="showLogin = true; login = null">扫码添加账号</button>
         </div>
       </div>
 
-      <p v-if="bot" class="hint">当前机器人：{{ botLabel(bot) }} · {{ bot.source_protocol }}。离线或无连接时仍可管理已保存数据。</p>
-      <p v-if="!unlocked && !isGlobal" class="feedback">请先在“全局管理”中初始化或解锁账号库。</p>
-      <section v-else-if="!unlocked" class="vault-panel" aria-labelledby="vault-heading">
+      <section v-if="!unlocked" class="vault-panel" aria-labelledby="vault-heading">
         <h2 id="vault-heading">{{ status.vault_state === 'missing' || status.vault_error ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
         <p v-if="status.vault_error" role="alert">{{ status.vault_error.message }}</p>
         <p v-if="status.vault_state === 'missing'">检测到已保存账号，但缺少对应密钥。请恢复本插件数据目录中的原密钥文件，再重新加载插件。</p>
@@ -222,16 +218,16 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
 
         <section aria-labelledby="accounts-heading">
           <div class="section-heading"><h2 id="accounts-heading">已绑定账号 <span class="count">{{ total }}</span></h2><button :disabled="busy" type="button" @click="run(load)">刷新列表</button></div>
-          <AccountMaintenance v-if="isGlobal" :bots="bots" :selected="markedAccounts" :disabled="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+          <AccountMaintenance :selected="markedAccounts" :disabled="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
           <label v-if="accounts.length" class="search"><span class="sr-only">搜索账号、用户或 UID</span><input v-model="search" type="search" placeholder="搜索账号、用户或 UID"></label>
-          <div v-if="!accounts.length" class="empty"><h3>还没有绑定账号</h3><p>扫码后自动发现原神、星穹铁道和绝区零角色。</p><button v-if="!isGlobal" class="primary" type="button" :disabled="busy" @click="showLogin = true">扫码添加账号</button></div>
+          <div v-if="!accounts.length" class="empty"><h3>还没有绑定账号</h3><p>扫码后自动发现原神、星穹铁道和绝区零角色。</p><button class="primary" type="button" :disabled="busy" @click="showLogin = true">扫码添加账号</button></div>
           <p v-else-if="!visible.length" class="empty">当前页没有匹配账号，试试其他用户 ID 或 UID。</p>
           <ul v-else class="account-list">
             <li v-for="account in visible" :key="account.ref">
               <div class="account-row">
-                <label v-if="isGlobal" class="account-selector"><span class="sr-only">选择此账号</span><input v-model="marked" type="checkbox" :value="account.ref" :disabled="busy" :aria-label="`选择账号 ${account.account_label} ${account.owner.actor_id}`"></label>
-                <div class="account-info"><div class="identity"><strong>{{ account.realm==='os'?'HoYoLab':'米游社' }} {{ account.account_label }}</strong><span class="status" :class="{ attention: account.status === 'invalid' || account.subject_pending }">{{ account.subject_pending ? '机器人账号待确认' : accountNames[account.status] || '待检查' }}</span></div><p>{{ account.owner.actor_id }} <span class="muted">· {{ account.owner.source_protocol }} / {{ ownerBotLabel(account.owner, bots) }}</span></p><p class="games">{{ [...new Set(account.roles.map(role => gameNames[role.game] || role.game))].join(' · ') || '尚未发现游戏角色' }}</p></div>
-                <div v-if="!isGlobal" class="actions"><button :disabled="busy" type="button" @click="updateAccount(account, 'accounts.check')">检查状态</button><button :disabled="busy || !account.can_refresh" type="button" @click="updateAccount(account, 'accounts.refresh')">刷新凭据</button><button :disabled="busy" type="button" :aria-expanded="selected === account.ref" @click="expand(account)">管理</button></div>
+                <label class="account-selector"><span class="sr-only">选择此账号</span><input v-model="marked" type="checkbox" :value="account.ref" :disabled="busy" :aria-label="`选择账号 ${account.account_label} ${account.owner.actor_id}`"></label>
+                <div class="account-info"><div class="identity"><strong>{{ account.realm==='os'?'HoYoLab':'米游社' }} {{ account.account_label }}</strong><span class="status" :class="{ attention: account.status === 'invalid' }">{{ accountNames[account.status] || '待检查' }}</span></div><p>{{ account.owner.actor_id }}</p><p class="games">{{ [...new Set(account.roles.map(role => gameNames[role.game] || role.game))].join(' · ') || '尚未发现游戏角色' }}</p></div>
+                <div class="actions"><button :disabled="busy" type="button" @click="updateAccount(account, 'accounts.check')">检查状态</button><button :disabled="busy || !account.can_refresh" type="button" @click="updateAccount(account, 'accounts.refresh')">刷新凭据</button><button :disabled="busy" type="button" :aria-expanded="selected === account.ref" @click="expand(account)">管理</button></div>
               </div>
               <p v-if="account.last_check" class="hint">最近{{ account.last_check.kind === 'refresh' ? '刷新' : '检查' }}：{{ checkNames[account.last_check.state] || '暂未确认' }} · {{ new Date(account.last_check.checked_at_ms).toLocaleString('zh-CN') }}</p>
               <div v-if="selected === account.ref" class="account-detail">
@@ -252,13 +248,12 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           </ul>
           <div v-if="page > 0 || nextPage !== null" class="pagination"><button :disabled="busy || page === 0" @click="changePage(page - 1)">上一页</button><span>第 {{ page + 1 }} 页</span><button :disabled="busy || nextPage === null" @click="changePage(nextPage!)">下一页</button></div>
         </section>
-        <CookieAuthorization v-if="!isGlobal && bot" :bot="bot" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
-        <SubjectBindings v-if="!isGlobal" :invoke="invoke" :disabled="busy" />
-        <AccountAssociations v-if="!isGlobal" :bots="bots" :invoke="invoke" :disabled="busy"/>
-        <HistoryRecords v-if="isGlobal" :client="host.client" :disabled="busy" @changed="run(load)" />
-        <GlobalSettings v-if="isGlobal" :client="host.client" :disabled="busy" />
-        <KeyProtection v-if="isGlobal" :invoke="invoke" :protection="status.key_protection" :native-available="status.native_key_available" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
-        <ArkToken v-if="isGlobal" :invoke="invoke" :busy="busy" />
+        <CookieAuthorization v-if="bot" :bot="bot" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking"/>
+        <SubjectBindings :invoke="invoke" :disabled="busy" />
+        <AccountAssociations :bots="bots" :invoke="invoke" :disabled="busy"/>
+        <GlobalSettings :client="host.client" :disabled="busy" />
+        <KeyProtection :invoke="invoke" :protection="status.key_protection" :native-available="status.native_key_available" :busy="busy" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+        <ArkToken :invoke="invoke" :busy="busy" />
       </template>
     </template>
 

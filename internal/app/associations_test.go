@@ -11,7 +11,6 @@ import (
 func TestAssociationRequiresBothSubjectsAndFinalActorConfirmation(t *testing.T) {
 	a, store, record := setup(t, &fakeAPI{})
 	secondary := record.Owner
-	secondary.SourceAdapter = "second"
 	secondary.ActorID = "other-user"
 	text, err := a.associationFlow(t.Context(), store, record.Owner, "关联账号", nil)
 	if err != nil {
@@ -57,14 +56,13 @@ func TestUnlinkRevokesScheduledAliasWithoutDuplicatingCredentials(t *testing.T) 
 	a, store, record := setup(t, api)
 	cipher, _ := a.Vault.Cipher()
 	secondary := record.Owner
-	secondary.SourceAdapter = "second"
 	secondary.ActorID = "linked"
 	link, err := a.Repo.Associate(t.Context(), store, cipher, record.Owner, secondary)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req := request("genshin", record.Ref)
-	req.Origin.SourceAdapter = secondary.SourceAdapter
+	req.Origin.SourceAdapter = "second"
 	req.Origin.Actor.ID = secondary.ActorID
 	req.Method = "list"
 	req.Params = map[string]any{}
@@ -77,7 +75,7 @@ func TestUnlinkRevokesScheduledAliasWithoutDuplicatingCredentials(t *testing.T) 
 		t.Fatal("wrong notification owner", out)
 	}
 	req = request("genshin", record.Ref)
-	req.Origin.SourceAdapter = secondary.SourceAdapter
+	req.Origin.SourceAdapter = "second"
 	req.Origin.Actor.ID = secondary.ActorID
 	req.Method = "delegation.create"
 	req.Params["task_id"] = "linked-task"

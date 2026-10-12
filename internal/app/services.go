@@ -29,7 +29,7 @@ func originSubject(origin rayleabot.ServiceOrigin) accounts.Subject {
 	if origin.Actor != nil {
 		actor = origin.Actor.ID
 	}
-	return accounts.Subject{SourceProtocol: origin.SourceProtocol, SourceAdapter: origin.SourceAdapter, BotID: origin.BotID, ActorID: actor}
+	return accounts.Subject{SourceProtocol: origin.SourceProtocol, BotID: origin.BotID, ActorID: actor}
 }
 
 func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Policy, request rayleabot.ServiceRequest) (result map[string]any, err error) {

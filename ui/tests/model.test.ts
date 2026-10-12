@@ -1,6 +1,6 @@
 import { webcrypto } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { botAccounts, encryptPassword, subjectFor } from '../src/model'
+import { encryptPassword } from '../src/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -22,17 +22,4 @@ describe('key input transport', () => {
     vi.stubGlobal('crypto', {})
     await expect(encryptPassword('synthetic-passphrase', {})).rejects.toThrow('HTTPS')
   })
-})
-
-it('selects bot accounts and ignores replacement connections in subjects', () => {
-  const first = { source_protocol: 'onebot11', source_adapter: 'first', id: 'bot-a' }
-  const second = { ...first, source_adapter: 'replacement' }
-  const otherBot = { ...first, id: 'bot-b' }
-  const otherProtocol = { ...first, source_protocol: 'qqofficial' }
-  const subject = subjectFor(first, 'user')
-  expect(subject).toEqual(subjectFor(second, 'user'))
-  expect(subject).not.toHaveProperty('source_adapter')
-  expect(subject).not.toEqual(subjectFor(otherBot, 'user'))
-  expect(subject).not.toEqual(subjectFor(otherProtocol, 'user'))
-  expect(botAccounts([first, second, otherBot, otherProtocol])).toHaveLength(3)
 })

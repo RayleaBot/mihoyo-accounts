@@ -11,10 +11,8 @@ import (
 
 type Subject struct {
 	SourceProtocol string `json:"source_protocol"`
-	// SourceAdapter is read only, for locating legacy subject hashes.
-	SourceAdapter string `json:"source_adapter,omitempty"`
-	BotID         string `json:"bot_id"`
-	ActorID       string `json:"actor_id"`
+	BotID          string `json:"bot_id"`
+	ActorID        string `json:"actor_id"`
 }
 
 func (s Subject) Validate() error {
@@ -27,7 +25,6 @@ func (s Subject) Validate() error {
 }
 
 func (s Subject) Key() string {
-	s.SourceAdapter = ""
 	data, _ := json.Marshal(s)
 	digest := sha256.Sum256(data)
 	return "subject." + hex.EncodeToString(digest[:])
@@ -35,16 +32,6 @@ func (s Subject) Key() string {
 
 func (s Subject) Equal(other Subject) bool {
 	return s.SourceProtocol == other.SourceProtocol && s.BotID == other.BotID && s.ActorID == other.ActorID
-}
-
-func (s Subject) MarshalJSON() ([]byte, error) {
-	type subject Subject
-	// Keep the only recovery hint on unresolved legacy records. Resolved and
-	// newly written subjects never persist a connection identifier.
-	if s.BotID != "" {
-		s.SourceAdapter = ""
-	}
-	return json.Marshal(subject(s))
 }
 
 type Tokens struct {
@@ -132,7 +119,6 @@ type Delegation struct {
 }
 
 type Summary struct {
-	SubjectPending  bool          `json:"subject_pending,omitempty"`
 	Realm           string        `json:"realm"`
 	Shared          bool          `json:"shared"`
 	CloudConfigured []string      `json:"cloud_configured"`
@@ -170,12 +156,9 @@ func (r Record) Summary() Summary {
 	if r.Tokens.CloudZZZ != "" {
 		cloud = append(cloud, "zzz")
 	}
-	pending := r.Owner.BotID == "" || slices.ContainsFunc(r.Delegations, func(d Delegation) bool {
-		return d.Owner.SourceProtocol != "" && d.Owner.BotID == ""
-	})
 	// The label is the whole account ID: it is no credential, and only CK is
 	// kept out of chats and pages.
-	return Summary{SubjectPending: pending, Realm: r.Tokens.RealmName(), CloudConfigured: cloud, LastCheck: check, PublicQuery: public, Ref: r.Ref, Revision: r.Revision, Owner: r.Owner, AccountLabel: r.Tokens.AccountID, Roles: roles, AllowedCallers: callers, Status: r.Status, CanRefresh: r.Tokens.SToken != "" && (r.Tokens.Realm != "os" || (!r.Tokens.STokenV2 || r.Tokens.MID != "")), UpdatedAtMS: r.UpdatedAtMS}
+	return Summary{Realm: r.Tokens.RealmName(), CloudConfigured: cloud, LastCheck: check, PublicQuery: public, Ref: r.Ref, Revision: r.Revision, Owner: r.Owner, AccountLabel: r.Tokens.AccountID, Roles: roles, AllowedCallers: callers, Status: r.Status, CanRefresh: r.Tokens.SToken != "" && (r.Tokens.Realm != "os" || (!r.Tokens.STokenV2 || r.Tokens.MID != "")), UpdatedAtMS: r.UpdatedAtMS}
 }
 
 func (t Tokens) RealmName() string {

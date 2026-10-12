@@ -100,7 +100,7 @@ func syntheticTokens() accounts.Tokens {
 	return accounts.Tokens{AccountID: "123456789", MID: "synthetic-mid", SToken: "synthetic-stoken", LToken: "synthetic-ltoken", CookieToken: "synthetic-cookie", DeviceID: "synthetic-device"}
 }
 func subject() accounts.Subject {
-	return accounts.Subject{SourceProtocol: "onebot11", SourceAdapter: "primary", BotID: "bot-1", ActorID: "user-1"}
+	return accounts.Subject{SourceProtocol: "onebot11", BotID: "bot-1", ActorID: "user-1"}
 }
 func role(game string) accounts.Role {
 	return accounts.Role{Ref: game + ":cn:1234", Game: game, GameBiz: game + "_cn", UID: "1234", Region: "cn", Nickname: "测试角色", Level: 50}
@@ -128,7 +128,7 @@ func setup(t *testing.T, api *fakeAPI) (*App, *memoryStore, accounts.Record) {
 }
 func request(game, ref string) rayleabot.ServiceRequest {
 	s := subject()
-	return rayleabot.ServiceRequest{CallerPluginID: "raylea." + game, Service: "accounts", ServiceVersion: 1, Method: "execute", Params: map[string]any{"account_ref": ref, "role_ref": role(game).Ref, "operation": game + ".note", "input": map[string]any{}}, Origin: rayleabot.ServiceOrigin{EventID: "event-1", EventType: "message.private", SourceProtocol: s.SourceProtocol, SourceAdapter: s.SourceAdapter, BotID: s.BotID, Actor: &rayleabot.Actor{ID: s.ActorID}}}
+	return rayleabot.ServiceRequest{CallerPluginID: "raylea." + game, Service: "accounts", ServiceVersion: 1, Method: "execute", Params: map[string]any{"account_ref": ref, "role_ref": role(game).Ref, "operation": game + ".note", "input": map[string]any{}}, Origin: rayleabot.ServiceOrigin{EventID: "event-1", EventType: "message.private", SourceProtocol: s.SourceProtocol, SourceAdapter: "primary", BotID: s.BotID, Actor: &rayleabot.Actor{ID: s.ActorID}}}
 }
 func assertCode(t *testing.T, err error, code string) {
 	t.Helper()

@@ -11,9 +11,8 @@ import (
 )
 
 func managementEvent(owner *accounts.Subject, action string, input map[string]any) rayleabot.Event {
-	payload := map[string]any{"action": action, "payload": input}
+	payload := map[string]any{"page_id": "accounts", "action": action, "payload": input}
 	if owner != nil {
-		payload["page_id"] = "accounts"
 		payload["bot"] = map[string]any{"source_protocol": owner.SourceProtocol, "bot_id": owner.BotID}
 	}
 	return rayleabot.Event{EventType: "management.action", SourceProtocol: "management", SourceAdapter: "management.ui", Payload: payload}
@@ -51,7 +50,7 @@ func TestManagementAccountBoundary(t *testing.T) {
 	if err != nil || listed["total"] != 1 || len(listed["items"].([]accounts.Summary)) != 1 || listed["items"].([]accounts.Summary)[0].Ref != first.Ref {
 		t.Fatal(listed, err)
 	}
-	for _, action := range []string{"accounts.list", "accounts.check", "accounts.remove", "login.start", "login.poll", "login.cancel", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.associations.list", "subjects.get", "subjects.uids.bind"} {
+	for _, action := range []string{"accounts.list", "accounts.check", "accounts.remove", "login.start", "login.poll", "login.cancel", "accounts.import.start", "accounts.import.step", "accounts.import.cancel", "accounts.associations.list", "subjects.get", "subjects.uids.bind", "accounts.batch.start", "accounts.batch.step", "accounts.batch.cancel"} {
 		_, err := call(nil, action, map[string]any{"subject": first.Owner, "account_ref": first.Ref})
 		assertCode(t, err, "platform.invalid_request")
 	}
@@ -63,13 +62,24 @@ func TestManagementAccountBoundary(t *testing.T) {
 		_, err := call(&first.Owner, "accounts.list", input)
 		assertCode(t, err, "plugin.account_subject_denied")
 	}
-	_, err = call(&first.Owner, "accounts.batch.start", map[string]any{"mode": "check", "items": []batchItem{{first.Ref, first.Revision}, {second.Ref, second.Revision}}})
-	assertCode(t, err, "plugin.account_operation_denied")
-	_, err = call(&first.Owner, "maintenance.list", nil)
-	assertCode(t, err, "plugin.account_operation_denied")
-	global, err := call(nil, "maintenance.list", nil)
-	if err != nil || global["total"] != 2 {
-		t.Fatal(global, err)
+	started, err := call(&first.Owner, "accounts.batch.start", map[string]any{"mode": "check", "items": []batchItem{{first.Ref, first.Revision}, {second.Ref, second.Revision}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch := started["batch"].(batchView)
+	for _, action := range []string{"accounts.batch.step", "accounts.batch.cancel"} {
+		_, err = call(&other, action, map[string]any{"ref": batch.Ref, "sequence": 0})
+		assertCode(t, err, "plugin.account_subject_denied")
+	}
+	for range 2 {
+		stepped, err := call(&first.Owner, "accounts.batch.step", map[string]any{"ref": batch.Ref, "sequence": batch.Sequence})
+		if err != nil {
+			t.Fatal(err)
+		}
+		batch = stepped["batch"].(batchView)
+	}
+	if batch.Results[0].State != "success" || batch.Results[1].Code != "plugin.account_subject_denied" {
+		t.Fatal(batch)
 	}
 	if api.executeCalls.Load() != 0 || api.refreshCalls.Load() != 0 {
 		t.Fatal("foreign operation reached upstream")

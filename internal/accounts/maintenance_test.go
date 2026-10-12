@@ -13,7 +13,7 @@ func TestInvalidCleanupAndRebindShareAtomicVersionCheck(t *testing.T) {
 		repo := &Repository{}
 		store := &memorySecrets{values: map[string]string{}}
 		cipher, _ := vault.NewCipher(vault.NewKey())
-		owner := Subject{SourceProtocol: "onebot11", SourceAdapter: "test", BotID: "bot", ActorID: fmt.Sprint(attempt)}
+		owner := Subject{SourceProtocol: "onebot11", BotID: "bot", ActorID: fmt.Sprint(attempt)}
 		tokens := Tokens{AccountID: "100001", LToken: "synthetic-ltoken", CookieToken: "synthetic-cookie"}
 		r, err := repo.Bind(t.Context(), store, cipher, owner, tokens, nil, nil)
 		if err != nil {

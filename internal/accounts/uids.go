@@ -23,19 +23,10 @@ const maxBoundUIDs = 20
 var ErrBindingLimit = errors.New("too many bound UIDs")
 
 func (r *Repository) UIDBindings(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject) (map[string]UIDBinding, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.uidBindingsLocked(ctx, store, cipher, owner)
-}
-
-func (r *Repository) uidBindingsLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject) (map[string]UIDBinding, error) {
 	if err := owner.Validate(); err != nil {
 		return nil, err
 	}
 	values := map[string]UIDBinding{}
-	if err := r.migrateOwnerLocked(ctx, store, cipher, owner); err != nil {
-		return nil, err
-	}
 	_, err := readEncrypted(ctx, store, cipher, owner.Key()+".uids", &values)
 	return values, err
 }
@@ -45,7 +36,7 @@ func (r *Repository) uidBindingsLocked(ctx context.Context, store SecretStore, c
 func (r *Repository) ChangeUIDBinding(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject, game, action, uid string) (UIDBinding, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	values, err := r.uidBindingsLocked(ctx, store, cipher, owner)
+	values, err := r.UIDBindings(ctx, store, cipher, owner)
 	if err != nil {
 		return UIDBinding{}, err
 	}
@@ -68,5 +59,5 @@ func (r *Repository) ChangeUIDBinding(ctx context.Context, store SecretStore, ci
 		binding.Current = uid
 	}
 	values[game] = binding
-	return binding, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".uids": values, owner.Key() + ".owner": owner})
+	return binding, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".uids": values})
 }

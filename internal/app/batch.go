@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	rayleabot "github.com/RayleaBot/RayleaBot/sdk/go"
 	"github.com/RayleaBot/mihoyo-accounts/internal/accounts"
 )
 
@@ -44,6 +45,7 @@ type batchView struct {
 }
 type accountBatch struct {
 	mu      sync.Mutex
+	bot     rayleabot.BotAccount
 	view    batchView
 	items   []batchItem
 	page    int
@@ -97,6 +99,10 @@ func (b *accountBatches) clear() {
 	b.jobs = nil
 }
 func (a *App) manageBatch(ctx context.Context, store accounts.SecretStore, policy Policy, action string, input map[string]any) (map[string]any, error) {
+	bot, ok := scopedBot(ctx)
+	if !ok {
+		return nil, failure("platform.invalid_request")
+	}
 	if action == "accounts.batch.start" {
 		var q struct {
 			Mode    string      `json:"mode"`
@@ -139,7 +145,7 @@ func (a *App) manageBatch(ctx context.Context, store accounts.SecretStore, polic
 		if q.Mode == "statistics" {
 			v.Statistics = &accountStatistics{States: map[string]int{}, GameRoles: map[string]int{}}
 		}
-		job := &accountBatch{view: v, items: q.Items, seen: map[string]bool{}, owners: map[string]bool{}, expires: time.Now().Add(15 * time.Minute)}
+		job := &accountBatch{bot: bot, view: v, items: q.Items, seen: map[string]bool{}, owners: map[string]bool{}, expires: time.Now().Add(15 * time.Minute)}
 		a.batches.jobs[v.Ref] = job
 		return map[string]any{"batch": job.snapshot()}, nil
 	}
@@ -149,6 +155,9 @@ func (a *App) manageBatch(ctx context.Context, store accounts.SecretStore, polic
 	}
 	job.mu.Lock()
 	defer job.mu.Unlock()
+	if job.bot != bot {
+		return nil, failure("plugin.account_subject_denied")
+	}
 	if time.Now().After(job.expires) {
 		job.view.State = "canceled"
 		return nil, failure("plugin.account_batch_missing")

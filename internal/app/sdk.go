@@ -106,7 +106,7 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 	if command == "我的CK" && event.Event.Target.Type != "private" {
 		return event.SendText("请私聊查看")
 	}
-	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, SourceAdapter: event.Event.SourceAdapter, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
+	owner := accounts.Subject{SourceProtocol: event.Event.SourceProtocol, BotID: event.Event.BotID, ActorID: event.Event.Actor.ID}
 	if owner.Validate() != nil {
 		return event.SendText(message("plugin.account_subject_denied"))
 	}

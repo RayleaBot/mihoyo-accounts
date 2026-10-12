@@ -10,8 +10,8 @@ func TestAssociationsShareOneRecordSeparateDefaultsAndRestoreClears(t *testing.T
 	repo := Repository{}
 	store := &memorySecrets{values: map[string]string{}}
 	cipher, _ := vault.NewCipher(vault.NewKey())
-	primary := Subject{"onebot11", "a", "b", "primary"}
-	secondary := Subject{"test", "other", "bot", "secondary"}
+	primary := Subject{"onebot11", "b", "primary"}
+	secondary := Subject{"test", "bot", "secondary"}
 	tokens := Tokens{AccountID: "12345678", CookieToken: "synthetic-cookie", LToken: "synthetic-ltoken"}
 	record, err := repo.Bind(t.Context(), store, cipher, primary, tokens, []Role{{Ref: "r", Game: "genshin", UID: "100000001", Region: "cn_gf01"}}, []string{"raylea.genshin"})
 	if err != nil {
@@ -35,7 +35,7 @@ func TestAssociationsShareOneRecordSeparateDefaultsAndRestoreClears(t *testing.T
 	if _, err = repo.Associate(t.Context(), store, cipher, secondary, primary); err == nil {
 		t.Fatal("cycle allowed")
 	}
-	third := Subject{"test", "a", "bot", "third"}
+	third := Subject{"test", "bot", "third"}
 	if _, err = repo.Associate(t.Context(), store, cipher, secondary, third); err == nil {
 		t.Fatal("chain allowed")
 	}

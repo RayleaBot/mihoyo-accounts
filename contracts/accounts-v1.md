@@ -18,7 +18,7 @@ CK、SToken、LToken、Cookie Token、登录会话材料不出现在服务结果
 
 | 方法 | 输入 | 返回 |
 | --- | --- | --- |
-| `list` | 空对象；账号页的管理来源可选同一机器人账号下的 `subject` 或 `page`；宿主超级管理员（OneBot11）的聊天来源可传 `all: true` 与 `page` | 当前主体可用的账号摘要、角色和凭据状态；账号页只返回当前机器人账号的数据，账号页与 `all` 按账号页返回 `next_page` |
+| `list` | 空对象；管理来源可选当前机器人账号下的 `subject` 或 `page`；宿主超级管理员（OneBot11）的聊天来源可传 `all: true` 与 `page` | 当前主体可用的账号摘要、角色和凭据状态；管理来源只返回当前机器人账号的数据；管理页与 `all` 按账号页返回 `next_page` |
 | `roles` | `account_ref`，可选 `game` | 该主体有权使用的绑定角色 |
 | `select` | `account_ref`、`role_ref` | 为账号主体选择该游戏的默认角色 |
 | `uids.bind` / `uids.remove` / `uids.use` | `game`、`uid` | 不需要账号：为调用主体绑定、删除或选用该游戏的 UID |
@@ -71,7 +71,7 @@ operation 由插件内固定注册表定义，不接受调用方提供任意 URL
 
 `accounts.check` 接收 `account_ref`，通过固定官方角色绑定接口检查已保存的登录凭据，不换取新 Token、不覆盖角色列表。即使没有原神角色，成功的空列表仍表示此次账号接口认证通过；这不保证所有游戏端点、SToken 或设备验证状态都可用。检查记录 `last_check={kind:check/refresh,state:available/auth_invalid/device_required/challenge_required/unavailable,code,checked_at_ms}` 与账号一起加密保存，摘要只返回这些无凭据字段。仅明确的 `plugin.upstream_auth_invalid` 把账号标为失效，网络、限流、设备或验证码错误保留原状态。重新扫码清除旧检查记录；刷新凭据成功记录独立的 refresh 检查结果。
 
-`accounts.batch.start` 接收 `mode=check/refresh/remove_invalid/statistics`。前三种必须给出 1–128 项 `items=[{account_ref,revision}]`，引用去重并固定本批范围；刷新与移除另需 `confirm=true`。移除失效账号只处理仍为 invalid 且 revision 与选择时相同的记录，其他条目返回 skipped，不自动扩大删除范围，不因网络或设备错误而删除。此动作仅由本插件的全局管理页调用，不向游戏服务开放，账号页也不能发起。单账号 `accounts.remove_invalid` 同样需要 revision 和 confirm；既有普通移除仍为独立操作。
+`accounts.batch.start` 接收 `mode=check/refresh/remove_invalid/statistics`。前三种必须给出 1–128 项 `items=[{account_ref,revision}]`，引用去重并固定本批范围；刷新与移除另需 `confirm=true`。移除失效账号只处理仍为 invalid 且 revision 与选择时相同的记录，其他条目返回 skipped，不自动扩大删除范围，不因网络或设备错误而删除。此动作仅由本插件的管理页调用，不向游戏服务开放；条目只能是当前机器人账号下的米游社账号，其他条目记为拒绝，`statistics` 只统计当前机器人账号下的账号。单账号 `accounts.remove_invalid` 同样需要 revision 和 confirm；既有普通移除仍为独立操作。
 
 缺少 SToken 的账号刷新返回 `plugin.account_refresh_unavailable`，不请求上游、不改变现有登录状态；批次将其列为 skipped，不能把缺少刷新材料当成 Cookie 已失效。批量动作继续拒绝 `password` 明文字段。
 
@@ -106,16 +106,16 @@ DPAPI 主密钥无法由当前系统用户解密时，账号库仍为 `locked`�
 
 ### 管理来源与机器人账号
 
-管理页分两页：“账号管理”是按机器人账号的页面，由宿主在页面上方切换账号，只显示主体的协议与机器人账号等于当前账号的米游社账号、关联、默认角色与 UID 绑定；扫码添加与 Cookie 导入的机器人账号固定为当前账号，只填写聊天用户。“全局管理”承担账号库初始化与解锁、密钥保护方式、批量检查、刷新与清理、统计、ark 令牌、允许调用的插件，以及历史数据与归属。
+管理页“账号管理”是按机器人账号的页面，由宿主在页面上方切换账号：米游社账号、关联、默认角色、UID 绑定与批量维护只作用于主体的协议与机器人账号等于当前账号的数据，扫码添加与 Cookie 导入的机器人账号固定为当前账号，只填写聊天用户。账号库初始化与解锁、密钥保护方式、ark 令牌与允许调用的插件是全局设置，同在此页。
 
-来自账号页的管理动作与它发起的服务调用都带有宿主核对过的机器人账号（服务来源中的 `bot`）。服务方法据此处理：
+管理动作与它发起的服务调用都带有宿主核对过的机器人账号（服务来源中的 `bot`）。全局设置的动作（`status`、`vault.*`、`ark.status/save/clear`）不依赖账号，其余管理动作缺少账号时返回 `platform.invalid_request`。服务方法据此处理：
 
 - `list`、`roles`、`select`、`execute`、`delegation.create`、`delegation.revoke`、`uids.bind`、`uids.remove`、`uids.use` 只作用于当前机器人账号的主体与账号；显式提交的 `subject` 或账号引用不属于该机器人账号时返回 `plugin.account_subject_denied`。
 - 管理来源的 `all: true` 一律拒绝；`uids.current`、`gacha.link` 与设备相关方法仍只接受聊天来源。
 - 不带机器人账号的管理来源只能调用 `ark.status`、`ark.request` 与 `public.execute`，其他方法返回 `platform.invalid_request`。
 - 聊天与调度来源的行为不变。
 
-聊天扫码默认绑定事件原始主体。主体由 `source_protocol`、`bot_id`、`actor_id` 共同构成，不包含连接实例：删除连接后新建一条并登录同一机器人账号，绑定继续有效；不能按相同字符串 ID 自动跨协议合并。旧版本按含连接 id 的主体保存的数据在解锁后首次访问账号库时迁移：账号目录与关联中的主体直接改写，只能按主体哈希访问的默认角色与 UID 绑定在该用户下次通过同一连接使用时迁移；缺少机器人账号的记录不按原连接当前登录的账号自动补齐（该连接可能已改登其他账号），在全局管理页的“历史数据与归属”中显式归入目录中的 OneBot11 账号；QQ 官方的 openid 只在原机器人下有效，不能改挂。主体已完整但机器人账号已不在宿主目录中的记录只能查看与删除。后续写入为每个主体加密保存归属信息，供历史入口列出。
+聊天扫码默认绑定事件原始主体。主体由 `source_protocol`、`bot_id`、`actor_id` 共同构成，不包含连接实例：删除连接后新建一条并登录同一机器人账号，绑定继续有效；不能按相同字符串 ID 自动跨协议合并。
 
 ## ark 令牌
 
@@ -175,7 +175,7 @@ ark（ark.ivny.cn）是原神与星铁插件使用的云排名与面板服务，
 
 附属身份可通过账号服务使用主身份已允许的插件和角色。列表以当前请求身份作为任务通知归属，默认角色选择分别保存；原账号的删除、共享公共查询和调用者授权继续由原始 Owner 或管理会话处理。关联本身及索引在账号插件内加密保存。`accounts.associations.list/remove` 管理查看或明确解除；聊天“关联列表”“解除关联 序号”只操作本人有关联的一项。
 
-定时委托额外记录创建它的完整聊天身份；旧委托缺省使用原始 Owner。执行前检查该身份仍有访问权，解除关联后新执行被拒绝。
+定时委托额外记录创建它的完整聊天身份，执行前检查该身份仍有访问权，解除关联后新执行被拒绝。
 
 ### 设备控制
 

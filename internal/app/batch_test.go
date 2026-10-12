@@ -16,20 +16,22 @@ import (
 )
 
 func startBatch(t *testing.T, a *App, s *memoryStore, mode string, items ...accounts.Record) batchView {
+	owner := subject()
 	t.Helper()
 	targets := []batchItem{}
 	for _, r := range items {
 		targets = append(targets, batchItem{r.Ref, r.Revision})
 	}
-	out, err := a.Manage(t.Context(), s, policy(), "accounts.batch.start", map[string]any{"mode": mode, "items": targets, "confirm": true})
+	out, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.start", map[string]any{"mode": mode, "items": targets, "confirm": true}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return out["batch"].(batchView)
 }
 func stepBatch(t *testing.T, a *App, s *memoryStore, v batchView) batchView {
+	owner := subject()
 	t.Helper()
-	out, err := a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": v.Sequence})
+	out, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": v.Sequence}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,6 +77,7 @@ func TestAccountCheckDistinguishesAuthenticationFromOtherFailures(t *testing.T) 
 	}
 }
 func TestAccountBatchReplayCancellationAndVaultLock(t *testing.T) {
+	owner := subject()
 	api := &fakeAPI{}
 	a, s, record := setup(t, api)
 	v := startBatch(t, a, s, "refresh", record)
@@ -83,7 +86,7 @@ func TestAccountBatchReplayCancellationAndVaultLock(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0}); err != nil {
+			if _, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0})); err != nil {
 				t.Error(err)
 			}
 		}()
@@ -93,14 +96,14 @@ func TestAccountBatchReplayCancellationAndVaultLock(t *testing.T) {
 	if done.State != "completed" || done.Processed != 1 || api.refreshCalls.Load() != 1 {
 		t.Fatal(done)
 	}
-	_, err := a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 2})
+	_, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 2}))
 	assertCode(t, err, "plugin.account_batch_sequence")
 	v = startBatch(t, a, s, "check", record)
 	_, err = a.Manage(t.Context(), s, policy(), "vault.lock", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0})
+	_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0}))
 	assertCode(t, err, "plugin.vault_locked")
 	if err = a.Vault.Unlock("synthetic-passphrase-only"); err != nil {
 		t.Fatal(err)
@@ -110,11 +113,11 @@ func TestAccountBatchReplayCancellationAndVaultLock(t *testing.T) {
 		t.Fatal(v)
 	}
 	v = startBatch(t, a, s, "refresh", record)
-	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.cancel", map[string]any{"ref": v.Ref})
+	_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.cancel", map[string]any{"ref": v.Ref}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0})
+	_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0}))
 	assertCode(t, err, "plugin.account_batch_sequence")
 	if api.refreshCalls.Load() != 1 {
 		t.Fatal("canceled batch refreshed")
@@ -122,7 +125,7 @@ func TestAccountBatchReplayCancellationAndVaultLock(t *testing.T) {
 	// Explicit cancellation frees capacity for later batches.
 	for range 10 {
 		v = startBatch(t, a, s, "check", record)
-		_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.cancel", map[string]any{"ref": v.Ref})
+		_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.cancel", map[string]any{"ref": v.Ref}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,9 +172,12 @@ func TestAccountStatisticsPageReplayAndSubjectIdentity(t *testing.T) {
 	}}
 	a, s, _ := setup(t, api)
 	cipher, _ := a.Vault.Cipher()
-	for i := 0; i < 129; i++ {
+	for i := 0; i < 145; i++ {
 		owner := subject()
-		owner.BotID = fmt.Sprintf("bot-%d", i/16)
+		owner.ActorID = fmt.Sprintf("user-%d", i/16)
+		if i >= 129 {
+			owner.BotID = "another-bot"
+		}
 		tokens := syntheticTokens()
 		tokens.AccountID = fmt.Sprintf("%d", 10000+i)
 		if _, err := a.Repo.Bind(t.Context(), s, cipher, owner, tokens, []accounts.Role{role("genshin")}, nil); err != nil {
@@ -193,14 +199,15 @@ func TestAccountStatisticsPageReplayAndSubjectIdentity(t *testing.T) {
 	}
 }
 func TestAccountBatchValidationExpiryAndStorageFailure(t *testing.T) {
+	owner := subject()
 	a, s, r := setup(t, &fakeAPI{})
 	for _, input := range []map[string]any{{"mode": "refresh", "items": []batchItem{{r.Ref, r.Revision}}}, {"mode": "check", "items": []batchItem{{r.Ref, r.Revision}, {r.Ref, r.Revision}}}, {"mode": "statistics", "items": []batchItem{{r.Ref, r.Revision}}}, {"mode": "check", "items": []batchItem{{r.Ref, 0}}}} {
-		_, err := a.Manage(t.Context(), s, policy(), "accounts.batch.start", input)
+		_, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.start", input))
 		assertCode(t, err, "plugin.account_input_invalid")
 	}
 	v := startBatch(t, a, s, "check", r)
 	s.fail = true
-	_, err := a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0})
+	_, err := a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0}))
 	assertCode(t, err, "plugin.account_operation_failed")
 	s.fail = false
 	v = stepBatch(t, a, s, v)
@@ -211,7 +218,7 @@ func TestAccountBatchValidationExpiryAndStorageFailure(t *testing.T) {
 	job.mu.Lock()
 	job.expires = time.Now().Add(-time.Minute)
 	job.mu.Unlock()
-	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0})
+	_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.step", map[string]any{"ref": v.Ref, "sequence": 0}))
 	assertCode(t, err, "plugin.account_batch_missing")
 }
 
@@ -259,6 +266,7 @@ func TestFingerprintOrMetadataUpdateDoesNotPretendCredentialsWereRefreshed(t *te
 }
 
 func TestBatchMissingRefreshMaterialPreservesUsableCookie(t *testing.T) {
+	owner := subject()
 	api := &fakeAPI{}
 	a, s, r := setup(t, api)
 	cipher, _ := a.Vault.Cipher()
@@ -276,7 +284,7 @@ func TestBatchMissingRefreshMaterialPreservesUsableCookie(t *testing.T) {
 	if err != nil || saved.Status != "valid" || saved.Revision != r.Revision || !reflect.DeepEqual(saved.Tokens, r.Tokens) {
 		t.Fatal("refresh material missing invalidated account", err)
 	}
-	_, err = a.Manage(t.Context(), s, policy(), "accounts.batch.start", map[string]any{"mode": "statistics", "password": "synthetic-plaintext"})
+	_, err = a.ManageEvent(t.Context(), s, policy(), managementEvent(&owner, "accounts.batch.start", map[string]any{"mode": "statistics", "password": "synthetic-plaintext"}))
 	assertCode(t, err, "plugin.account_input_invalid")
 }
 

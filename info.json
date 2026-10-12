@@ -387,11 +387,6 @@
         "id": "accounts",
         "label": "账号管理",
         "scope": "bot_account"
-      },
-      {
-        "id": "global",
-        "label": "全局管理",
-        "scope": "global"
       }
     ]
   }

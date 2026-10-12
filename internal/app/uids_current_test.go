@@ -10,7 +10,7 @@ func TestCurrentUIDAnswersAMentionWithOnlyTheUID(t *testing.T) {
 	a, store, record := setup(t, &fakeAPI{})
 	s := subject()
 	ask := func(eventType, userID string) rayleabot.ServiceRequest {
-		return rayleabot.ServiceRequest{CallerPluginID: "raylea.zzz", Service: "accounts", ServiceVersion: 1, Method: "uids.current", Params: map[string]any{"game": "zzz", "user_id": userID}, Origin: rayleabot.ServiceOrigin{EventID: "event-2", EventType: eventType, SourceProtocol: s.SourceProtocol, SourceAdapter: s.SourceAdapter, BotID: s.BotID, Actor: &rayleabot.Actor{ID: "user-2"}, Target: &rayleabot.Target{Type: "group", ID: "group-1"}}}
+		return rayleabot.ServiceRequest{CallerPluginID: "raylea.zzz", Service: "accounts", ServiceVersion: 1, Method: "uids.current", Params: map[string]any{"game": "zzz", "user_id": userID}, Origin: rayleabot.ServiceOrigin{EventID: "event-2", EventType: eventType, SourceProtocol: s.SourceProtocol, SourceAdapter: "primary", BotID: s.BotID, Actor: &rayleabot.Actor{ID: "user-2"}, Target: &rayleabot.Target{Type: "group", ID: "group-1"}}}
 	}
 	result, err := a.Service(t.Context(), store, policy(), ask("message.group", s.ActorID))
 	if err != nil || result["uid"] != role("zzz").UID || len(result) != 1 {

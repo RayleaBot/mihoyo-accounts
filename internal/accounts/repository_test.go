@@ -40,7 +40,7 @@ func TestEncryptedAccountsDeduplicateAndDoNotExposeTokens(t *testing.T) {
 	store := &memorySecrets{values: map[string]string{}}
 	repo := &Repository{}
 	cipher, _ := vault.NewCipher(vault.NewKey())
-	owner := Subject{SourceProtocol: "onebot11", SourceAdapter: "fixture-adapter", BotID: "fixture-bot", ActorID: "fixture-user"}
+	owner := Subject{SourceProtocol: "onebot11", BotID: "fixture-bot", ActorID: "fixture-user"}
 	tokens := Tokens{AccountID: "123456789", CookieToken: "synthetic-cookie-marker", LToken: "synthetic-ltoken-marker", SToken: "synthetic-stoken-marker"}
 	first, err := repo.Bind(ctx, store, cipher, owner, tokens, []Role{{Ref: "role-a", Game: "genshin", UID: "100000001"}}, []string{"fixture-game"})
 	if err != nil {
@@ -68,12 +68,6 @@ func TestEncryptedAccountsDeduplicateAndDoNotExposeTokens(t *testing.T) {
 			}
 		}
 	}
-	other := owner
-	other.SourceAdapter = "other-adapter"
-	visible, err := repo.List(ctx, store, cipher, other)
-	if err != nil || len(visible) != 1 {
-		t.Fatal("account lost after replacing the connection")
-	}
 }
 
 func TestRemovedAccountCannotBeRevivedByLateRefresh(t *testing.T) {
@@ -81,7 +75,7 @@ func TestRemovedAccountCannotBeRevivedByLateRefresh(t *testing.T) {
 	store := &memorySecrets{values: map[string]string{}}
 	repo := &Repository{}
 	cipher, _ := vault.NewCipher(vault.NewKey())
-	owner := Subject{SourceProtocol: "onebot11", SourceAdapter: "adapter", BotID: "bot", ActorID: "user"}
+	owner := Subject{SourceProtocol: "onebot11", BotID: "bot", ActorID: "user"}
 	record, err := repo.Bind(ctx, store, cipher, owner, Tokens{AccountID: "1234", CookieToken: "synthetic-cookie", LToken: "synthetic-ltoken"}, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -104,8 +98,28 @@ func TestFailedBatchDoesNotCreatePartialBinding(t *testing.T) {
 	store := &memorySecrets{values: map[string]string{}, fail: true}
 	repo := &Repository{}
 	cipher, _ := vault.NewCipher(vault.NewKey())
-	_, err := repo.Bind(ctx, store, cipher, Subject{SourceProtocol: "onebot11", SourceAdapter: "adapter", BotID: "bot", ActorID: "user"}, Tokens{AccountID: "1234", CookieToken: "synthetic-cookie", LToken: "synthetic-ltoken"}, nil, nil)
+	_, err := repo.Bind(ctx, store, cipher, Subject{SourceProtocol: "onebot11", BotID: "bot", ActorID: "user"}, Tokens{AccountID: "1234", CookieToken: "synthetic-cookie", LToken: "synthetic-ltoken"}, nil, nil)
 	if err == nil || len(store.values) != 0 {
 		t.Fatal("failed batch left partial account records")
+	}
+}
+
+func TestSubjectIdentity(t *testing.T) {
+	current := Subject{SourceProtocol: "onebot11", BotID: "10001", ActorID: "20002"}
+	if current.Validate() != nil {
+		t.Fatal("complete subject rejected")
+	}
+	raw, err := json.Marshal(current)
+	if err != nil || strings.Contains(string(raw), "source_adapter") {
+		t.Fatal("subjects persist a connection", string(raw), err)
+	}
+	for _, other := range []Subject{
+		{SourceProtocol: "qqofficial", BotID: current.BotID, ActorID: current.ActorID},
+		{SourceProtocol: current.SourceProtocol, BotID: "other", ActorID: current.ActorID},
+		{SourceProtocol: current.SourceProtocol, BotID: current.BotID, ActorID: "other"},
+	} {
+		if current.Equal(other) || current.Key() == other.Key() {
+			t.Fatal("different protocol, bot or user was merged")
+		}
 	}
 }
