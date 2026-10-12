@@ -1,0 +1,1242 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T17:16:41.738Z",
+  "title": "Design System: 米游社账号 · 名片册",
+  "extensions": {
+    "colorMeta": {
+      "page": {
+        "role": "neutral",
+        "displayName": "册页",
+        "tonalRamp": [
+          "oklch(15.00% 0.00627 255.48)",
+          "oklch(26.43% 0.00627 255.48)",
+          "oklch(37.86% 0.00627 255.48)",
+          "oklch(49.29% 0.00627 255.48)",
+          "oklch(60.71% 0.00627 255.48)",
+          "oklch(72.14% 0.00627 255.48)",
+          "oklch(83.57% 0.00627 255.48)",
+          "oklch(95.00% 0.00627 255.48)"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "桌面区",
+        "tonalRamp": [
+          "oklch(15.00% 0.00921 258.34)",
+          "oklch(26.43% 0.00921 258.34)",
+          "oklch(37.86% 0.00921 258.34)",
+          "oklch(49.29% 0.00921 258.34)",
+          "oklch(60.71% 0.00921 258.34)",
+          "oklch(72.14% 0.00921 258.34)",
+          "oklch(83.57% 0.00921 258.34)",
+          "oklch(95.00% 0.00921 258.34)"
+        ]
+      },
+      "cover": {
+        "role": "neutral",
+        "displayName": "末页",
+        "tonalRamp": [
+          "oklch(15.00% 0.00803 253.86)",
+          "oklch(26.43% 0.00803 253.86)",
+          "oklch(37.86% 0.00803 253.86)",
+          "oklch(49.29% 0.00803 253.86)",
+          "oklch(60.71% 0.00803 253.86)",
+          "oklch(72.14% 0.00803 253.86)",
+          "oklch(83.57% 0.00803 253.86)",
+          "oklch(95.00% 0.00803 253.86)"
+        ]
+      },
+      "well": {
+        "role": "neutral",
+        "displayName": "凹槽",
+        "tonalRamp": [
+          "oklch(15.00% 0.00923 258.34)",
+          "oklch(26.43% 0.00923 258.34)",
+          "oklch(37.86% 0.00923 258.34)",
+          "oklch(49.29% 0.00923 258.34)",
+          "oklch(60.71% 0.00923 258.34)",
+          "oklch(72.14% 0.00923 258.34)",
+          "oklch(83.57% 0.00923 258.34)",
+          "oklch(95.00% 0.00923 258.34)"
+        ]
+      },
+      "tile": {
+        "role": "neutral",
+        "displayName": "贴片",
+        "tonalRamp": [
+          "oklch(15.00% 0.00455 258.32)",
+          "oklch(26.43% 0.00455 258.32)",
+          "oklch(37.86% 0.00455 258.32)",
+          "oklch(49.29% 0.00455 258.32)",
+          "oklch(60.71% 0.00455 258.32)",
+          "oklch(72.14% 0.00455 258.32)",
+          "oklch(83.57% 0.00455 258.32)",
+          "oklch(95.00% 0.00455 258.32)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "卡纸",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "字段底",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "卡内细线",
+        "tonalRamp": [
+          "oklch(15.00% 0.00748 260.73)",
+          "oklch(26.43% 0.00748 260.73)",
+          "oklch(37.86% 0.00748 260.73)",
+          "oklch(49.29% 0.00748 260.73)",
+          "oklch(60.71% 0.00748 260.73)",
+          "oklch(72.14% 0.00748 260.73)",
+          "oklch(83.57% 0.00748 260.73)",
+          "oklch(95.00% 0.00748 260.73)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "线",
+        "tonalRamp": [
+          "oklch(15.00% 0.01593 257.20)",
+          "oklch(26.43% 0.01593 257.20)",
+          "oklch(37.86% 0.01593 257.20)",
+          "oklch(49.29% 0.01593 257.20)",
+          "oklch(60.71% 0.01593 257.20)",
+          "oklch(72.14% 0.01593 257.20)",
+          "oklch(83.57% 0.01593 257.20)",
+          "oklch(95.00% 0.01593 257.20)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "墨色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01103 260.67)",
+          "oklch(26.43% 0.01103 260.67)",
+          "oklch(37.86% 0.01103 260.67)",
+          "oklch(49.29% 0.01103 260.67)",
+          "oklch(60.71% 0.01103 260.67)",
+          "oklch(72.14% 0.01103 260.67)",
+          "oklch(83.57% 0.01103 260.67)",
+          "oklch(95.00% 0.01103 260.67)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "次级墨色",
+        "tonalRamp": [
+          "oklch(15.00% 0.02862 259.78)",
+          "oklch(26.43% 0.02862 259.78)",
+          "oklch(37.86% 0.02862 259.78)",
+          "oklch(49.29% 0.02862 259.78)",
+          "oklch(60.71% 0.02862 259.78)",
+          "oklch(72.14% 0.02862 259.78)",
+          "oklch(83.57% 0.02862 259.78)",
+          "oklch(95.00% 0.02862 259.78)"
+        ]
+      },
+      "hover": {
+        "role": "overlay",
+        "displayName": "悬停底",
+        "tonalRamp": [
+          "oklch(15.00% 0.01103 260.67)",
+          "oklch(26.43% 0.01103 260.67)",
+          "oklch(37.86% 0.01103 260.67)",
+          "oklch(49.29% 0.01103 260.67)",
+          "oklch(60.71% 0.01103 260.67)",
+          "oklch(72.14% 0.01103 260.67)",
+          "oklch(83.57% 0.01103 260.67)",
+          "oklch(95.00% 0.01103 260.67)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "米游社蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.17062 254.29)",
+          "oklch(26.43% 0.17062 254.29)",
+          "oklch(37.86% 0.17062 254.29)",
+          "oklch(49.29% 0.17062 254.29)",
+          "oklch(60.71% 0.17062 254.29)",
+          "oklch(72.14% 0.17062 254.29)",
+          "oklch(83.57% 0.17062 254.29)",
+          "oklch(95.00% 0.17062 254.29)"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "链接蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.15217 253.96)",
+          "oklch(26.43% 0.15217 253.96)",
+          "oklch(37.86% 0.15217 253.96)",
+          "oklch(49.29% 0.15217 253.96)",
+          "oklch(60.71% 0.15217 253.96)",
+          "oklch(72.14% 0.15217 253.96)",
+          "oklch(83.57% 0.15217 253.96)",
+          "oklch(95.00% 0.15217 253.96)"
+        ]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "蓝底上的文字",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "选区衬底",
+        "tonalRamp": [
+          "oklch(15.00% 0.02701 249.85)",
+          "oklch(26.43% 0.02701 249.85)",
+          "oklch(37.86% 0.02701 249.85)",
+          "oklch(49.29% 0.02701 249.85)",
+          "oklch(60.71% 0.02701 249.85)",
+          "oklch(72.14% 0.02701 249.85)",
+          "oklch(83.57% 0.02701 249.85)",
+          "oklch(95.00% 0.02701 249.85)"
+        ]
+      },
+      "accent-ring": {
+        "role": "primary",
+        "displayName": "聚焦外晕",
+        "tonalRamp": [
+          "oklch(15.00% 0.17062 254.29)",
+          "oklch(26.43% 0.17062 254.29)",
+          "oklch(37.86% 0.17062 254.29)",
+          "oklch(49.29% 0.17062 254.29)",
+          "oklch(60.71% 0.17062 254.29)",
+          "oklch(72.14% 0.17062 254.29)",
+          "oklch(83.57% 0.17062 254.29)",
+          "oklch(95.00% 0.17062 254.29)"
+        ]
+      },
+      "flag-red": {
+        "role": "secondary",
+        "displayName": "索引贴朱红",
+        "tonalRamp": [
+          "oklch(15.00% 0.18352 28.51)",
+          "oklch(26.43% 0.18352 28.51)",
+          "oklch(37.86% 0.18352 28.51)",
+          "oklch(49.29% 0.18352 28.51)",
+          "oklch(60.71% 0.18352 28.51)",
+          "oklch(72.14% 0.18352 28.51)",
+          "oklch(83.57% 0.18352 28.51)",
+          "oklch(95.00% 0.18352 28.51)"
+        ]
+      },
+      "on-flag-red": {
+        "role": "secondary",
+        "displayName": "朱红贴上的文字",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "flag-amber": {
+        "role": "secondary",
+        "displayName": "索引贴琥珀",
+        "tonalRamp": [
+          "oklch(15.00% 0.14749 79.06)",
+          "oklch(26.43% 0.14749 79.06)",
+          "oklch(37.86% 0.14749 79.06)",
+          "oklch(49.29% 0.14749 79.06)",
+          "oklch(60.71% 0.14749 79.06)",
+          "oklch(72.14% 0.14749 79.06)",
+          "oklch(83.57% 0.14749 79.06)",
+          "oklch(95.00% 0.14749 79.06)"
+        ]
+      },
+      "on-flag-amber": {
+        "role": "secondary",
+        "displayName": "琥珀贴上的文字",
+        "tonalRamp": [
+          "oklch(15.00% 0.04894 82.45)",
+          "oklch(26.43% 0.04894 82.45)",
+          "oklch(37.86% 0.04894 82.45)",
+          "oklch(49.29% 0.04894 82.45)",
+          "oklch(60.71% 0.04894 82.45)",
+          "oklch(72.14% 0.04894 82.45)",
+          "oklch(83.57% 0.04894 82.45)",
+          "oklch(95.00% 0.04894 82.45)"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "错误红",
+        "tonalRamp": [
+          "oklch(15.00% 0.18205 29.51)",
+          "oklch(26.43% 0.18205 29.51)",
+          "oklch(37.86% 0.18205 29.51)",
+          "oklch(49.29% 0.18205 29.51)",
+          "oklch(60.71% 0.18205 29.51)",
+          "oklch(72.14% 0.18205 29.51)",
+          "oklch(83.57% 0.18205 29.51)",
+          "oklch(95.00% 0.18205 29.51)"
+        ]
+      },
+      "attention": {
+        "role": "status",
+        "displayName": "需注意琥珀字",
+        "tonalRamp": [
+          "oklch(15.00% 0.10854 69.63)",
+          "oklch(26.43% 0.10854 69.63)",
+          "oklch(37.86% 0.10854 69.63)",
+          "oklch(49.29% 0.10854 69.63)",
+          "oklch(60.71% 0.10854 69.63)",
+          "oklch(72.14% 0.10854 69.63)",
+          "oklch(83.57% 0.10854 69.63)",
+          "oklch(95.00% 0.10854 69.63)"
+        ]
+      },
+      "backdrop": {
+        "role": "overlay",
+        "displayName": "遮罩",
+        "tonalRamp": [
+          "oklch(15.00% 0.01431 258.36)",
+          "oklch(26.43% 0.01431 258.36)",
+          "oklch(37.86% 0.01431 258.36)",
+          "oklch(49.29% 0.01431 258.36)",
+          "oklch(60.71% 0.01431 258.36)",
+          "oklch(72.14% 0.01431 258.36)",
+          "oklch(83.57% 0.01431 258.36)",
+          "oklch(95.00% 0.01431 258.36)"
+        ]
+      },
+      "page-dark": {
+        "role": "neutral",
+        "displayName": "册页 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00876 264.34)",
+          "oklch(26.43% 0.00876 264.34)",
+          "oklch(37.86% 0.00876 264.34)",
+          "oklch(49.29% 0.00876 264.34)",
+          "oklch(60.71% 0.00876 264.34)",
+          "oklch(72.14% 0.00876 264.34)",
+          "oklch(83.57% 0.00876 264.34)",
+          "oklch(95.00% 0.00876 264.34)"
+        ]
+      },
+      "desk-dark": {
+        "role": "neutral",
+        "displayName": "桌面区 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00719 258.37)",
+          "oklch(26.43% 0.00719 258.37)",
+          "oklch(37.86% 0.00719 258.37)",
+          "oklch(49.29% 0.00719 258.37)",
+          "oklch(60.71% 0.00719 258.37)",
+          "oklch(72.14% 0.00719 258.37)",
+          "oklch(83.57% 0.00719 258.37)",
+          "oklch(95.00% 0.00719 258.37)"
+        ]
+      },
+      "cover-dark": {
+        "role": "neutral",
+        "displayName": "末页 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00708 258.37)",
+          "oklch(26.43% 0.00708 258.37)",
+          "oklch(37.86% 0.00708 258.37)",
+          "oklch(49.29% 0.00708 258.37)",
+          "oklch(60.71% 0.00708 258.37)",
+          "oklch(72.14% 0.00708 258.37)",
+          "oklch(83.57% 0.00708 258.37)",
+          "oklch(95.00% 0.00708 258.37)"
+        ]
+      },
+      "well-dark": {
+        "role": "neutral",
+        "displayName": "凹槽 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01306 258.37)",
+          "oklch(26.43% 0.01306 258.37)",
+          "oklch(37.86% 0.01306 258.37)",
+          "oklch(49.29% 0.01306 258.37)",
+          "oklch(60.71% 0.01306 258.37)",
+          "oklch(72.14% 0.01306 258.37)",
+          "oklch(83.57% 0.01306 258.37)",
+          "oklch(95.00% 0.01306 258.37)"
+        ]
+      },
+      "tile-dark": {
+        "role": "neutral",
+        "displayName": "贴片 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01479 256.79)",
+          "oklch(26.43% 0.01479 256.79)",
+          "oklch(37.86% 0.01479 256.79)",
+          "oklch(49.29% 0.01479 256.79)",
+          "oklch(60.71% 0.01479 256.79)",
+          "oklch(72.14% 0.01479 256.79)",
+          "oklch(83.57% 0.01479 256.79)",
+          "oklch(95.00% 0.01479 256.79)"
+        ]
+      },
+      "card-dark": {
+        "role": "neutral",
+        "displayName": "卡纸 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01467 261.65)",
+          "oklch(26.43% 0.01467 261.65)",
+          "oklch(37.86% 0.01467 261.65)",
+          "oklch(49.29% 0.01467 261.65)",
+          "oklch(60.71% 0.01467 261.65)",
+          "oklch(72.14% 0.01467 261.65)",
+          "oklch(83.57% 0.01467 261.65)",
+          "oklch(95.00% 0.01467 261.65)"
+        ]
+      },
+      "field-dark": {
+        "role": "neutral",
+        "displayName": "字段底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01103 260.67)",
+          "oklch(26.43% 0.01103 260.67)",
+          "oklch(37.86% 0.01103 260.67)",
+          "oklch(49.29% 0.01103 260.67)",
+          "oklch(60.71% 0.01103 260.67)",
+          "oklch(72.14% 0.01103 260.67)",
+          "oklch(83.57% 0.01103 260.67)",
+          "oklch(95.00% 0.01103 260.67)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "卡内细线 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01829 258.37)",
+          "oklch(26.43% 0.01829 258.37)",
+          "oklch(37.86% 0.01829 258.37)",
+          "oklch(49.29% 0.01829 258.37)",
+          "oklch(60.71% 0.01829 258.37)",
+          "oklch(72.14% 0.01829 258.37)",
+          "oklch(83.57% 0.01829 258.37)",
+          "oklch(95.00% 0.01829 258.37)"
+        ]
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "线 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.02453 260.11)",
+          "oklch(26.43% 0.02453 260.11)",
+          "oklch(37.86% 0.02453 260.11)",
+          "oklch(49.29% 0.02453 260.11)",
+          "oklch(60.71% 0.02453 260.11)",
+          "oklch(72.14% 0.02453 260.11)",
+          "oklch(83.57% 0.02453 260.11)",
+          "oklch(95.00% 0.02453 260.11)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "墨色 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00626 255.48)",
+          "oklch(26.43% 0.00626 255.48)",
+          "oklch(37.86% 0.00626 255.48)",
+          "oklch(49.29% 0.00626 255.48)",
+          "oklch(60.71% 0.00626 255.48)",
+          "oklch(72.14% 0.00626 255.48)",
+          "oklch(83.57% 0.00626 255.48)",
+          "oklch(95.00% 0.00626 255.48)"
+        ]
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "次级墨色 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.02383 260.71)",
+          "oklch(26.43% 0.02383 260.71)",
+          "oklch(37.86% 0.02383 260.71)",
+          "oklch(49.29% 0.02383 260.71)",
+          "oklch(60.71% 0.02383 260.71)",
+          "oklch(72.14% 0.02383 260.71)",
+          "oklch(83.57% 0.02383 260.71)",
+          "oklch(95.00% 0.02383 260.71)"
+        ]
+      },
+      "hover-dark": {
+        "role": "overlay",
+        "displayName": "悬停底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.00626 255.48)",
+          "oklch(26.43% 0.00626 255.48)",
+          "oklch(37.86% 0.00626 255.48)",
+          "oklch(49.29% 0.00626 255.48)",
+          "oklch(60.71% 0.00626 255.48)",
+          "oklch(72.14% 0.00626 255.48)",
+          "oklch(83.57% 0.00626 255.48)",
+          "oklch(95.00% 0.00626 255.48)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "米游社蓝 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.13615 249.45)",
+          "oklch(26.43% 0.13615 249.45)",
+          "oklch(37.86% 0.13615 249.45)",
+          "oklch(49.29% 0.13615 249.45)",
+          "oklch(60.71% 0.13615 249.45)",
+          "oklch(72.14% 0.13615 249.45)",
+          "oklch(83.57% 0.13615 249.45)",
+          "oklch(95.00% 0.13615 249.45)"
+        ]
+      },
+      "accent-ink-dark": {
+        "role": "primary",
+        "displayName": "链接蓝 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.09969 247.47)",
+          "oklch(26.43% 0.09969 247.47)",
+          "oklch(37.86% 0.09969 247.47)",
+          "oklch(49.29% 0.09969 247.47)",
+          "oklch(60.71% 0.09969 247.47)",
+          "oklch(72.14% 0.09969 247.47)",
+          "oklch(83.57% 0.09969 247.47)",
+          "oklch(95.00% 0.09969 247.47)"
+        ]
+      },
+      "on-accent-dark": {
+        "role": "primary",
+        "displayName": "蓝底上的文字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.04518 251.37)",
+          "oklch(26.43% 0.04518 251.37)",
+          "oklch(37.86% 0.04518 251.37)",
+          "oklch(49.29% 0.04518 251.37)",
+          "oklch(60.71% 0.04518 251.37)",
+          "oklch(72.14% 0.04518 251.37)",
+          "oklch(83.57% 0.04518 251.37)",
+          "oklch(95.00% 0.04518 251.37)"
+        ]
+      },
+      "accent-soft-dark": {
+        "role": "primary",
+        "displayName": "选区衬底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.05821 251.89)",
+          "oklch(26.43% 0.05821 251.89)",
+          "oklch(37.86% 0.05821 251.89)",
+          "oklch(49.29% 0.05821 251.89)",
+          "oklch(60.71% 0.05821 251.89)",
+          "oklch(72.14% 0.05821 251.89)",
+          "oklch(83.57% 0.05821 251.89)",
+          "oklch(95.00% 0.05821 251.89)"
+        ]
+      },
+      "accent-ring-dark": {
+        "role": "primary",
+        "displayName": "聚焦外晕 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.13615 249.45)",
+          "oklch(26.43% 0.13615 249.45)",
+          "oklch(37.86% 0.13615 249.45)",
+          "oklch(49.29% 0.13615 249.45)",
+          "oklch(60.71% 0.13615 249.45)",
+          "oklch(72.14% 0.13615 249.45)",
+          "oklch(83.57% 0.13615 249.45)",
+          "oklch(95.00% 0.13615 249.45)"
+        ]
+      },
+      "danger-dark": {
+        "role": "status",
+        "displayName": "错误红 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.14479 29.02)",
+          "oklch(26.43% 0.14479 29.02)",
+          "oklch(37.86% 0.14479 29.02)",
+          "oklch(49.29% 0.14479 29.02)",
+          "oklch(60.71% 0.14479 29.02)",
+          "oklch(72.14% 0.14479 29.02)",
+          "oklch(83.57% 0.14479 29.02)",
+          "oklch(95.00% 0.14479 29.02)"
+        ]
+      },
+      "attention-dark": {
+        "role": "status",
+        "displayName": "需注意琥珀字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.12916 80.36)",
+          "oklch(26.43% 0.12916 80.36)",
+          "oklch(37.86% 0.12916 80.36)",
+          "oklch(49.29% 0.12916 80.36)",
+          "oklch(60.71% 0.12916 80.36)",
+          "oklch(72.14% 0.12916 80.36)",
+          "oklch(83.57% 0.12916 80.36)",
+          "oklch(95.00% 0.12916 80.36)"
+        ]
+      },
+      "tone-0-bg": {
+        "role": "avatar",
+        "displayName": "头像蓝底",
+        "tonalRamp": [
+          "oklch(15.00% 0.02532 249.96)",
+          "oklch(26.43% 0.02532 249.96)",
+          "oklch(37.86% 0.02532 249.96)",
+          "oklch(49.29% 0.02532 249.96)",
+          "oklch(60.71% 0.02532 249.96)",
+          "oklch(72.14% 0.02532 249.96)",
+          "oklch(83.57% 0.02532 249.96)",
+          "oklch(95.00% 0.02532 249.96)"
+        ]
+      },
+      "tone-0-ink": {
+        "role": "avatar",
+        "displayName": "头像蓝字",
+        "tonalRamp": [
+          "oklch(15.00% 0.10589 253.40)",
+          "oklch(26.43% 0.10589 253.40)",
+          "oklch(37.86% 0.10589 253.40)",
+          "oklch(49.29% 0.10589 253.40)",
+          "oklch(60.71% 0.10589 253.40)",
+          "oklch(72.14% 0.10589 253.40)",
+          "oklch(83.57% 0.10589 253.40)",
+          "oklch(95.00% 0.10589 253.40)"
+        ]
+      },
+      "tone-1-bg": {
+        "role": "avatar",
+        "displayName": "头像紫底",
+        "tonalRamp": [
+          "oklch(15.00% 0.02874 296.73)",
+          "oklch(26.43% 0.02874 296.73)",
+          "oklch(37.86% 0.02874 296.73)",
+          "oklch(49.29% 0.02874 296.73)",
+          "oklch(60.71% 0.02874 296.73)",
+          "oklch(72.14% 0.02874 296.73)",
+          "oklch(83.57% 0.02874 296.73)",
+          "oklch(95.00% 0.02874 296.73)"
+        ]
+      },
+      "tone-1-ink": {
+        "role": "avatar",
+        "displayName": "头像紫字",
+        "tonalRamp": [
+          "oklch(15.00% 0.13327 287.95)",
+          "oklch(26.43% 0.13327 287.95)",
+          "oklch(37.86% 0.13327 287.95)",
+          "oklch(49.29% 0.13327 287.95)",
+          "oklch(60.71% 0.13327 287.95)",
+          "oklch(72.14% 0.13327 287.95)",
+          "oklch(83.57% 0.13327 287.95)",
+          "oklch(95.00% 0.13327 287.95)"
+        ]
+      },
+      "tone-2-bg": {
+        "role": "avatar",
+        "displayName": "头像绿底",
+        "tonalRamp": [
+          "oklch(15.00% 0.02338 165.84)",
+          "oklch(26.43% 0.02338 165.84)",
+          "oklch(37.86% 0.02338 165.84)",
+          "oklch(49.29% 0.02338 165.84)",
+          "oklch(60.71% 0.02338 165.84)",
+          "oklch(72.14% 0.02338 165.84)",
+          "oklch(83.57% 0.02338 165.84)",
+          "oklch(95.00% 0.02338 165.84)"
+        ]
+      },
+      "tone-2-ink": {
+        "role": "avatar",
+        "displayName": "头像绿字",
+        "tonalRamp": [
+          "oklch(15.00% 0.08094 162.90)",
+          "oklch(26.43% 0.08094 162.90)",
+          "oklch(37.86% 0.08094 162.90)",
+          "oklch(49.29% 0.08094 162.90)",
+          "oklch(60.71% 0.08094 162.90)",
+          "oklch(72.14% 0.08094 162.90)",
+          "oklch(83.57% 0.08094 162.90)",
+          "oklch(95.00% 0.08094 162.90)"
+        ]
+      },
+      "tone-3-bg": {
+        "role": "avatar",
+        "displayName": "头像青底",
+        "tonalRamp": [
+          "oklch(15.00% 0.02561 205.80)",
+          "oklch(26.43% 0.02561 205.80)",
+          "oklch(37.86% 0.02561 205.80)",
+          "oklch(49.29% 0.02561 205.80)",
+          "oklch(60.71% 0.02561 205.80)",
+          "oklch(72.14% 0.02561 205.80)",
+          "oklch(83.57% 0.02561 205.80)",
+          "oklch(95.00% 0.02561 205.80)"
+        ]
+      },
+      "tone-3-ink": {
+        "role": "avatar",
+        "displayName": "头像青字",
+        "tonalRamp": [
+          "oklch(15.00% 0.06431 203.92)",
+          "oklch(26.43% 0.06431 203.92)",
+          "oklch(37.86% 0.06431 203.92)",
+          "oklch(49.29% 0.06431 203.92)",
+          "oklch(60.71% 0.06431 203.92)",
+          "oklch(72.14% 0.06431 203.92)",
+          "oklch(83.57% 0.06431 203.92)",
+          "oklch(95.00% 0.06431 203.92)"
+        ]
+      },
+      "tone-4-bg": {
+        "role": "avatar",
+        "displayName": "头像沙底",
+        "tonalRamp": [
+          "oklch(15.00% 0.01489 80.71)",
+          "oklch(26.43% 0.01489 80.71)",
+          "oklch(37.86% 0.01489 80.71)",
+          "oklch(49.29% 0.01489 80.71)",
+          "oklch(60.71% 0.01489 80.71)",
+          "oklch(72.14% 0.01489 80.71)",
+          "oklch(83.57% 0.01489 80.71)",
+          "oklch(95.00% 0.01489 80.71)"
+        ]
+      },
+      "tone-4-ink": {
+        "role": "avatar",
+        "displayName": "头像沙字",
+        "tonalRamp": [
+          "oklch(15.00% 0.03218 77.80)",
+          "oklch(26.43% 0.03218 77.80)",
+          "oklch(37.86% 0.03218 77.80)",
+          "oklch(49.29% 0.03218 77.80)",
+          "oklch(60.71% 0.03218 77.80)",
+          "oklch(72.14% 0.03218 77.80)",
+          "oklch(83.57% 0.03218 77.80)",
+          "oklch(95.00% 0.03218 77.80)"
+        ]
+      },
+      "tone-5-bg": {
+        "role": "avatar",
+        "displayName": "头像石板底",
+        "tonalRamp": [
+          "oklch(15.00% 0.00920 258.34)",
+          "oklch(26.43% 0.00920 258.34)",
+          "oklch(37.86% 0.00920 258.34)",
+          "oklch(49.29% 0.00920 258.34)",
+          "oklch(60.71% 0.00920 258.34)",
+          "oklch(72.14% 0.00920 258.34)",
+          "oklch(83.57% 0.00920 258.34)",
+          "oklch(95.00% 0.00920 258.34)"
+        ]
+      },
+      "tone-5-ink": {
+        "role": "avatar",
+        "displayName": "头像石板字",
+        "tonalRamp": [
+          "oklch(15.00% 0.03017 259.75)",
+          "oklch(26.43% 0.03017 259.75)",
+          "oklch(37.86% 0.03017 259.75)",
+          "oklch(49.29% 0.03017 259.75)",
+          "oklch(60.71% 0.03017 259.75)",
+          "oklch(72.14% 0.03017 259.75)",
+          "oklch(83.57% 0.03017 259.75)",
+          "oklch(95.00% 0.03017 259.75)"
+        ]
+      },
+      "tone-0-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像蓝底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.05595 254.29)",
+          "oklch(26.43% 0.05595 254.29)",
+          "oklch(37.86% 0.05595 254.29)",
+          "oklch(49.29% 0.05595 254.29)",
+          "oklch(60.71% 0.05595 254.29)",
+          "oklch(72.14% 0.05595 254.29)",
+          "oklch(83.57% 0.05595 254.29)",
+          "oklch(95.00% 0.05595 254.29)"
+        ]
+      },
+      "tone-0-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像蓝字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.05501 250.15)",
+          "oklch(26.43% 0.05501 250.15)",
+          "oklch(37.86% 0.05501 250.15)",
+          "oklch(49.29% 0.05501 250.15)",
+          "oklch(60.71% 0.05501 250.15)",
+          "oklch(72.14% 0.05501 250.15)",
+          "oklch(83.57% 0.05501 250.15)",
+          "oklch(95.00% 0.05501 250.15)"
+        ]
+      },
+      "tone-1-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像紫底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.06191 287.41)",
+          "oklch(26.43% 0.06191 287.41)",
+          "oklch(37.86% 0.06191 287.41)",
+          "oklch(49.29% 0.06191 287.41)",
+          "oklch(60.71% 0.06191 287.41)",
+          "oklch(72.14% 0.06191 287.41)",
+          "oklch(83.57% 0.06191 287.41)",
+          "oklch(95.00% 0.06191 287.41)"
+        ]
+      },
+      "tone-1-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像紫字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.06134 294.43)",
+          "oklch(26.43% 0.06134 294.43)",
+          "oklch(37.86% 0.06134 294.43)",
+          "oklch(49.29% 0.06134 294.43)",
+          "oklch(60.71% 0.06134 294.43)",
+          "oklch(72.14% 0.06134 294.43)",
+          "oklch(83.57% 0.06134 294.43)",
+          "oklch(95.00% 0.06134 294.43)"
+        ]
+      },
+      "tone-2-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像绿底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.04240 165.92)",
+          "oklch(26.43% 0.04240 165.92)",
+          "oklch(37.86% 0.04240 165.92)",
+          "oklch(49.29% 0.04240 165.92)",
+          "oklch(60.71% 0.04240 165.92)",
+          "oklch(72.14% 0.04240 165.92)",
+          "oklch(83.57% 0.04240 165.92)",
+          "oklch(95.00% 0.04240 165.92)"
+        ]
+      },
+      "tone-2-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像绿字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.05423 164.54)",
+          "oklch(26.43% 0.05423 164.54)",
+          "oklch(37.86% 0.05423 164.54)",
+          "oklch(49.29% 0.05423 164.54)",
+          "oklch(60.71% 0.05423 164.54)",
+          "oklch(72.14% 0.05423 164.54)",
+          "oklch(83.57% 0.05423 164.54)",
+          "oklch(95.00% 0.05423 164.54)"
+        ]
+      },
+      "tone-3-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像青底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.03806 203.46)",
+          "oklch(26.43% 0.03806 203.46)",
+          "oklch(37.86% 0.03806 203.46)",
+          "oklch(49.29% 0.03806 203.46)",
+          "oklch(60.71% 0.03806 203.46)",
+          "oklch(72.14% 0.03806 203.46)",
+          "oklch(83.57% 0.03806 203.46)",
+          "oklch(95.00% 0.03806 203.46)"
+        ]
+      },
+      "tone-3-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像青字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.04681 201.37)",
+          "oklch(26.43% 0.04681 201.37)",
+          "oklch(37.86% 0.04681 201.37)",
+          "oklch(49.29% 0.04681 201.37)",
+          "oklch(60.71% 0.04681 201.37)",
+          "oklch(72.14% 0.04681 201.37)",
+          "oklch(83.57% 0.04681 201.37)",
+          "oklch(95.00% 0.04681 201.37)"
+        ]
+      },
+      "tone-4-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像沙底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01536 79.63)",
+          "oklch(26.43% 0.01536 79.63)",
+          "oklch(37.86% 0.01536 79.63)",
+          "oklch(49.29% 0.01536 79.63)",
+          "oklch(60.71% 0.01536 79.63)",
+          "oklch(72.14% 0.01536 79.63)",
+          "oklch(83.57% 0.01536 79.63)",
+          "oklch(95.00% 0.01536 79.63)"
+        ]
+      },
+      "tone-4-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像沙字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.02431 79.73)",
+          "oklch(26.43% 0.02431 79.73)",
+          "oklch(37.86% 0.02431 79.73)",
+          "oklch(49.29% 0.02431 79.73)",
+          "oklch(60.71% 0.02431 79.73)",
+          "oklch(72.14% 0.02431 79.73)",
+          "oklch(83.57% 0.02431 79.73)",
+          "oklch(95.00% 0.02431 79.73)"
+        ]
+      },
+      "tone-5-bg-dark": {
+        "role": "avatar",
+        "displayName": "头像石板底 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01829 258.37)",
+          "oklch(26.43% 0.01829 258.37)",
+          "oklch(37.86% 0.01829 258.37)",
+          "oklch(49.29% 0.01829 258.37)",
+          "oklch(60.71% 0.01829 258.37)",
+          "oklch(72.14% 0.01829 258.37)",
+          "oklch(83.57% 0.01829 258.37)",
+          "oklch(95.00% 0.01829 258.37)"
+        ]
+      },
+      "tone-5-ink-dark": {
+        "role": "avatar",
+        "displayName": "头像石板字 · 暗色",
+        "tonalRamp": [
+          "oklch(15.00% 0.01706 259.42)",
+          "oklch(26.43% 0.01706 259.42)",
+          "oklch(37.86% 0.01706 259.42)",
+          "oklch(49.29% 0.01706 259.42)",
+          "oklch(60.71% 0.01706 259.42)",
+          "oklch(72.14% 0.01706 259.42)",
+          "oklch(83.57% 0.01706 259.42)",
+          "oklch(95.00% 0.01706 259.42)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "取出的昵称",
+        "purpose": "取出到桌面区的名片昵称，以及合上的册子里账号库面板的标题。"
+      },
+      "name": {
+        "displayName": "名片昵称",
+        "purpose": "每张名片上最大的字，单行省略；桌面区「添加账号」标题同字号。"
+      },
+      "title": {
+        "displayName": "对话框标题",
+        "purpose": "对话框与空态标题；提示带计数同字号加重到 700。"
+      },
+      "section": {
+        "displayName": "节标题",
+        "purpose": "名片背面与末页的各节标题。"
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "默认正文，段落最宽 72ch。"
+      },
+      "control": {
+        "displayName": "控件文字",
+        "purpose": "按钮、页签与分段选项；名片底栏的安静按钮为 500。"
+      },
+      "label": {
+        "displayName": "表单标签",
+        "purpose": "堆在字段上方的标签。"
+      },
+      "meta": {
+        "displayName": "说明与名片行",
+        "purpose": "说明、元信息、通行证与角色行、联系行与页脚。"
+      },
+      "figure": {
+        "displayName": "名片数字",
+        "purpose": "通行证 ID 与 UID：等宽数字，在固定宽度的列里右对齐。"
+      },
+      "tab": {
+        "displayName": "索引贴",
+        "purpose": "索引贴上的字。"
+      },
+      "code": {
+        "displayName": "代码值",
+        "purpose": "区服代码与设备标识，可在任意处断行。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 0 0 1px rgb(20 28 40 / 7%), 0 1px 2px rgb(20 28 40 / 6%), 0 6px 14px -8px rgb(20 28 40 / 18%)",
+        "purpose": "卡纸投影（浅色 --card-shadow）：名片、名片背面、提示带、提示条、账号库面板、骨架名片与二维码；悬停不抬升。"
+      },
+      {
+        "name": "card-dark",
+        "value": "0 0 0 1px rgb(255 255 255 / 6%), 0 1px 2px rgb(0 0 0 / 40%), 0 6px 14px -8px rgb(0 0 0 / 60%)",
+        "purpose": "卡纸投影（暗色 --card-shadow）。"
+      },
+      {
+        "name": "pressed",
+        "value": "0 1px 2px rgb(10 16 28 / 12%)",
+        "purpose": "按下的页签与分段选项。"
+      },
+      {
+        "name": "dock",
+        "value": "0 0 0 1px rgb(20 28 40 / 7%), 0 1px 2px rgb(20 28 40 / 6%), 0 6px 14px -8px rgb(20 28 40 / 18%), 0 18px 36px -18px rgb(10 16 28 / 32%)",
+        "purpose": "批量操作条：卡纸投影下再加一道长投影（浅色展开值；暗色时卡纸部分换成 card-dark）。"
+      },
+      {
+        "name": "dialog",
+        "value": "0 28px 64px -20px rgb(0 0 0 / 40%)",
+        "purpose": "确认对话框，页面最高的一层，配 backdrop 遮罩。"
+      },
+      {
+        "name": "avatar-edge",
+        "value": "inset 0 0 0 1px rgb(0 0 0 / 6%)",
+        "purpose": "头像圆的内描边，让浅色头像在卡纸上有边。"
+      },
+      {
+        "name": "ring-marked",
+        "value": "0 0 0 2px #14171c",
+        "purpose": "勾选名片的 2px 墨色外环，叠在卡纸投影之上；是描边，不表示高度（暗色用 ink-dark）。"
+      },
+      {
+        "name": "ring-pulled",
+        "value": "0 0 0 2px #0b6fd0",
+        "purpose": "取出名片的 2px 米游社蓝外环，叠在卡纸投影之上；是描边，不表示高度（暗色用 accent-dark）。"
+      },
+      {
+        "name": "focus-field",
+        "value": "0 0 0 3px rgb(11 111 208 / 22%)",
+        "purpose": "字段聚焦外晕 accent-ring，同时边框转为米游社蓝（暗色 rgb(90 169 245 / 30%)）。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "pull",
+        "value": "300ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "取出与放回名片：view transition 组 account-card 在册页与桌面区之间移动并缩放；减少动态效果或不支持时直接切换。"
+      },
+      {
+        "name": "page-crossfade",
+        "value": "180ms",
+        "purpose": "取出名片时页面其余部分的交叉淡入。"
+      },
+      {
+        "name": "control",
+        "value": "140ms",
+        "purpose": "按钮、字段、页签与空位的底色、边框、文字色与阴影过渡。"
+      },
+      {
+        "name": "disclosure",
+        "value": "160ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "折叠项箭头旋转 90°。"
+      },
+      {
+        "name": "meter",
+        "value": "240ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "批量进度条伸长。"
+      },
+      {
+        "name": "sheen",
+        "value": "1.4s ease-in-out infinite",
+        "purpose": "读取中骨架名片的微光；减少动态效果时取消。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "desk-stacks",
+        "value": "1180px"
+      },
+      {
+        "name": "narrow",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "米游社蓝实底，只给主操作：册头与空册子里的「扫码添加账号」，桌面区与账号库面板里当前表单的提交；一个表单最多一个。",
+      "html": "<button type=\"button\" class=\"ds-btnp\"><svg class=\"ds-btnp-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M3.5 3.5h4.5v4.5H3.5z M12 3.5h4.5v4.5H12z M3.5 12h4.5v4.5H3.5z M12 12h1.8v1.8H12z M14.7 14.7h1.8v1.8h-1.8z M12 16.5v0 M16.5 12v0\"/></svg>扫码添加账号</button>",
+      "css": ".ds-btnp{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms;border-color:transparent;background:var(--accent,#0b6fd0);color:var(--on-accent,#fff)}.ds-btnp:hover:not(:disabled){background:color-mix(in srgb,var(--accent,#0b6fd0) 86%,var(--ink,#14171c))}.ds-btnp:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-btnp:disabled{opacity:.5;cursor:not-allowed}.ds-btnp-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}@media (pointer:coarse){.ds-btnp{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-btnp{transition:none}}@media (forced-colors:active){.ds-btnp{border-color:ButtonText}}"
+    },
+    {
+      "name": "次按钮与图标按钮",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "默认按钮：卡纸底、1px 线框、9px 圆角，悬停混入 8% 墨色；图标按钮 36px 见方，只放一个图标并带无障碍名称。",
+      "html": "<span class=\"ds-btns-row\"><button type=\"button\" class=\"ds-btns\"><svg class=\"ds-btns-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M10 3v8.5 M6.6 8.4 10 11.8l3.4-3.4 M3.8 12.5v2.7a1.3 1.3 0 0 0 1.3 1.3h9.8a1.3 1.3 0 0 0 1.3-1.3v-2.7\"/></svg>导入 Cookie</button><button type=\"button\" class=\"ds-btns ds-btns-icon\" aria-label=\"刷新列表\" title=\"刷新列表\"><svg class=\"ds-btns-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M15.8 10a5.8 5.8 0 0 1-10 4 M4.2 10a5.8 5.8 0 0 1 10-4 M14.6 3.2V6.2h-3 M5.4 16.8v-3h3\"/></svg></button></span>",
+      "css": ".ds-btns-row{display:inline-flex;gap:8px;align-items:center}.ds-btns{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-btns:hover:not(:disabled){background:color-mix(in srgb,var(--card,#fff) 92%,var(--ink,#14171c))}.ds-btns:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-btns:disabled{opacity:.5;cursor:not-allowed}.ds-btns-icon{width:36px;padding:0}.ds-btns-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}@media (pointer:coarse){.ds-btns{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-btns{transition:none}}"
+    },
+    {
+      "name": "安静按钮",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "名片底栏的一排安静按钮：无边框无底色，悬停铺 hover；名片上字重 500，图标 ink-2，悬停转墨色，「管理 >」靠右。提示带与批量操作条里同形，字重 600。",
+      "html": "<div class=\"ds-quiet-row\"><button type=\"button\" class=\"ds-quiet\"><svg class=\"ds-quiet-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M10 2.8 4.3 5v4.4c0 3.6 2.4 6.2 5.7 7.6 3.3-1.4 5.7-4 5.7-7.6V5z M7.4 10l1.9 1.9 3.4-3.6\"/></svg>检查状态</button><button type=\"button\" class=\"ds-quiet\"><svg class=\"ds-quiet-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M15.8 10a5.8 5.8 0 0 1-10 4 M4.2 10a5.8 5.8 0 0 1 10-4 M14.6 3.2V6.2h-3 M5.4 16.8v-3h3\"/></svg>刷新凭据</button><button type=\"button\" class=\"ds-quiet ds-quiet-end\">管理<svg class=\"ds-quiet-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></button></div>",
+      "css": ".ds-quiet-row{display:flex;gap:2px;max-width:360px}.ds-quiet{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms;font-weight:500}.ds-quiet:hover:not(:disabled){background:var(--hover,rgb(20 23 28 / 6%))}.ds-quiet:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-quiet:disabled{opacity:.5;cursor:not-allowed}.ds-quiet-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--ink-2,#566070)}.ds-quiet:hover:not(:disabled) .ds-quiet-i{color:var(--ink,#14171c)}.ds-quiet-end{margin-left:auto}@media (pointer:coarse){.ds-quiet{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-quiet{transition:none}}"
+    },
+    {
+      "name": "破坏性按钮",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "借用索引贴朱红的实底按钮，只在移除后的确认对话框或确认条里出现，「取消」在它前面并获得初始焦点。",
+      "html": "<div class=\"ds-dz\"><button type=\"button\" class=\"ds-dz-cancel\">取消</button><button type=\"button\" class=\"ds-dz-btn\">移除账号</button></div>",
+      "css": ".ds-dz{display:flex;gap:8px;justify-content:flex-end;max-width:360px}.ds-dz-cancel,.ds-dz-btn{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-dz-cancel:hover{background:color-mix(in srgb,var(--card,#fff) 92%,var(--ink,#14171c))}.ds-dz-btn{border-color:transparent;background:var(--flag-red,#c8372d);color:var(--on-flag-red,#fff)}.ds-dz-btn:hover{background:color-mix(in srgb,var(--flag-red,#c8372d) 86%,#000)}.ds-dz-cancel:focus-visible,.ds-dz-btn:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (pointer:coarse){.ds-dz-cancel,.ds-dz-btn{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-dz-cancel,.ds-dz-btn{transition:none}}@media (forced-colors:active){.ds-dz-btn{border-color:ButtonText}}"
+    },
+    {
+      "name": "字段与搜索框",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "字段底、1px 线框、9px 圆角；悬停边框向墨色加深，聚焦时边框转米游社蓝并加 3px accent-ring 外晕，光标米游社蓝。搜索框把 16px 放大镜嵌在左侧。",
+      "html": "<div class=\"ds-fields\"><label class=\"ds-search\"><svg class=\"ds-search-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M14.2 8.8a5.4 5.4 0 1 1-10.8 0 5.4 5.4 0 0 1 10.8 0z M12.7 12.7 16.6 16.6\"/></svg><span class=\"ds-sr\">搜索昵称、QQ、通行证或 UID</span><input type=\"search\" placeholder=\"搜索昵称、QQ、通行证或 UID\"></label><label class=\"ds-label\">自定义设备标识（留空自动生成）<input type=\"text\" autocomplete=\"off\" spellcheck=\"false\"></label></div>",
+      "css": ".ds-fields{display:grid;gap:14px;max-width:360px;font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-label{display:grid;gap:6px;font-size:13px;font-weight:600}.ds-search{position:relative;display:block}.ds-search-i{position:absolute;top:50%;left:11px;color:var(--ink-2,#566070);translate:0 -50%;pointer-events:none;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-fields input{box-sizing:border-box;width:100%;min-width:0;min-height:38px;padding:7px 11px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--field,#fff);color:var(--ink,#14171c);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;caret-color:var(--accent,#0b6fd0);transition:border-color 140ms,box-shadow 140ms}.ds-search input{padding-left:34px}.ds-fields input:hover{border-color:color-mix(in srgb,var(--line,#c3cad4) 55%,var(--ink,#14171c))}.ds-fields input:focus-visible{border-color:var(--accent,#0b6fd0);outline:none;box-shadow:0 0 0 3px var(--accent-ring,rgb(11 111 208 / 22%))}.ds-fields input::placeholder{color:var(--ink-2,#566070);opacity:1}.ds-sr{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@media (pointer:coarse){.ds-fields input{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-fields input{transition:none}}"
+    },
+    {
+      "name": "索引页签",
+      "kind": "nav",
+      "refersTo": "tabs",
+      "description": "凹槽轨道里的「全部 / 需处理 / 可用」，各带等宽计数；按下的页签铺卡纸并带按下投影，从不用蓝。",
+      "html": "<div class=\"ds-tabs\" role=\"group\" aria-label=\"按状态筛选\"><button type=\"button\" class=\"ds-tab\" aria-pressed=\"true\">全部<span class=\"ds-tab-count\">7</span></button><button type=\"button\" class=\"ds-tab\" aria-pressed=\"false\">需处理<span class=\"ds-tab-count\">3</span></button><button type=\"button\" class=\"ds-tab\" aria-pressed=\"false\">可用<span class=\"ds-tab-count\">4</span></button></div>",
+      "css": ".ds-tabs{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--well,#dfe3e9)}.ds-tab{display:inline-flex;gap:6px;align-items:center;min-height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--ink-2,#566070);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,color 140ms,box-shadow 140ms}.ds-tab:hover{background:var(--hover,rgb(20 23 28 / 6%));color:var(--ink,#14171c)}.ds-tab[aria-pressed=true],.ds-tab[aria-pressed=true]:hover{background:var(--card,#fff);color:var(--ink,#14171c);box-shadow:0 1px 2px rgb(10 16 28 / 12%)}.ds-tab:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-tab-count{margin-left:2px;color:var(--ink-2,#566070);font-weight:500;font-variant-numeric:tabular-nums}@media (prefers-reduced-motion:reduce){.ds-tab{transition:none}}@media (forced-colors:active){.ds-tab[aria-pressed=true]{border:1px solid ButtonText}}"
+    },
+    {
+      "name": "名片与空位",
+      "kind": "card",
+      "refersTo": "account-card",
+      "description": "册页上的一格名片：朱红索引贴压在名片上缘背后，头像与昵称领头，账本四列（标签、自适应、4.4em 等级、7.2em UID）右对齐等宽数字，底栏印状态词与证据加安静按钮；勾选时外加 2px 墨色环。旁边是「扫码添加账号」虚线空位，悬停转米游社蓝。示例数据均为虚构。",
+      "html": "<ul class=\"ds-sheet\"><li class=\"ds-slot\"><article class=\"ds-card\" aria-labelledby=\"ds-card-name\"><span class=\"ds-flag ds-flag-red\">需重新登录</span><header class=\"ds-person\"><span class=\"ds-avatar\" aria-hidden=\"true\">柚</span><div class=\"ds-person-text\"><h3 class=\"ds-name\" id=\"ds-card-name\">阿柚（示例）</h3><p class=\"ds-contact\">QQ <span class=\"ds-num\">20230002</span></p></div><label class=\"ds-mark\"><input type=\"checkbox\" aria-label=\"选择 阿柚（示例）的米游社账号 288812345\"></label></header><dl class=\"ds-ledger\"><div class=\"ds-row ds-pass\"><dt>米游社通行证</dt><dd class=\"ds-num\">288812345</dd></div><div class=\"ds-row\"><dt>原神</dt><dd>柚子</dd><dd class=\"ds-level\"><span class=\"ds-sr\">等级 </span>Lv.58</dd><dd class=\"ds-num\"><span class=\"ds-sr\">UID </span>101987654</dd></div><div class=\"ds-row\"><dt>星铁</dt><dd>柚子开拓</dd><dd class=\"ds-level\"><span class=\"ds-sr\">等级 </span>Lv.66</dd><dd class=\"ds-num\"><span class=\"ds-sr\">UID </span>801987654</dd></div></dl><footer class=\"ds-foot\"><p class=\"ds-state\"><strong>需重新登录</strong><span>刷新 · 10/12 04:09</span></p><div class=\"ds-acts\"><button type=\"button\" class=\"ds-act\"><svg class=\"ds-act-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M10 2.8 4.3 5v4.4c0 3.6 2.4 6.2 5.7 7.6 3.3-1.4 5.7-4 5.7-7.6V5z M7.4 10l1.9 1.9 3.4-3.6\"/></svg>检查状态</button><button type=\"button\" class=\"ds-act\"><svg class=\"ds-act-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M15.8 10a5.8 5.8 0 0 1-10 4 M4.2 10a5.8 5.8 0 0 1 10-4 M14.6 3.2V6.2h-3 M5.4 16.8v-3h3\"/></svg>刷新凭据</button><button type=\"button\" class=\"ds-act ds-pull\">管理<svg class=\"ds-act-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></button></div></footer></article></li><li class=\"ds-slot\"><button type=\"button\" class=\"ds-sleeve\"><svg class=\"ds-sleeve-i\" viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M10 4.5v11 M4.5 10h11\"/></svg>扫码添加账号</button></li></ul>",
+      "css": ".ds-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:40px 18px;margin:0;padding:26px 0 0;list-style:none;font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-slot{display:grid;min-width:0;isolation:isolate}.ds-card{position:relative;display:grid;grid-template-rows:auto 1fr auto;gap:14px;min-width:0;padding:18px 18px 12px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-card:has(.ds-mark input:checked){box-shadow:0 0 0 2px var(--ink,#14171c),var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-flag{position:absolute;z-index:-1;top:-25px;left:22px;padding:3px 10px 16px;border-radius:7px 7px 0 0;font-size:12px;font-weight:650;line-height:18px;letter-spacing:.02em}.ds-flag-red{background:var(--flag-red,#c8372d);color:var(--on-flag-red,#fff)}.ds-person{display:flex;gap:14px;align-items:center;min-width:0}.ds-avatar{display:inline-grid;flex:none;place-items:center;width:48px;height:48px;border-radius:50%;background:#e6e1f6;color:#4b3b8f;box-shadow:inset 0 0 0 1px rgb(0 0 0 / 6%);font-size:18px;font-weight:650}.ds-person-text{flex:1;min-width:0}.ds-name{overflow:hidden;margin:0;font-size:18px;font-weight:650;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.ds-contact{overflow:hidden;margin:2px 0 0;color:var(--ink-2,#566070);font-size:13px;text-overflow:ellipsis;white-space:nowrap}.ds-mark{display:grid;place-items:center;align-self:flex-start;width:36px;height:36px;margin:-8px -8px 0 0;border-radius:8px;cursor:pointer}.ds-mark:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-mark input{width:18px;height:18px;margin:0;accent-color:var(--ink,#14171c);cursor:pointer}.ds-mark input:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-ledger{display:grid;align-content:start;margin:0;font-size:13px}.ds-row{display:grid;grid-template-columns:3.6em minmax(0,1fr) 4.4em 7.2em;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-row dt{color:var(--ink-2,#566070)}.ds-row dd{overflow:hidden;margin:0;text-overflow:ellipsis;white-space:nowrap}.ds-pass dt{grid-column:1/4}.ds-level{color:var(--ink-2,#566070);text-align:right;font-variant-numeric:tabular-nums}.ds-num{font-variant-numeric:tabular-nums;text-align:right;letter-spacing:.01em}.ds-contact .ds-num{text-align:left}.ds-foot{display:grid;gap:4px;padding-top:10px;border-top:1px solid var(--rule,#e6e9ee)}.ds-state{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center;margin:0;color:var(--ink-2,#566070);font-size:13px}.ds-state strong{color:var(--ink,#14171c);font-weight:650}.ds-acts{display:flex;gap:2px;margin:0 -10px}.ds-act{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms;font-weight:500}.ds-act:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-act:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-act-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--ink-2,#566070)}.ds-act:hover .ds-act-i{color:var(--ink,#14171c)}.ds-pull{margin-left:auto}.ds-sleeve{display:grid;gap:10px;place-content:center;justify-items:center;width:100%;height:100%;min-height:228px;padding:16px;border:1.5px dashed var(--line,#c3cad4);border-radius:14px;background:transparent;color:var(--ink-2,#566070);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;cursor:pointer;transition:border-color 140ms,color 140ms}.ds-sleeve:hover{border-color:var(--accent,#0b6fd0);color:var(--accent-ink,#0a61b5)}.ds-sleeve:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-sleeve-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-sr{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@media (pointer:coarse){.ds-act{min-height:44px}.ds-mark{width:44px;height:44px;margin:-12px -12px 0 0}}@media (prefers-reduced-motion:reduce){.ds-act,.ds-sleeve{transition:none}}@media (forced-colors:active){.ds-card,.ds-flag,.ds-sleeve{border:1px solid CanvasText}.ds-card:has(.ds-mark input:checked){outline:3px solid Highlight}}"
+    },
+    {
+      "name": "下一步提示带",
+      "kind": "custom",
+      "refersTo": "band",
+      "description": "册页顶部唯一的提示带：一句话、最多一个动作，只说最急的一件；全部可用时退成无底色的次级文字，前面是凹槽圆底里的对勾。",
+      "html": "<div class=\"ds-bands\"><div class=\"ds-band\"><p><strong class=\"ds-band-count\">1</strong> 个账号需要重新登录：请账号主人重新扫码，或清理失效账号。</p><button type=\"button\" class=\"ds-band-act\">只看需处理<svg class=\"ds-band-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></button></div><div class=\"ds-band ds-band-calm\"><p><span class=\"ds-band-mark\" aria-hidden=\"true\"><svg class=\"ds-band-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4.6 10.4 8.1 13.9 15.4 6.1\"/></svg></span><strong class=\"ds-band-count\">7</strong> 个账号全部可用。</p></div></div>",
+      "css": ".ds-bands{display:grid;gap:18px;max-width:720px;padding:16px;background:var(--page,#eceff3);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-band{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;min-height:48px;padding:6px 8px 6px 16px;border-radius:12px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-band p{margin:0;font-weight:600}.ds-band-count{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}.ds-band-act{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms}.ds-band-act:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-band-act:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-band-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-band-calm{min-height:0;padding:0 2px;background:none;box-shadow:none;color:var(--ink-2,#566070)}.ds-band-calm p,.ds-band-calm .ds-band-count{font-size:14px;font-weight:500}.ds-band-mark{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;border-radius:50%;background:var(--well,#dfe3e9);color:var(--ink-2,#566070);vertical-align:middle}@media (pointer:coarse){.ds-band-act{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-band-act{transition:none}}"
+    },
+    {
+      "name": "批量操作条",
+      "kind": "custom",
+      "refersTo": "batch-dock",
+      "description": "勾选名片后粘在册页底部的卡纸条，比卡纸投影多一道长投影；进行中展开结果区：状态行、4px 墨色进度条与逐行结果，未完成只加粗、不着红。示例数据均为虚构。",
+      "html": "<section class=\"ds-dock\" aria-label=\"批量维护\"><div class=\"ds-dock-batch\"><div class=\"ds-dock-head\"><p role=\"status\"><strong>检查登录状态</strong> · 处理中 · 已处理 <span class=\"ds-dock-num\">2 / 3</span> 个账号</p><button type=\"button\" class=\"ds-dock-btn\">停止剩余操作</button></div><div class=\"ds-meter\" aria-hidden=\"true\"><span style=\"inline-size:66%\"></span></div><ul class=\"ds-dock-items\"><li><span>晚风（示例） · 米游社 301245678</span><strong>成功</strong></li><li class=\"ds-failed\"><span>阿柚（示例） · 米游社 288812345</span><strong>未完成</strong><p>登录已失效，需要账号主人重新扫码。</p></li></ul></div><div class=\"ds-dock-tools\"><strong>已选 <span class=\"ds-dock-num\">3</span> 个账号</strong><span class=\"ds-dock-actions\"><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M10 2.8 4.3 5v4.4c0 3.6 2.4 6.2 5.7 7.6 3.3-1.4 5.7-4 5.7-7.6V5z M7.4 10l1.9 1.9 3.4-3.6\"/></svg>检查所选</button><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M15.8 10a5.8 5.8 0 0 1-10 4 M4.2 10a5.8 5.8 0 0 1 10-4 M14.6 3.2V6.2h-3 M5.4 16.8v-3h3\"/></svg>刷新所选凭据</button><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4 6h12 M8 6V4.4h4V6 M5.6 6l.7 9.7a1.1 1.1 0 0 0 1.1 1h5.2a1.1 1.1 0 0 0 1.1-1L14.4 6\"/></svg>清理所选失效（1）</button></span><button type=\"button\" class=\"ds-dock-btn ds-dock-clear\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M5.5 5.5l9 9 M14.5 5.5l-9 9\"/></svg>取消选择</button></div></section>",
+      "css": ".ds-dock{display:grid;gap:10px;max-width:780px;padding:10px 12px 12px 16px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%)),0 18px 36px -18px rgb(10 16 28 / 32%);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-dock p{margin:0}.ds-dock-batch{display:grid;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--rule,#e6e9ee)}.ds-dock-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}.ds-dock-head strong,.ds-dock-tools>strong{font-weight:650}.ds-dock-num{font-variant-numeric:tabular-nums}.ds-meter{block-size:4px;overflow:hidden;border-radius:999px;background:var(--well,#dfe3e9)}.ds-meter span{display:block;block-size:100%;border-radius:inherit;background:var(--ink,#14171c);transition:inline-size 240ms cubic-bezier(.2,.8,.2,1)}.ds-dock-items{display:grid;margin:0;padding:0;list-style:none}.ds-dock-items li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;align-items:baseline;padding:8px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-dock-items strong{font-weight:500}.ds-dock-items .ds-failed strong{font-weight:700}.ds-dock-items li p{grid-column:1/-1;color:var(--ink-2,#566070);font-size:13px}.ds-dock-tools{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.ds-dock-actions{display:flex;flex-wrap:wrap;gap:2px}.ds-dock-btn{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms}.ds-dock-btn:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-dock-btn:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-dock-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-dock-clear{margin-left:auto}@media (pointer:coarse){.ds-dock-btn{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-meter span,.ds-dock-btn{transition:none}}"
+    },
+    {
+      "name": "桌面区与名片背面",
+      "kind": "card",
+      "refersTo": "card-reverse",
+      "description": "取出名片后的桌面区：desk 底色的平面托盘，「放回名片册」在顶部；名片背面是一张卡纸，各节以 rule 顶线分隔，折叠项带 ink-2 图标、右侧状态摘要与旋转箭头，授权插件勾选行铺 tile。",
+      "html": "<aside class=\"ds-desk\"><div class=\"ds-desk-head\"><button type=\"button\" class=\"ds-desk-back\"><svg class=\"ds-desk-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M16 10H4.5 M9 5.5 4.5 10 9 14.5\"/></svg>放回名片册</button></div><div class=\"ds-reverse\"><section class=\"ds-sec\"><h3>公共查询池</h3><p>未开启。需要共享时，由账号所属用户本人发送「共享查询账号 开启」设置游戏范围与额度。</p></section><details class=\"ds-disc\"><summary><svg class=\"ds-desk-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M7 2.8h6a1.1 1.1 0 0 1 1.1 1.1v12.2a1.1 1.1 0 0 1-1.1 1.1H7a1.1 1.1 0 0 1-1.1-1.1V3.9A1.1 1.1 0 0 1 7 2.8z M9 14.6h2\"/></svg><span>设备信息与重置</span><svg class=\"ds-desk-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">读取设备状态后，可以重置此账号插件使用的设备标识。</p></details><details class=\"ds-disc\"><summary><svg class=\"ds-desk-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M6.2 15.4h8.2a3 3 0 0 0 .3-6 4.4 4.4 0 0 0-8.5-1 3.5 3.5 0 0 0 0 7z\"/></svg><span>云游戏独立授权</span><span class=\"ds-disc-state\">未配置</span><svg class=\"ds-desk-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">云 Token 先在浏览器加密，再写入加密账号库。</p></details><div class=\"ds-sec\"><fieldset><legend>允许使用此账号的插件</legend><label class=\"ds-check\"><input type=\"checkbox\" checked><span>原神<small>raylea.genshin</small></span></label><label class=\"ds-check\"><input type=\"checkbox\"><span>星穹铁道<small>raylea.starrail</small></span></label></fieldset><div><button type=\"button\" class=\"ds-desk-primary\">保存授权</button></div></div></div></aside>",
+      "css": ".ds-desk{display:grid;gap:18px;max-width:460px;padding:18px 20px 22px;border-radius:18px;background:var(--desk,#e1e5eb);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-desk p{margin:0}.ds-desk-head{display:flex;align-items:center;min-height:36px}.ds-desk-back{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms;margin-left:-10px}.ds-desk-back:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-desk-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-reverse{display:grid;padding:2px 18px 16px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-sec{display:grid;gap:12px;padding:16px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-reverse>:first-child{border-top:0}.ds-sec h3{margin:0;font-size:15px;font-weight:650;line-height:1.4}.ds-sec>p{font-size:13px}.ds-disc{border-top:1px solid var(--rule,#e6e9ee)}.ds-disc summary{display:flex;gap:10px;align-items:center;min-height:48px;font-weight:650;list-style:none;cursor:pointer}.ds-disc summary::-webkit-details-marker{display:none}.ds-disc-i{color:var(--ink-2,#566070)}.ds-disc-state{margin-left:auto;color:var(--ink-2,#566070);font-size:13px;font-weight:400}.ds-disc-chev{margin-left:auto;color:var(--ink-2,#566070);transition:rotate 160ms cubic-bezier(.2,.8,.2,1)}.ds-disc-state+.ds-disc-chev{margin-left:4px}.ds-disc[open] .ds-disc-chev{rotate:90deg}.ds-disc-body{padding:0 0 16px;color:var(--ink-2,#566070);font-size:13px}.ds-sec fieldset{display:grid;gap:8px;min-width:0;margin:0;padding:0;border:0}.ds-sec legend{margin-bottom:10px;padding:0;font-weight:650}.ds-check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--tile,#f1f3f6);cursor:pointer}.ds-check span{display:grid}.ds-check small{color:var(--ink-2,#566070);font-size:12px}.ds-check input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--ink,#14171c)}.ds-desk-primary{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms;border-color:transparent;background:var(--accent,#0b6fd0);color:var(--on-accent,#fff)}.ds-desk-primary:hover{background:color-mix(in srgb,var(--accent,#0b6fd0) 86%,var(--ink,#14171c))}.ds-desk-back:focus-visible,.ds-desk-primary:focus-visible,.ds-disc summary:focus-visible,.ds-check input:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (pointer:coarse){.ds-check{min-height:44px;align-items:center}.ds-desk-back,.ds-desk-primary{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-disc-chev,.ds-desk-back,.ds-desk-primary{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "名片册",
+    "overview": "「账号管理」是一本名片册。每个已绑定的米游社或 HoYoLab 通行证是一张白卡纸名片：QQ 头像与昵称领头，通行证是名片上的所属机构，游戏角色是头衔。名片三到四张一行插在冷灰册页上，同一个人的名片相邻。需要处理的名片上缘插着一枚写字的索引贴；管理员把名片取出到右侧约 460px 的桌面区，在放大的名片和它的背面上处理角色、设备、云授权与授权插件，处理完放回原位。勾选几张名片，册页底部浮起批量操作条；账号库、密钥保护、ark 令牌与跨聊天关联在册子末页。这个方向明确拒绝「账号表格加状态列」的默认排法。\n\n材料只有纸和墨。册页、桌面区与末页是三种冷灰中性底，名片是白卡纸，边缘一圈细线加一道贴近纸面的短投影；文字是近黑墨色。全页只有一枚专色米游社蓝，留给主操作、取出的名片与焦点；朱红与琥珀只以索引贴出现在册页上。层级只靠字号对比，昵称是每张名片上最大的字；数字一律等宽，名片里的数字列右对齐，同一行名片的数字上下成列。每个状态都附带证据：最近一次检查或刷新的结果与时间印在名片正面。\n\n动效只有一个招牌时刻：取出名片时，view transition 把同一张名片从册页移到桌面区，放回时原路返回；减少动态效果时直接切换。其余只是控件状态的短过渡、折叠箭头的旋转、批量进度条的伸长与读取骨架的微光。\n\n本文件记录 src/ 中已实现的视觉系统。token 数值以 src/styles.css 的 :root 为准，每个主题相关的颜色是一对 light-dark() 值；头像色在 src/Avatar.vue，图标在 src/Icon.vue；方向约定见 .impeccable/surfaces/src-app-vue.md。",
+    "keyCharacteristics": [
+      "名片册结构：顶部一条下一步提示带，其下是索引页签、搜索与主操作，主体是名片网格，取出的名片在右侧桌面区，账号库与设置在末页。",
+      "白卡纸名片：头像与昵称领头，通行证一行，角色逐行列出游戏、昵称、等级与 UID，底部印着状态词与检查证据。",
+      "一枚专色：米游社蓝只给主操作、取出的名片与焦点；勾选、页签与进度都用墨色。",
+      "索引贴：朱红表示需重新登录，琥珀表示待检查或需验证，贴在名片上缘、压在名片背后。",
+      "系统界面字体、等宽数字与同一套 20px 网格的线描图标；不加载外部字体或脚本，外部图片只有经 HTTPS 加载的 QQ 头像。"
+    ],
+    "rules": [
+      {
+        "name": "「一枚专色」规则",
+        "body": "米游社蓝只给三处：主操作、取出的名片和焦点（含字段聚焦外晕、输入光标与文本选区）；文字链接用 accent-ink。勾选、页签、分段选项、计数、进度条、状态词和装饰一律不用蓝。",
+        "section": "colors"
+      },
+      {
+        "name": "「红黄只在索引贴」规则",
+        "body": "静止的册页上，朱红与琥珀只以索引贴出现；名片底部的状态词、提示带和计数都是墨色。朱红实底的破坏性按钮只在确认对话框或确认条里出现；danger 与 attention 只用于出错和需重试的文字。",
+        "section": "colors"
+      },
+      {
+        "name": "「勾选用墨，取出用蓝」规则",
+        "body": "勾选的名片加 2px 墨色外环，复选框是墨色；只有取出到桌面区的那一张加 2px 米游社蓝外环。",
+        "section": "colors"
+      },
+      {
+        "name": "「昵称最大」规则",
+        "body": "每张名片上最大的字是昵称（取出后放大到 22px）；状态、通行证与角色都更小。层级只靠字号对比，不用颜色、徽标或图标给名片排序。",
+        "section": "typography"
+      },
+      {
+        "name": "「数字成列」规则",
+        "body": "QQ 号、通行证 ID、UID、等级和各种计数一律用等宽数字；名片里的等级与 UID 落在固定宽度的列里右对齐（等级列 4.4em、UID 列 7.2em），同一行名片的数字上下成列。联系行里的 QQ 号跟在昵称下方左对齐。",
+        "section": "typography"
+      },
+      {
+        "name": "「一条提示带」规则",
+        "body": "册页顶部只有一条下一步提示带：一句话、最多一个动作，按需重新登录、需在官方应用验证、待检查的顺序只说最急的一件；全部可用时它退成一行无底色的次级文字。",
+        "section": "layout"
+      },
+      {
+        "name": "「贴着纸面」规则",
+        "body": "名片与面板只用卡纸投影：细边加贴近纸面的短投影，悬停不抬升、不加深；册页、桌面区与末页是平的色面。只有批量操作条和确认对话框浮得更高。",
+        "section": "elevation"
+      },
+      {
+        "name": "「虚线是空位」规则",
+        "body": "1.5px 虚线框只表示名片册里的空位：取出名片后留下的格位、网格末尾的「扫码添加账号」空位，以及空册子的示意；悬停可添加的空位时虚线转为米游社蓝。",
+        "section": "shapes"
+      },
+      {
+        "name": "「取出与放回」规则",
+        "body": "处理一张名片就是把它取出：同一张名片移到桌面区，原位留下写着谁的名片已取出的空位；同一时间桌面区只放一张名片或一个添加账号面板。",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do 让每张名片先回答「这是谁的」：头像、昵称与 QQ 号领头，再列通行证与角色。",
+      "Do 在状态词旁印出证据：最近一次检查或刷新的结果与时间，没检查过就写「尚未检查」。",
+      "Do 用写字的索引贴挑出要处理的名片：朱红为需重新登录，琥珀为待检查或需验证；贴上的字、名片底栏的状态词与「需处理」筛选保持一致。",
+      "Do 在桌面区处理一张名片：放大的名片在上，背面依次是角色、公共查询池、设备、云授权、授权插件与移除账号。",
+      "Do 把主题相关的颜色写成 src/styles.css 里 :root 上的一对 light-dark()；[data-theme] 只切换 color-scheme。",
+      "Do 所有图标都用 src/Icon.vue 的同一套线描：20px 网格、1.6px 圆头描边、跟随文字颜色。",
+      "Do 在粗指针与窄屏下让按钮、输入框、下拉与勾选行至少 44px 高；减少动态效果时取消所有过渡，取出名片直接切换。"
+    ],
+    "donts": [
+      "Don't 回到「账号表格加状态列」的排法；账号是名片册里的名片。",
+      "Don't 把米游社蓝用在状态、计数、页签、勾选、进度条或装饰上。",
+      "Don't 给名片的状态词、提示带或计数染红或琥珀；紧急程度只由索引贴表达。",
+      "Don't 把索引贴当作标题标签、分节标记或装饰；它只标出需要处理的名片，以及合上的册子。",
+      "Don't 在册页上加第二条提示带或横幅。",
+      "Don't 让名片悬停抬升，或给它们加宽而软的投影；名片是贴着纸面的白卡纸。",
+      "Don't 只用颜色表达状态：索引贴必须写字，状态词写在名片底栏。",
+      "Don't 加载外部字体、脚本、样式或 CDN 资源，也不用字符或 emoji 代替图标；外部图片只有经 HTTPS 加载的 QQ 头像。",
+      "Don't 在页面内重复宿主标题、插件名称或全局导航。"
+    ]
+  }
+}
