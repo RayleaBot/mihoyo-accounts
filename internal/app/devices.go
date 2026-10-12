@@ -32,6 +32,9 @@ func (a *App) manageDevice(ctx context.Context, store accounts.SecretStore, acti
 	if err != nil {
 		return nil, err
 	}
+	if err := checkManagementOwner(ctx, record.Owner); err != nil {
+		return nil, err
+	}
 	if action == "accounts.device.import" {
 		var q struct {
 			Revision uint64         `json:"revision"`

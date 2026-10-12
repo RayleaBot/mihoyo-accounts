@@ -53,7 +53,7 @@ func (r *Repository) Select(ctx context.Context, store SecretStore, cipher *vaul
 		}
 		selection := Selection{AccountRef: ref, RoleRef: roleRef}
 		values[role.Game] = selection
-		return selection, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".defaults": values})
+		return selection, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".defaults": values, owner.Key() + ".owner": owner})
 	}
 	return Selection{}, ErrNotFound
 }

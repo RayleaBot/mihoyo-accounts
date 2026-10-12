@@ -4,7 +4,7 @@ import App from '../src/App.vue'
 
 const invokeAction = vi.hoisted(() => vi.fn())
 vi.mock('@rayleabot/plugin-ui', () => ({
-  usePluginHost: () => ({ ready: Promise.resolve(), loading: { value: false }, client: { invokeAction } }),
+  usePluginHost: () => ({ ready: Promise.resolve(), loading: { value: false }, page: { value: { id: 'global', scope: 'global' } }, bot: { value: null }, client: { invokeAction } }),
 }))
 
 it('shows native key recovery guidance and accepts a restored password key after refreshing', async () => {

@@ -10,7 +10,7 @@ const active = computed(() => batch.value?.state === 'running')
 const invalid = computed(() => props.selected.filter(a => a.status === 'invalid'))
 const modeNames = { check: '检查登录状态', refresh: '刷新凭据', remove_invalid: '清理失效账号', statistics: '统计账号' }
 let controller: AbortController | undefined, disposed = false
-function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id} · ${ownerBotLabel(account.owner, props.bots)}` }
+function label(account: Account) { return `${account.account_label} · ${account.owner.actor_id} · ${account.owner.source_protocol} / ${ownerBotLabel(account.owner, props.bots)}` }
 function time(ms?: number) { return ms ? new Date(ms).toLocaleString('zh-CN') : '尚未完成' }
 function finishedWork() { busy.value = false; emit('working', false) }
 async function perform(mode?: Batch['mode'], items?: { account_ref: string; revision: number }[]) {

@@ -42,6 +42,18 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	if len(games) == 0 {
 		return nil, failure("plugin.account_caller_denied")
 	}
+	admin := management(request.Origin)
+	var bot rayleabot.BotAccount
+	if admin {
+		if request.Params["all"] == true {
+			return nil, failure("plugin.account_subject_denied")
+		}
+		if request.Origin.Bot != nil {
+			bot = rayleabot.BotAccount(*request.Origin.Bot)
+		} else if request.Method != "ark.status" && request.Method != "ark.request" && request.Method != "public.execute" {
+			return nil, failure("platform.invalid_request")
+		}
+	}
 	a.vaultGate.RLock()
 	defer a.vaultGate.RUnlock()
 	cipher, err := a.Vault.Cipher()
@@ -49,7 +61,6 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		return nil, err
 	}
 	owner := originSubject(request.Origin)
-	admin := management(request.Origin)
 	scheduled := request.Origin.EventType == "scheduler.trigger" && request.Origin.SourceProtocol == "scheduler" && request.Origin.SourceAdapter == "scheduler.internal" && request.Origin.TaskID != "" && request.Method == "execute"
 	if !admin && !scheduled && owner.Validate() != nil {
 		return nil, failure("plugin.account_subject_denied")
@@ -62,6 +73,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		}
 		if decode(raw, &owner) != nil || owner.Validate() != nil {
 			return nil, failure("plugin.account_input_invalid")
+		}
+		if !ownsBot(bot, owner) {
+			return nil, failure("plugin.account_subject_denied")
 		}
 	}
 	if request.Method == "public.execute" {
@@ -91,7 +105,19 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 		if all && !superAdmin(request.Origin, policy.SuperAdmins) {
 			return nil, failure("plugin.account_subject_denied")
 		}
-		if owner.Validate() == nil && !all {
+		if admin && owner.Validate() == nil {
+			items, err = a.Repo.ListForBotSubject(ctx, store, cipher, owner)
+		} else if admin {
+			var input struct {
+				Page int `json:"page"`
+			}
+			if decode(request.Params, &input) != nil {
+				return nil, failure("plugin.account_input_invalid")
+			}
+			filter := accounts.Subject{SourceProtocol: bot.SourceProtocol, BotID: bot.BotID}
+			page, listErr := a.Repo.ListOwnedPage(ctx, store, cipher, filter, input.Page)
+			err, items, next = listErr, page.Items, page.NextPage
+		} else if owner.Validate() == nil && !all {
 			items, err = a.Repo.List(ctx, store, cipher, owner)
 		} else {
 			var input struct {
@@ -163,6 +189,9 @@ func (a *App) Service(ctx context.Context, store accounts.SecretStore, policy Po
 	record, err := a.Repo.Get(ctx, store, cipher, ref)
 	if err != nil {
 		return nil, err
+	}
+	if admin && !ownsBot(bot, record.Owner) {
+		return nil, failure("plugin.account_subject_denied")
 	}
 	if !slices.Contains(record.AllowedCallers, request.CallerPluginID) {
 		return nil, failure("plugin.account_caller_denied")

@@ -152,7 +152,6 @@ func TestHashOnlyMigrationRetriesAndSerializesUIDChanges(t *testing.T) {
 	owner := Subject{"onebot11", "current-connection", "bot", "no-account"}
 	store := botSecrets{memorySecrets: &memorySecrets{values: map[string]string{}}, bot: owner}
 	old := owner
-	old.BotID = ""
 	oldKey := oldSubjectKey(old)
 	choice := Selection{AccountRef: "saved-default", RoleRef: "role"}
 	if err := writeEncrypted(ctx, store, cipher, map[string]any{
@@ -209,7 +208,7 @@ func (s botSecrets) ResolveBotID(protocol, adapter string) string {
 	return ""
 }
 
-func TestMissingBotRemainsVisibleUntilMatchingIdentityReturns(t *testing.T) {
+func TestMissingBotRequiresExplicitAssignment(t *testing.T) {
 	ctx := t.Context()
 	store := botSecrets{memorySecrets: &memorySecrets{values: map[string]string{}}, bot: Subject{"qqofficial", "old", "wrong-protocol", ""}}
 	cipher, _ := vault.NewCipher(vault.NewKey())
@@ -227,15 +226,22 @@ func TestMissingBotRemainsVisibleUntilMatchingIdentityReturns(t *testing.T) {
 		t.Fatal("unresolved record was hidden or guessed", page, err)
 	}
 	store.bot.SourceProtocol, store.bot.BotID = "onebot11", "recovered"
+	page, err = repo.ListPage(ctx, store, cipher, 0)
+	if err != nil || page.Items[0].Owner.BotID != "" {
+		t.Fatal("connection guessed the missing bot", page, err)
+	}
 	store.fail = true
-	if _, err := repo.Get(ctx, store, cipher, record.Ref); err == nil {
-		t.Fatal("failed catalog migration did not fail the access")
+	if err := repo.AssignMissingBot(ctx, store, cipher, owner, "recovered"); err == nil {
+		t.Fatal("failed assignment did not fail the access")
 	}
 	var saved Record
 	if _, err := readEncrypted(ctx, store, cipher, "account.unresolved", &saved); err != nil || saved.Owner != owner {
 		t.Fatal("failed migration removed its recovery hint", saved.Owner, err)
 	}
 	store.fail = false
+	if err := repo.AssignMissingBot(ctx, store, cipher, owner, "recovered"); err != nil {
+		t.Fatal(err)
+	}
 	owner.BotID, owner.SourceAdapter = "recovered", ""
 	items, err := repo.List(ctx, store, cipher, owner)
 	if err != nil || len(items) != 1 || items[0].Ref != record.Ref || items[0].SubjectPending || items[0].Revision != record.Revision+1 {
@@ -250,7 +256,7 @@ func TestDelegationBotRepairRejectsAnEarlierRecordSnapshot(t *testing.T) {
 	ctx := t.Context()
 	store := botSecrets{memorySecrets: &memorySecrets{values: map[string]string{}}}
 	cipher, _ := vault.NewCipher(vault.NewKey())
-	grantOwner := Subject{"qqofficial", "old", "", "alias"}
+	grantOwner := Subject{"onebot11", "old", "", "alias"}
 	record := Record{Ref: "delegated", Owner: Subject{SourceProtocol: "onebot11", BotID: "bot", ActorID: "owner"}, Revision: 5,
 		Delegations: []Delegation{{Owner: grantOwner, Ref: "grant", LastUsedAtMS: 1234}},
 	}
@@ -266,6 +272,9 @@ func TestDelegationBotRepairRejectsAnEarlierRecordSnapshot(t *testing.T) {
 	}
 	store.bot = grantOwner
 	store.bot.BotID = "recovered"
+	if err := repo.AssignMissingBot(ctx, store, cipher, grantOwner, "recovered"); err != nil {
+		t.Fatal(err)
+	}
 	after, err := repo.Get(ctx, store, cipher, record.Ref)
 	if err != nil || after.Summary().SubjectPending || after.Delegations[0].Owner.BotID != "recovered" || after.Delegations[0].LastUsedAtMS != 1234 {
 		t.Fatal("delegation repair lost identity or throttle state", after, err)

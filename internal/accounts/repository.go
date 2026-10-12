@@ -29,7 +29,6 @@ type SecretStore interface {
 type Repository struct {
 	mu       sync.Mutex
 	migrated bool
-	pending  []Subject
 }
 type catalog struct {
 	Pages  int `json:"pages"`
@@ -118,6 +117,16 @@ func (r *Repository) getLocked(ctx context.Context, store SecretStore, cipher *v
 }
 
 func (r *Repository) List(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject) ([]Summary, error) {
+	return r.list(ctx, store, cipher, owner, false)
+}
+
+// ListForBotSubject retains sharing within the selected bot, but checks the
+// stored owner before List projects a shared summary to the requesting subject.
+func (r *Repository) ListForBotSubject(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject) ([]Summary, error) {
+	return r.list(ctx, store, cipher, owner, true)
+}
+
+func (r *Repository) list(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject, withinBot bool) ([]Summary, error) {
 	if err := owner.Validate(); err != nil {
 		return nil, err
 	}
@@ -155,6 +164,9 @@ func (r *Repository) List(ctx context.Context, store SecretStore, cipher *vault.
 		}
 		if err != nil {
 			return nil, err
+		}
+		if withinBot && (record.Owner.SourceProtocol != owner.SourceProtocol || record.Owner.BotID != owner.BotID) {
+			continue
 		}
 		if record.Owner.Equal(owner) || slices.ContainsFunc(links, func(a Association) bool { return a.Primary.Equal(record.Owner) && a.Secondary.Equal(owner) }) {
 			summary := record.Summary()
@@ -271,7 +283,7 @@ func (r *Repository) Bind(ctx context.Context, store SecretStore, cipher *vault.
 	owned.Refs = append(owned.Refs, ref)
 	refs.Refs = append(refs.Refs, ref)
 	all.Active++
-	err := writeEncrypted(ctx, store, cipher, map[string]any{catalogKey: all, pageKey(page): refs, owner.Key(): owned, "account." + ref: record})
+	err := writeEncrypted(ctx, store, cipher, map[string]any{catalogKey: all, pageKey(page): refs, owner.Key(): owned, owner.Key() + ".owner": owner, "account." + ref: record})
 	return record, err
 }
 

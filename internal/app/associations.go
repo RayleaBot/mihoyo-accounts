@@ -159,12 +159,36 @@ func (a *App) manageAssociations(ctx context.Context, store accounts.SecretStore
 	}
 	if action == "accounts.associations.list" {
 		items, err := a.Repo.Associations(ctx, store, cipher)
+		if bot, ok := scopedBot(ctx); ok {
+			items = slices.DeleteFunc(items, func(link accounts.Association) bool {
+				return !ownsBot(bot, link.Primary) && !ownsBot(bot, link.Secondary)
+			})
+		}
 		return map[string]any{"items": items}, err
 	}
 	if action != "accounts.associations.remove" || input["confirm"] != true {
 		return nil, failure("plugin.account_write_confirmation_required")
 	}
-	err = a.Repo.Dissociate(ctx, store, cipher, stringValue(input["ref"]), nil)
+	var actor *accounts.Subject
+	if bot, ok := scopedBot(ctx); ok {
+		items, err := a.Repo.Associations(ctx, store, cipher)
+		if err != nil {
+			return nil, err
+		}
+		for _, link := range items {
+			if link.Ref == stringValue(input["ref"]) {
+				if ownsBot(bot, link.Primary) {
+					actor = &link.Primary
+				} else if ownsBot(bot, link.Secondary) {
+					actor = &link.Secondary
+				}
+			}
+		}
+		if actor == nil {
+			return nil, failure("plugin.account_subject_denied")
+		}
+	}
+	err = a.Repo.Dissociate(ctx, store, cipher, stringValue(input["ref"]), actor)
 	return map[string]any{"removed": err == nil}, err
 }
 func (a *App) associationCommand(ctx context.Context, event *rayleabot.EventContext, store accounts.SecretStore, owner accounts.Subject, command string) error {

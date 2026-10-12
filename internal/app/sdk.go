@@ -16,15 +16,6 @@ import (
 
 type sdkStore struct{ event *rayleabot.EventContext }
 
-func (s sdkStore) ResolveBotID(protocol, adapter string) string {
-	for _, bot := range s.event.Bots {
-		if bot.SourceProtocol == protocol && bot.SourceAdapter == adapter {
-			return bot.ID
-		}
-	}
-	return ""
-}
-
 func (s sdkStore) Read(ctx context.Context, key string) (string, bool, error) {
 	result, err := s.event.Actions().SecretRead(ctx, key)
 	if err != nil {
@@ -77,13 +68,10 @@ func (a *App) Handle(ctx context.Context, event *rayleabot.EventContext) error {
 		if event.Event.SourceProtocol != "management" {
 			return event.Fail("plugin.account_subject_denied", message("plugin.account_subject_denied"))
 		}
-		result, err := a.Manage(ctx, store, policy, stringValue(event.Event.Payload["action"]), object(event.Event.Payload["payload"]))
+		result, err := a.ManageEvent(ctx, store, policy, event.Event)
 		if err != nil {
 			failure := publicError(err)
 			return event.FailDetails(failure.Code, failure.Message, failure.Details)
-		}
-		if stringValue(event.Event.Payload["action"]) == "status" {
-			result["bots"] = event.Bots
 		}
 		return event.Result(result)
 	}

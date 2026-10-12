@@ -68,5 +68,5 @@ func (r *Repository) ChangeUIDBinding(ctx context.Context, store SecretStore, ci
 		binding.Current = uid
 	}
 	values[game] = binding
-	return binding, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".uids": values})
+	return binding, writeEncrypted(ctx, store, cipher, map[string]any{owner.Key() + ".uids": values, owner.Key() + ".owner": owner})
 }

@@ -112,6 +112,9 @@ func (a *App) manageCookieImport(ctx context.Context, store accounts.SecretStore
 	if job == nil {
 		return nil, failure("plugin.account_overseas_missing")
 	}
+	if err := checkManagementOwner(ctx, job.owner); err != nil {
+		return nil, err
+	}
 	if action == "accounts.import.cancel" {
 		job.tokens = accounts.Tokens{}
 		delete(a.imports.items, ref)

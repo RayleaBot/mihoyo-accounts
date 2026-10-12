@@ -34,6 +34,9 @@ func (a *App) Manage(ctx context.Context, store accounts.SecretStore, policy Pol
 			}
 			scope = owner.Key()
 		}
+		if bot, ok := scopedBot(ctx); ok {
+			scope += ":" + bot.SourceProtocol + ":" + bot.BotID
+		}
 		return a.shareRefresh(ctx, action+":"+stringValue(input["account_ref"])+":"+scope, func() (map[string]any, error) { return a.manage(ctx, store, policy, action, input) })
 	}
 	return a.manage(ctx, store, policy, action, input)
@@ -136,8 +139,23 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	if strings.HasPrefix(action, "ark.") {
 		return a.manageArk(ctx, store, cipher, action, input)
 	}
+	if strings.HasPrefix(action, "subjects.") {
+		return a.manageSubject(ctx, store, cipher, action, input)
+	}
 	switch action {
 	case "accounts.list":
+		if bot, ok := scopedBot(ctx); ok {
+			var query struct {
+				Page    int              `json:"page"`
+				Subject accounts.Subject `json:"subject"`
+			}
+			if decode(input, &query) != nil {
+				return nil, failure("plugin.account_input_invalid")
+			}
+			query.Subject.SourceProtocol, query.Subject.BotID = bot.SourceProtocol, bot.BotID
+			page, err := a.Repo.ListOwnedPage(ctx, store, cipher, query.Subject, query.Page)
+			return map[string]any{"items": page.Items, "total": page.Total, "next_page": page.NextPage}, err
+		}
 		if raw, exists := input["subject"]; exists {
 			var owner accounts.Subject
 			if decode(raw, &owner) != nil || owner.Validate() != nil {
@@ -163,6 +181,13 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 		return map[string]any{"login": view}, loginErr
 	case "login.poll", "login.cancel":
 		ref := stringValue(input["login_ref"])
+		job, err := a.getLogin(ref)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkManagementOwner(ctx, job.owner); err != nil {
+			return nil, err
+		}
 		if action == "login.cancel" {
 			view, cancelErr := a.cancelLogin(ref)
 			return map[string]any{"login": view}, cancelErr
@@ -184,6 +209,9 @@ func (a *App) manage(ctx context.Context, store accounts.SecretStore, policy Pol
 	defer release()
 	record, err := a.Repo.Get(ctx, store, cipher, ref)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkManagementOwner(ctx, record.Owner); err != nil {
 		return nil, err
 	}
 	if raw, ok := input["subject"]; ok {

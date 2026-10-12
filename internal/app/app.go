@@ -204,6 +204,8 @@ func nativeKeyUnavailableError() *rayleabot.ActionError {
 
 func message(code string) string {
 	switch code {
+	case "platform.invalid_request":
+		return "此操作需要当前机器人账号，请从账号页重试。"
 	case "plugin.account_overseas_missing":
 		return "Cookie 导入流程不存在或已过期，请重新加密导入。"
 	case "plugin.account_overseas_sequence":

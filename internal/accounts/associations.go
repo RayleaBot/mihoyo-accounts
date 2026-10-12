@@ -114,8 +114,12 @@ func (r *Repository) Dissociate(ctx context.Context, store SecretStore, cipher *
 	if actor != nil && !actor.Equal(link.Primary) && !actor.Equal(link.Secondary) {
 		return ErrAssociation
 	}
-	defaults, err := r.defaultsLocked(ctx, store, cipher, link.Secondary)
-	if err != nil {
+	defaultsKey := link.Secondary.Key() + ".defaults"
+	if link.Secondary.BotID == "" {
+		defaultsKey = legacySubjectKey(link.Secondary) + ".defaults"
+	}
+	defaults := map[string]Selection{}
+	if _, err := readEncrypted(ctx, store, cipher, defaultsKey, &defaults); err != nil {
 		return err
 	}
 	for game, choice := range defaults {
@@ -125,5 +129,5 @@ func (r *Repository) Dissociate(ctx context.Context, store SecretStore, cipher *
 		}
 	}
 	items = slices.Delete(items, i, i+1)
-	return writeEncrypted(ctx, store, cipher, map[string]any{associationsKey: items, link.Secondary.Key() + ".defaults": defaults})
+	return writeEncrypted(ctx, store, cipher, map[string]any{associationsKey: items, defaultsKey: defaults})
 }

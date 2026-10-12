@@ -32,6 +32,13 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 	active := slices.DeleteFunc(slices.Clone(record.Delegations), func(d accounts.Delegation) bool { return d.ExpiresAtMS <= now })
 	if req.Method == "delegation.revoke" {
 		ref := stringValue(req.Params["delegation_ref"])
+		if management(req.Origin) {
+			for _, grant := range active {
+				if grant.Ref == ref && grant.Owner.SourceProtocol != "" && !ownsBot(rayleabot.BotAccount(*req.Origin.Bot), grant.Owner) {
+					return nil, failure("plugin.account_subject_denied")
+				}
+			}
+		}
 		record.Delegations = slices.DeleteFunc(active, func(d accounts.Delegation) bool {
 			grantOwner := d.Owner
 			if grantOwner == (accounts.Subject{}) {
@@ -79,6 +86,9 @@ func (a *App) changeDelegation(ctx context.Context, store accounts.SecretStore, 
 			previousOwner = record.Owner
 		}
 		if !previousOwner.Equal(owner) && !management(req.Origin) {
+			return nil, failure("plugin.account_subject_denied")
+		}
+		if management(req.Origin) && !ownsBot(rayleabot.BotAccount(*req.Origin.Bot), previousOwner) {
 			return nil, failure("plugin.account_subject_denied")
 		}
 		next.Ref = active[index].Ref

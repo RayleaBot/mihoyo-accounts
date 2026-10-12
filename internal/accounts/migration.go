@@ -10,12 +10,6 @@ import (
 	"github.com/RayleaBot/mihoyo-accounts/internal/vault"
 )
 
-// BotResolver supplies the current event's bot snapshot when the store is
-// accessed through the host. Stores without a snapshot retain unresolved data.
-type BotResolver interface {
-	ResolveBotID(protocol, adapter string) string
-}
-
 func (r *Repository) ResetMigration() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -38,15 +32,10 @@ func legacySubjectKey(s Subject) string {
 // migrateCatalogLocked runs on the first repository access after unlocking.
 // Accounts and associations enumerate their subjects; standalone UID bindings
 // have no directory and are recovered separately from an event's adapter hint.
-// Unresolved subjects are left intact and retried on a later access.
+// Missing bot identities are left intact for explicit global maintenance.
 func (r *Repository) migrateCatalogLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher) error {
 	if r.migrated {
-		resolver, ok := store.(BotResolver)
-		if !ok || !slices.ContainsFunc(r.pending, func(s Subject) bool {
-			return resolver.ResolveBotID(s.SourceProtocol, s.SourceAdapter) != ""
-		}) {
-			return nil
-		}
+		return nil
 	}
 	values := map[string]any{}
 	commit := func() error {
@@ -59,25 +48,27 @@ func (r *Repository) migrateCatalogLocked(ctx context.Context, store SecretStore
 		clear(values)
 		return nil
 	}
-	var pending []Subject
 	migrate := func(s *Subject) error {
+		// Empty delegation owners mean the account owner.
+		if s.ActorID == "" {
+			return nil
+		}
 		if s.SourceAdapter == "" {
+			values[s.Key()+".owner"] = *s
 			return nil
 		}
 		old := *s
 		if s.BotID == "" {
-			if resolver, ok := store.(BotResolver); ok {
-				s.BotID = resolver.ResolveBotID(s.SourceProtocol, s.SourceAdapter)
-			}
-		}
-		if s.BotID == "" {
-			pending = append(pending, *s)
+			// A connection may now log in another bot. Missing identities need
+			// explicit OneBot assignment; QQ openids cannot be recovered this way.
+			values[legacySubjectKey(*s)+".owner"] = *s
 			return nil
 		}
 		if err := migrateSubject(ctx, store, cipher, old, *s, values); err != nil {
 			return err
 		}
 		s.SourceAdapter = ""
+		values[s.Key()+".owner"] = *s
 		return nil
 	}
 	var all catalog
@@ -151,13 +142,12 @@ func (r *Repository) migrateCatalogLocked(ctx context.Context, store SecretStore
 	if err := commit(); err != nil {
 		return err
 	}
-	r.migrated, r.pending = true, pending
+	r.migrated = true
 	return nil
 }
 
-// migrateOwnerLocked also probes hashes with a missing bot ID, which could
-// have been saved before chat events exposed it, when the bot snapshot confirms
-// the account. A marker prevents removed UIDs from reappearing.
+// migrateOwnerLocked recovers adapter-based hashes with a complete bot identity.
+// A marker prevents removed UIDs from reappearing.
 func (r *Repository) migrateOwnerLocked(ctx context.Context, store SecretStore, cipher *vault.Cipher, owner Subject) error {
 	if err := r.migrateCatalogLocked(ctx, store, cipher); err != nil {
 		return err
@@ -168,13 +158,6 @@ func (r *Repository) migrateOwnerLocked(ctx context.Context, store SecretStore, 
 	values := map[string]any{}
 	if err := migrateSubject(ctx, store, cipher, owner, owner, values); err != nil {
 		return err
-	}
-	if resolver, ok := store.(BotResolver); ok && resolver.ResolveBotID(owner.SourceProtocol, owner.SourceAdapter) == owner.BotID {
-		old := owner
-		old.BotID = ""
-		if err := migrateSubject(ctx, store, cipher, old, owner, values); err != nil {
-			return err
-		}
 	}
 	if len(values) == 0 {
 		return nil
@@ -254,6 +237,7 @@ func migrateSubject(ctx context.Context, store SecretStore, cipher *vault.Cipher
 	}
 	if found {
 		values[from+".migrated"] = true
+		values[to+".owner"] = owner
 	}
 	return nil
 }
