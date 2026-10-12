@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T17:16:41.738Z",
+  "generatedAt": "2026-10-12T18:13:05.000Z",
   "title": "Design System: 米游社账号 · 名片册",
   "extensions": {
     "colorMeta": {
@@ -20,7 +20,7 @@
       },
       "desk": {
         "role": "neutral",
-        "displayName": "桌面区",
+        "displayName": "窗口底",
         "tonalRamp": [
           "oklch(15.00% 0.00921 258.34)",
           "oklch(26.43% 0.00921 258.34)",
@@ -356,7 +356,7 @@
       },
       "desk-dark": {
         "role": "neutral",
-        "displayName": "桌面区 · 暗色",
+        "displayName": "窗口底 · 暗色",
         "tonalRamp": [
           "oklch(15.00% 0.00719 258.37)",
           "oklch(26.43% 0.00719 258.37)",
@@ -946,15 +946,15 @@
     "typographyMeta": {
       "headline": {
         "displayName": "取出的昵称",
-        "purpose": "取出到桌面区的名片昵称，以及合上的册子里账号库面板的标题。"
+        "purpose": "取出到窗口里的名片昵称，以及合上的册子里账号库面板的标题。"
       },
       "name": {
         "displayName": "名片昵称",
-        "purpose": "每张名片上最大的字，单行省略；桌面区「添加账号」标题同字号。"
+        "purpose": "每张名片上最大的字，单行省略。"
       },
       "title": {
-        "displayName": "对话框标题",
-        "purpose": "对话框与空态标题；提示带计数同字号加重到 700。"
+        "displayName": "窗口与对话框标题",
+        "purpose": "窗口、末页总标题、对话框与空态标题；提示带计数同字号加重到 700。"
       },
       "section": {
         "displayName": "节标题",
@@ -1011,9 +1011,14 @@
         "purpose": "批量操作条：卡纸投影下再加一道长投影（浅色展开值；暗色时卡纸部分换成 card-dark）。"
       },
       {
+        "name": "window",
+        "value": "0 32px 72px -24px rgb(0 0 0 / 40%)",
+        "purpose": "管理与添加账号窗口，浮在 backdrop 遮罩上；与对话框投影同色，更长更宽，窄屏改为抽屉时不变。"
+      },
+      {
         "name": "dialog",
         "value": "0 28px 64px -20px rgb(0 0 0 / 40%)",
-        "purpose": "确认对话框，页面最高的一层，配 backdrop 遮罩。"
+        "purpose": "确认对话框，页面最高的一层，可以叠在窗口之上，配 backdrop 遮罩。"
       },
       {
         "name": "avatar-edge",
@@ -1038,14 +1043,39 @@
     ],
     "motion": [
       {
-        "name": "pull",
-        "value": "300ms cubic-bezier(.2, .8, .2, 1)",
-        "purpose": "取出与放回名片：view transition 组 account-card 在册页与桌面区之间移动并缩放；减少动态效果或不支持时直接切换。"
+        "name": "window-scrim",
+        "value": "220ms",
+        "purpose": "窗口遮罩：打开时 ease-out 淡入，关闭时 ease-in 淡出（view transition 组 window-scrim，层级 1）；底下的页面不做动画，直接切换。开合都在一次 view transition 里，减少动态效果或浏览器不支持时窗口直接开合。"
       },
       {
-        "name": "page-crossfade",
-        "value": "180ms",
-        "purpose": "取出名片时页面其余部分的交叉淡入。"
+        "name": "window-rise",
+        "value": "300ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "窗口面板上浮：从 translateY(24px) scale(.97) 升到原位，进行到 40% 时已完全不透明（组 window-panel，层级 2）。"
+      },
+      {
+        "name": "window-sink",
+        "value": "200ms cubic-bezier(.4, 0, 1, 1)",
+        "purpose": "窗口面板下沉：落到 translateY(14px) scale(.98)，40% 之后才淡出。"
+      },
+      {
+        "name": "sheet",
+        "value": "320ms / 240ms",
+        "purpose": "宽度不超过 720px 时窗口是贴底抽屉：从 translateY(100%) 升起 320ms、落回 240ms，缓动分别同 window-rise 与 window-sink。"
+      },
+      {
+        "name": "card-flight",
+        "value": "340ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "取出与放回名片：view transition 组 account-card（层级 3，在遮罩与窗口之上）在格位与窗口之间移动并缩放；移除账号后关闭窗口时不飞行。"
+      },
+      {
+        "name": "card-handoff",
+        "value": "130ms ease-out / 190ms ease-out",
+        "purpose": "格位里的名片与窗口里放大的名片大小不同，提前交接：旧画面 130ms 淡出，新画面 190ms 淡入，以 plus-lighter 叠加。"
+      },
+      {
+        "name": "dock",
+        "value": "200ms ease-out / 260ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "批量操作条出现：透明度 200ms、位移 260ms，从下方 18px 滑入；消失时透明度与位移都是 150ms ease-in。"
       },
       {
         "name": "control",
@@ -1056,6 +1086,11 @@
         "name": "disclosure",
         "value": "160ms cubic-bezier(.2, .8, .2, 1)",
         "purpose": "折叠项箭头旋转 90°。"
+      },
+      {
+        "name": "disclosure-height",
+        "value": "240ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "折叠项按高度展开与收起（::details-content 配合根元素的 interpolate-size: allow-keywords）；浏览器不支持时直接切换。"
       },
       {
         "name": "meter",
@@ -1070,7 +1105,7 @@
     ],
     "breakpoints": [
       {
-        "name": "desk-stacks",
+        "name": "cover-stacks",
         "value": "1180px"
       },
       {
@@ -1084,7 +1119,7 @@
       "name": "主按钮",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "米游社蓝实底，只给主操作：册头与空册子里的「扫码添加账号」，桌面区与账号库面板里当前表单的提交；一个表单最多一个。",
+      "description": "米游社蓝实底，只给主操作：册头与空册子里的「扫码添加账号」，窗口与账号库面板里当前表单的提交；一个表单最多一个。",
       "html": "<button type=\"button\" class=\"ds-btnp\"><svg class=\"ds-btnp-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M3.5 3.5h4.5v4.5H3.5z M12 3.5h4.5v4.5H12z M3.5 12h4.5v4.5H3.5z M12 12h1.8v1.8H12z M14.7 14.7h1.8v1.8h-1.8z M12 16.5v0 M16.5 12v0\"/></svg>扫码添加账号</button>",
       "css": ".ds-btnp{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms;border-color:transparent;background:var(--accent,#0b6fd0);color:var(--on-accent,#fff)}.ds-btnp:hover:not(:disabled){background:color-mix(in srgb,var(--accent,#0b6fd0) 86%,var(--ink,#14171c))}.ds-btnp:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-btnp:disabled{opacity:.5;cursor:not-allowed}.ds-btnp-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}@media (pointer:coarse){.ds-btnp{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-btnp{transition:none}}@media (forced-colors:active){.ds-btnp{border-color:ButtonText}}"
     },
@@ -1110,7 +1145,7 @@
       "refersTo": "button-destructive",
       "description": "借用索引贴朱红的实底按钮，只在移除后的确认对话框或确认条里出现，「取消」在它前面并获得初始焦点。",
       "html": "<div class=\"ds-dz\"><button type=\"button\" class=\"ds-dz-cancel\">取消</button><button type=\"button\" class=\"ds-dz-btn\">移除账号</button></div>",
-      "css": ".ds-dz{display:flex;gap:8px;justify-content:flex-end;max-width:360px}.ds-dz-cancel,.ds-dz-btn{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-dz-cancel:hover{background:color-mix(in srgb,var(--card,#fff) 92%,var(--ink,#14171c))}.ds-dz-btn{border-color:transparent;background:var(--flag-red,#c8372d);color:var(--on-flag-red,#fff)}.ds-dz-btn:hover{background:color-mix(in srgb,var(--flag-red,#c8372d) 86%,#000)}.ds-dz-cancel:focus-visible,.ds-dz-btn:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (pointer:coarse){.ds-dz-cancel,.ds-dz-btn{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-dz-cancel,.ds-dz-btn{transition:none}}@media (forced-colors:active){.ds-dz-btn{border-color:ButtonText}}"
+      "css": ".ds-dz{display:flex;gap:8px;justify-content:flex-end;max-width:360px}.ds-dz-cancel,.ds-dz-btn{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-dz-cancel:hover{background:color-mix(in srgb,var(--card,#fff) 92%,var(--ink,#14171c))}.ds-dz-btn{border-color:transparent;background:var(--flag-red,#c8372d);color:var(--on-flag-red,#fff)}.ds-dz-btn:hover{background:color-mix(in srgb,var(--flag-red,#c8372d) 86%,rgb(10 14 20))}.ds-dz-cancel:focus-visible,.ds-dz-btn:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (pointer:coarse){.ds-dz-cancel,.ds-dz-btn{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-dz-cancel,.ds-dz-btn{transition:none}}@media (forced-colors:active){.ds-dz-btn{border-color:ButtonText}}"
     },
     {
       "name": "字段与搜索框",
@@ -1148,24 +1183,24 @@
       "name": "批量操作条",
       "kind": "custom",
       "refersTo": "batch-dock",
-      "description": "勾选名片后粘在册页底部的卡纸条，比卡纸投影多一道长投影；进行中展开结果区：状态行、4px 墨色进度条与逐行结果，未完成只加粗、不着红。示例数据均为虚构。",
+      "description": "勾选名片后从下方滑入、粘在册页底部的卡纸条，比卡纸投影多一道长投影；进行中展开结果区：状态行、4px 墨色进度条与逐行结果，未完成只加粗、不着红。示例数据均为虚构。",
       "html": "<section class=\"ds-dock\" aria-label=\"批量维护\"><div class=\"ds-dock-batch\"><div class=\"ds-dock-head\"><p role=\"status\"><strong>检查登录状态</strong> · 处理中 · 已处理 <span class=\"ds-dock-num\">2 / 3</span> 个账号</p><button type=\"button\" class=\"ds-dock-btn\">停止剩余操作</button></div><div class=\"ds-meter\" aria-hidden=\"true\"><span style=\"inline-size:66%\"></span></div><ul class=\"ds-dock-items\"><li><span>晚风（示例） · 米游社 301245678</span><strong>成功</strong></li><li class=\"ds-failed\"><span>阿柚（示例） · 米游社 288812345</span><strong>未完成</strong><p>登录已失效，需要账号主人重新扫码。</p></li></ul></div><div class=\"ds-dock-tools\"><strong>已选 <span class=\"ds-dock-num\">3</span> 个账号</strong><span class=\"ds-dock-actions\"><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M10 2.8 4.3 5v4.4c0 3.6 2.4 6.2 5.7 7.6 3.3-1.4 5.7-4 5.7-7.6V5z M7.4 10l1.9 1.9 3.4-3.6\"/></svg>检查所选</button><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M15.8 10a5.8 5.8 0 0 1-10 4 M4.2 10a5.8 5.8 0 0 1 10-4 M14.6 3.2V6.2h-3 M5.4 16.8v-3h3\"/></svg>刷新所选凭据</button><button type=\"button\" class=\"ds-dock-btn\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4 6h12 M8 6V4.4h4V6 M5.6 6l.7 9.7a1.1 1.1 0 0 0 1.1 1h5.2a1.1 1.1 0 0 0 1.1-1L14.4 6\"/></svg>清理所选失效（1）</button></span><button type=\"button\" class=\"ds-dock-btn ds-dock-clear\"><svg class=\"ds-dock-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M5.5 5.5l9 9 M14.5 5.5l-9 9\"/></svg>取消选择</button></div></section>",
       "css": ".ds-dock{display:grid;gap:10px;max-width:780px;padding:10px 12px 12px 16px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%)),0 18px 36px -18px rgb(10 16 28 / 32%);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-dock p{margin:0}.ds-dock-batch{display:grid;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--rule,#e6e9ee)}.ds-dock-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}.ds-dock-head strong,.ds-dock-tools>strong{font-weight:650}.ds-dock-num{font-variant-numeric:tabular-nums}.ds-meter{block-size:4px;overflow:hidden;border-radius:999px;background:var(--well,#dfe3e9)}.ds-meter span{display:block;block-size:100%;border-radius:inherit;background:var(--ink,#14171c);transition:inline-size 240ms cubic-bezier(.2,.8,.2,1)}.ds-dock-items{display:grid;margin:0;padding:0;list-style:none}.ds-dock-items li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;align-items:baseline;padding:8px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-dock-items strong{font-weight:500}.ds-dock-items .ds-failed strong{font-weight:700}.ds-dock-items li p{grid-column:1/-1;color:var(--ink-2,#566070);font-size:13px}.ds-dock-tools{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}.ds-dock-actions{display:flex;flex-wrap:wrap;gap:2px}.ds-dock-btn{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms}.ds-dock-btn:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-dock-btn:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}.ds-dock-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-dock-clear{margin-left:auto}@media (pointer:coarse){.ds-dock-btn{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-meter span,.ds-dock-btn{transition:none}}"
     },
     {
-      "name": "桌面区与名片背面",
-      "kind": "card",
-      "refersTo": "card-reverse",
-      "description": "取出名片后的桌面区：desk 底色的平面托盘，「放回名片册」在顶部；名片背面是一张卡纸，各节以 rule 顶线分隔，折叠项带 ink-2 图标、右侧状态摘要与旋转箭头，授权插件勾选行铺 tile。",
-      "html": "<aside class=\"ds-desk\"><div class=\"ds-desk-head\"><button type=\"button\" class=\"ds-desk-back\"><svg class=\"ds-desk-i\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M16 10H4.5 M9 5.5 4.5 10 9 14.5\"/></svg>放回名片册</button></div><div class=\"ds-reverse\"><section class=\"ds-sec\"><h3>公共查询池</h3><p>未开启。需要共享时，由账号所属用户本人发送「共享查询账号 开启」设置游戏范围与额度。</p></section><details class=\"ds-disc\"><summary><svg class=\"ds-desk-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M7 2.8h6a1.1 1.1 0 0 1 1.1 1.1v12.2a1.1 1.1 0 0 1-1.1 1.1H7a1.1 1.1 0 0 1-1.1-1.1V3.9A1.1 1.1 0 0 1 7 2.8z M9 14.6h2\"/></svg><span>设备信息与重置</span><svg class=\"ds-desk-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">读取设备状态后，可以重置此账号插件使用的设备标识。</p></details><details class=\"ds-disc\"><summary><svg class=\"ds-desk-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M6.2 15.4h8.2a3 3 0 0 0 .3-6 4.4 4.4 0 0 0-8.5-1 3.5 3.5 0 0 0 0 7z\"/></svg><span>云游戏独立授权</span><span class=\"ds-disc-state\">未配置</span><svg class=\"ds-desk-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">云 Token 先在浏览器加密，再写入加密账号库。</p></details><div class=\"ds-sec\"><fieldset><legend>允许使用此账号的插件</legend><label class=\"ds-check\"><input type=\"checkbox\" checked><span>原神<small>raylea.genshin</small></span></label><label class=\"ds-check\"><input type=\"checkbox\"><span>星穹铁道<small>raylea.starrail</small></span></label></fieldset><div><button type=\"button\" class=\"ds-desk-primary\">保存授权</button></div></div></div></aside>",
-      "css": ".ds-desk{display:grid;gap:18px;max-width:460px;padding:18px 20px 22px;border-radius:18px;background:var(--desk,#e1e5eb);font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-desk p{margin:0}.ds-desk-head{display:flex;align-items:center;min-height:36px}.ds-desk-back{display:inline-flex;gap:6px;align-items:center;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms;margin-left:-10px}.ds-desk-back:hover{background:var(--hover,rgb(20 23 28 / 6%))}.ds-desk-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-reverse{display:grid;padding:2px 18px 16px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-sec{display:grid;gap:12px;padding:16px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-reverse>:first-child{border-top:0}.ds-sec h3{margin:0;font-size:15px;font-weight:650;line-height:1.4}.ds-sec>p{font-size:13px}.ds-disc{border-top:1px solid var(--rule,#e6e9ee)}.ds-disc summary{display:flex;gap:10px;align-items:center;min-height:48px;font-weight:650;list-style:none;cursor:pointer}.ds-disc summary::-webkit-details-marker{display:none}.ds-disc-i{color:var(--ink-2,#566070)}.ds-disc-state{margin-left:auto;color:var(--ink-2,#566070);font-size:13px;font-weight:400}.ds-disc-chev{margin-left:auto;color:var(--ink-2,#566070);transition:rotate 160ms cubic-bezier(.2,.8,.2,1)}.ds-disc-state+.ds-disc-chev{margin-left:4px}.ds-disc[open] .ds-disc-chev{rotate:90deg}.ds-disc-body{padding:0 0 16px;color:var(--ink-2,#566070);font-size:13px}.ds-sec fieldset{display:grid;gap:8px;min-width:0;margin:0;padding:0;border:0}.ds-sec legend{margin-bottom:10px;padding:0;font-weight:650}.ds-check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--tile,#f1f3f6);cursor:pointer}.ds-check span{display:grid}.ds-check small{color:var(--ink-2,#566070);font-size:12px}.ds-check input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--ink,#14171c)}.ds-desk-primary{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms;border-color:transparent;background:var(--accent,#0b6fd0);color:var(--on-accent,#fff)}.ds-desk-primary:hover{background:color-mix(in srgb,var(--accent,#0b6fd0) 86%,var(--ink,#14171c))}.ds-desk-back:focus-visible,.ds-desk-primary:focus-visible,.ds-disc summary:focus-visible,.ds-check input:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (pointer:coarse){.ds-check{min-height:44px;align-items:center}.ds-desk-back,.ds-desk-primary{min-height:44px}}@media (prefers-reduced-motion:reduce){.ds-disc-chev,.ds-desk-back,.ds-desk-primary{transition:none}}"
+      "name": "管理窗口与名片背面",
+      "kind": "custom",
+      "refersTo": "window",
+      "description": "管理账号的弹出窗口：backdrop 遮罩上居中的 desk 底面板，带窗口投影；头部固定，17px 标题在左、关闭图标按钮在右，正文在窗内滚动，操作结果的提示条在正文最上方。名片背面是一张卡纸，各节以 rule 顶线分隔，折叠项带 ink-2 图标、右侧状态摘要与旋转箭头，按高度展开；授权插件勾选行铺 tile。窄屏改为贴底抽屉。",
+      "html": "<div class=\"ds-scrim\"><section class=\"ds-window\" aria-labelledby=\"ds-window-title\"><header class=\"ds-window-head\"><h2 id=\"ds-window-title\">管理账号</h2><button type=\"button\" class=\"ds-window-close\" aria-label=\"关闭，放回名片册\"><svg class=\"ds-window-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M5.5 5.5l9 9 M14.5 5.5l-9 9\"/></svg></button></header><div class=\"ds-window-body\"><p class=\"ds-note\" role=\"status\"><svg class=\"ds-window-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M4.6 10.4 8.1 13.9 15.4 6.1\"/></svg>账号已更新</p><div class=\"ds-reverse\"><section class=\"ds-sec\"><h3>公共查询池</h3><p>未开启。需要共享时，由账号所属用户本人发送「共享查询账号 开启」设置游戏范围与额度。</p></section><details class=\"ds-disc\"><summary><svg class=\"ds-window-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M7 2.8h6a1.1 1.1 0 0 1 1.1 1.1v12.2a1.1 1.1 0 0 1-1.1 1.1H7a1.1 1.1 0 0 1-1.1-1.1V3.9A1.1 1.1 0 0 1 7 2.8z M9 14.6h2\"/></svg><span>设备信息与重置</span><svg class=\"ds-window-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">读取设备状态后，可以重置此账号插件使用的设备标识。</p></details><details class=\"ds-disc\"><summary><svg class=\"ds-window-i ds-disc-i\" viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M6.2 15.4h8.2a3 3 0 0 0 .3-6 4.4 4.4 0 0 0-8.5-1 3.5 3.5 0 0 0 0 7z\"/></svg><span>云游戏独立授权</span><span class=\"ds-disc-state\">未配置</span><svg class=\"ds-window-i ds-disc-chev\" viewBox=\"0 0 20 20\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 5l5 5-5 5\"/></svg></summary><p class=\"ds-disc-body\">云 Token 先在浏览器加密，再写入加密账号库。</p></details><div class=\"ds-sec\"><fieldset><legend>允许使用此账号的插件</legend><label class=\"ds-check\"><input type=\"checkbox\" checked><span>原神<small>raylea.genshin</small></span></label><label class=\"ds-check\"><input type=\"checkbox\"><span>星穹铁道<small>raylea.starrail</small></span></label></fieldset><div><button type=\"button\" class=\"ds-window-primary\">保存授权</button></div></div></div></div></section></div>",
+      "css": ".ds-scrim{display:grid;place-items:center;padding:24px;overflow:hidden;background:rgb(10 14 20 / 45%);interpolate-size:allow-keywords;font:400 14px/1.55 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;color:var(--ink,#14171c)}.ds-window{display:flex;flex-direction:column;width:min(100%,560px);max-height:min(100%,940px);overflow:hidden;border-radius:18px;background:var(--desk,#e1e5eb);box-shadow:0 32px 72px -24px rgb(0 0 0 / 40%)}.ds-window p{margin:0}.ds-window-head{display:flex;flex:none;gap:12px;align-items:center;justify-content:space-between;padding:14px 14px 8px 22px}.ds-window-head h2{margin:0;font-size:17px;font-weight:650;line-height:1.4}.ds-window-close{display:inline-flex;align-items:center;justify-content:center;width:36px;min-height:36px;padding:0;border:1px solid var(--line,#c3cad4);border-radius:9px;background:var(--card,#fff);color:var(--ink,#14171c);cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-window-close:hover{background:color-mix(in srgb,var(--card,#fff) 92%,var(--ink,#14171c))}.ds-window-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ds-window-body{display:grid;gap:18px;padding:4px 22px 22px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}.ds-note{display:flex;gap:10px;align-items:center;padding:10px 12px 10px 14px;border-radius:12px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-note .ds-window-i{color:var(--ink-2,#566070)}.ds-reverse{display:grid;padding:2px 18px 16px;border-radius:14px;background:var(--card,#fff);box-shadow:var(--card-shadow,0 0 0 1px rgb(20 28 40 / 7%),0 1px 2px rgb(20 28 40 / 6%),0 6px 14px -8px rgb(20 28 40 / 18%))}.ds-sec{display:grid;gap:12px;padding:16px 0;border-top:1px solid var(--rule,#e6e9ee)}.ds-reverse>:first-child{border-top:0}.ds-sec h3{margin:0;font-size:15px;font-weight:650;line-height:1.4}.ds-sec>p{font-size:13px}.ds-disc{border-top:1px solid var(--rule,#e6e9ee)}.ds-disc summary{display:flex;gap:10px;align-items:center;min-height:48px;font-weight:650;list-style:none;cursor:pointer}.ds-disc summary::-webkit-details-marker{display:none}.ds-disc-i{color:var(--ink-2,#566070)}.ds-disc-state{margin-left:auto;color:var(--ink-2,#566070);font-size:13px;font-weight:400}.ds-disc-chev{margin-left:auto;color:var(--ink-2,#566070);transition:rotate 160ms cubic-bezier(.2,.8,.2,1)}.ds-disc-state+.ds-disc-chev{margin-left:4px}.ds-disc[open] .ds-disc-chev{rotate:90deg}.ds-disc::details-content{block-size:0;overflow:clip;transition:block-size 240ms cubic-bezier(.2,.8,.2,1),content-visibility 240ms allow-discrete}.ds-disc[open]::details-content{block-size:auto}.ds-disc-body{padding:0 0 16px;color:var(--ink-2,#566070);font-size:13px}.ds-sec fieldset{display:grid;gap:8px;min-width:0;margin:0;padding:0;border:0}.ds-sec legend{margin-bottom:10px;padding:0;font-weight:650}.ds-check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--tile,#f1f3f6);cursor:pointer}.ds-check span{display:grid}.ds-check small{color:var(--ink-2,#566070);font-size:12px}.ds-check input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--ink,#14171c)}.ds-window-primary{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border:1px solid transparent;border-radius:9px;background:var(--accent,#0b6fd0);color:var(--on-accent,#fff);font:600 14px/1.2 'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms}.ds-window-primary:hover{background:color-mix(in srgb,var(--accent,#0b6fd0) 86%,var(--ink,#14171c))}.ds-window-close:focus-visible,.ds-window-primary:focus-visible,.ds-disc summary:focus-visible,.ds-check input:focus-visible{outline:2px solid var(--accent,#0b6fd0);outline-offset:2px}@media (max-width:720px){.ds-scrim{padding:16px 0 0;place-items:end stretch}.ds-window{width:100%;max-height:100%;border-radius:18px 18px 0 0}.ds-window-head{padding:12px 10px 6px 16px}.ds-window-body{padding:4px 16px 20px}}@media (max-width:720px),(pointer:coarse){.ds-window-close{width:44px;min-height:44px}.ds-window-primary{min-height:44px}.ds-check{min-height:44px;align-items:center}}@media (prefers-reduced-motion:reduce){.ds-disc-chev,.ds-window-close,.ds-window-primary{transition:none}.ds-disc::details-content{transition:none}}"
     }
   ],
   "narrative": {
     "northStar": "名片册",
-    "overview": "「账号管理」是一本名片册。每个已绑定的米游社或 HoYoLab 通行证是一张白卡纸名片：QQ 头像与昵称领头，通行证是名片上的所属机构，游戏角色是头衔。名片三到四张一行插在冷灰册页上，同一个人的名片相邻。需要处理的名片上缘插着一枚写字的索引贴；管理员把名片取出到右侧约 460px 的桌面区，在放大的名片和它的背面上处理角色、设备、云授权与授权插件，处理完放回原位。勾选几张名片，册页底部浮起批量操作条；账号库、密钥保护、ark 令牌与跨聊天关联在册子末页。这个方向明确拒绝「账号表格加状态列」的默认排法。\n\n材料只有纸和墨。册页、桌面区与末页是三种冷灰中性底，名片是白卡纸，边缘一圈细线加一道贴近纸面的短投影；文字是近黑墨色。全页只有一枚专色米游社蓝，留给主操作、取出的名片与焦点；朱红与琥珀只以索引贴出现在册页上。层级只靠字号对比，昵称是每张名片上最大的字；数字一律等宽，名片里的数字列右对齐，同一行名片的数字上下成列。每个状态都附带证据：最近一次检查或刷新的结果与时间印在名片正面。\n\n动效只有一个招牌时刻：取出名片时，view transition 把同一张名片从册页移到桌面区，放回时原路返回；减少动态效果时直接切换。其余只是控件状态的短过渡、折叠箭头的旋转、批量进度条的伸长与读取骨架的微光。\n\n本文件记录 src/ 中已实现的视觉系统。token 数值以 src/styles.css 的 :root 为准，每个主题相关的颜色是一对 light-dark() 值；头像色在 src/Avatar.vue，图标在 src/Icon.vue；方向约定见 .impeccable/surfaces/src-app-vue.md。",
+    "overview": "「账号管理」是一本名片册。每个已绑定的米游社或 HoYoLab 通行证是一张白卡纸名片：QQ 头像与昵称领头，通行证是名片上的所属机构，游戏角色是头衔。名片三到四张一行插在冷灰册页上，同一个人的名片相邻。需要处理的名片上缘插着一枚写字的索引贴；管理员把名片取出到遮罩上的弹出窗口里，在放大的名片和它的背面上处理角色、设备、云授权与授权插件，关上窗口，名片就放回原位；添加账号也在同样的窗口里进行。勾选几张名片，册页底部浮起批量操作条；账号库、密钥保护、ark 令牌与跨聊天关联在册子末页。这个方向明确拒绝「账号表格加状态列」的默认排法。\n\n材料只有纸和墨。册页、末页与窗口底是三种冷灰中性底，名片是白卡纸，边缘一圈细线加一道贴近纸面的短投影；文字是近黑墨色。全页只有一枚专色米游社蓝，留给主操作、取出的名片与焦点；朱红与琥珀只以索引贴出现在册页上。层级只靠字号对比，昵称是每张名片上最大的字；数字一律等宽，名片里的数字列右对齐，同一行名片的数字上下成列。每个状态都附带证据：最近一次检查或刷新的结果与时间印在名片正面。\n\n动效只有一个招牌时刻：取出名片。一次 view transition 里遮罩淡入、窗口上浮，同一张名片从格位飞进窗口，关上时原路飞回；添加账号窗口同样淡入上浮，只是没有名片。减少动态效果时窗口直接开合。其余只是控件状态的短过渡、折叠项的展开与箭头旋转、批量操作条的滑入滑出、批量进度条的伸长与读取骨架的微光。\n\n本文件记录 src/ 中已实现的视觉系统。token 数值以 src/styles.css 的 :root 为准，每个主题相关的颜色是一对 light-dark() 值；头像色在 src/Avatar.vue，图标在 src/Icon.vue；方向约定见 .impeccable/surfaces/src-app-vue.md。",
     "keyCharacteristics": [
-      "名片册结构：顶部一条下一步提示带，其下是索引页签、搜索与主操作，主体是名片网格，取出的名片在右侧桌面区，账号库与设置在末页。",
+      "名片册结构：顶部一条下一步提示带，其下是索引页签、搜索与主操作，主体是占满宽度的名片网格，取出的名片与添加账号都在遮罩上的弹出窗口里，账号库与设置在末页。",
       "白卡纸名片：头像与昵称领头，通行证一行，角色逐行列出游戏、昵称、等级与 UID，底部印着状态词与检查证据。",
       "一枚专色：米游社蓝只给主操作、取出的名片与焦点；勾选、页签与进度都用墨色。",
       "索引贴：朱红表示需重新登录，琥珀表示待检查或需验证，贴在名片上缘、压在名片背后。",
@@ -1184,7 +1219,7 @@
       },
       {
         "name": "「勾选用墨，取出用蓝」规则",
-        "body": "勾选的名片加 2px 墨色外环，复选框是墨色；只有取出到桌面区的那一张加 2px 米游社蓝外环。",
+        "body": "勾选的名片加 2px 墨色外环，复选框是墨色；只有取出到窗口里的那一张加 2px 米游社蓝外环。",
         "section": "colors"
       },
       {
@@ -1204,7 +1239,7 @@
       },
       {
         "name": "「贴着纸面」规则",
-        "body": "名片与面板只用卡纸投影：细边加贴近纸面的短投影，悬停不抬升、不加深；册页、桌面区与末页是平的色面。只有批量操作条和确认对话框浮得更高。",
+        "body": "名片与面板只用卡纸投影：细边加贴近纸面的短投影，悬停不抬升、不加深；册页、末页与窗口底是平的色面。只有批量操作条、弹出窗口和确认对话框浮得更高。",
         "section": "elevation"
       },
       {
@@ -1214,7 +1249,7 @@
       },
       {
         "name": "「取出与放回」规则",
-        "body": "处理一张名片就是把它取出：同一张名片移到桌面区，原位留下写着谁的名片已取出的空位；同一时间桌面区只放一张名片或一个添加账号面板。",
+        "body": "处理一张名片就是把它取出：同一张名片飞进遮罩上的弹出窗口，原位留下一个空白的虚线空位，关上窗口它就飞回原位。窗口不在页面里占位；同一时间只开一个窗口，里面只放一张名片或一个添加账号面板。",
         "section": "components"
       }
     ],
@@ -1222,10 +1257,10 @@
       "Do 让每张名片先回答「这是谁的」：头像、昵称与 QQ 号领头，再列通行证与角色。",
       "Do 在状态词旁印出证据：最近一次检查或刷新的结果与时间，没检查过就写「尚未检查」。",
       "Do 用写字的索引贴挑出要处理的名片：朱红为需重新登录，琥珀为待检查或需验证；贴上的字、名片底栏的状态词与「需处理」筛选保持一致。",
-      "Do 在桌面区处理一张名片：放大的名片在上，背面依次是角色、公共查询池、设备、云授权、授权插件与移除账号。",
+      "Do 在弹出窗口里处理一张名片：放大的名片在上，背面依次是角色、公共查询池、设备、云授权、授权插件与移除账号；关上窗口，名片飞回原位，焦点回到它的「管理」按钮。",
       "Do 把主题相关的颜色写成 src/styles.css 里 :root 上的一对 light-dark()；[data-theme] 只切换 color-scheme。",
       "Do 所有图标都用 src/Icon.vue 的同一套线描：20px 网格、1.6px 圆头描边、跟随文字颜色。",
-      "Do 在粗指针与窄屏下让按钮、输入框、下拉与勾选行至少 44px 高；减少动态效果时取消所有过渡，取出名片直接切换。"
+      "Do 在粗指针与窄屏下让按钮、输入框、下拉与勾选行至少 44px 高；减少动态效果时取消所有过渡，窗口直接开合。"
     ],
     "donts": [
       "Don't 回到「账号表格加状态列」的排法；账号是名片册里的名片。",
