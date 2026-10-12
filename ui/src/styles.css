@@ -31,11 +31,15 @@
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.55;
+  interpolate-size: allow-keywords;
 }
 :root[data-theme='light'] { color-scheme: light; }
 :root[data-theme='dark'] { color-scheme: dark; }
 * { box-sizing: border-box; }
-html { background: var(--page); scrollbar-color: var(--line) transparent; }
+html { background: var(--page); scrollbar-color: var(--line) transparent; scrollbar-gutter: stable; }
+/* An open window holds the page still behind it; the reserved scrollbar strip
+   takes the scrim's tint so the dimmed page has no bright edge. */
+html:has(.window-layer[open]) { overflow: hidden; background: color-mix(in srgb, var(--page), rgb(10 14 20) 45%); }
 body { margin: 0; background: var(--page); color: var(--ink); -webkit-font-smoothing: antialiased; }
 main { display: grid; gap: 18px; max-width: 1680px; margin: 0 auto; padding: 24px 28px 32px; }
 h2, h3, p { margin: 0; }
@@ -57,7 +61,7 @@ button .icon { flex: none; }
 .quiet:hover:not(:disabled) { background: var(--hover); }
 .icon-button { width: 36px; padding: 0; }
 .destructive { border-color: transparent; background: var(--flag-red); color: var(--on-flag-red); }
-.destructive:hover:not(:disabled) { background: color-mix(in srgb, var(--flag-red) 86%, #000); }
+.destructive:hover:not(:disabled) { background: color-mix(in srgb, var(--flag-red) 86%, rgb(10 14 20)); }
 
 input, select, textarea { width: 100%; min-width: 0; min-height: 38px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--field); color: var(--ink); font: inherit; font-size: 14px; font-weight: 400; caret-color: var(--accent); transition: border-color 140ms, box-shadow 140ms; }
 input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var(--line) 55%, var(--ink)); }
@@ -120,12 +124,10 @@ legend { margin-bottom: 10px; padding: 0; font-weight: 650; }
 .select-all { display: inline-flex; gap: 8px; align-items: center; min-height: 36px; padding-right: 4px; cursor: pointer; }
 .identity-note { color: var(--ink-2); font-size: 13px; }
 
-.binder-body { display: grid; gap: 24px; align-items: start; }
-.binder-body.open { grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); }
 .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 40px 18px; margin: 0; padding: 26px 0 0; list-style: none; }
 /* Each slot isolates its card so a flag can tuck behind the card's top edge. */
-.slot, .desk-card { display: grid; min-width: 0; isolation: isolate; }
-.desk-card { padding-top: 24px; }
+.slot, .window-card { display: grid; min-width: 0; isolation: isolate; }
+.window-card { padding-top: 24px; }
 .sleeve { display: grid; gap: 10px; place-content: center; justify-items: center; min-height: 228px; padding: 16px; border: 1.5px dashed var(--line); border-radius: 14px; background: transparent; color: var(--ink-2); font-weight: 500; text-align: center; white-space: normal; }
 button.sleeve { width: 100%; height: 100%; font-weight: 600; }
 button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: transparent; color: var(--accent-ink); }
@@ -136,16 +138,21 @@ button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: tr
 .empty-sleeves span:nth-child(2) { border-style: solid; background: var(--card); box-shadow: var(--card-shadow); }
 .pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; margin-top: 24px; color: var(--ink-2); }
 
-.desk { position: sticky; top: 16px; max-height: calc(100vh - 32px); padding: 18px 20px 22px; overflow: auto; overscroll-behavior: contain; border-radius: 18px; background: var(--desk); scrollbar-width: thin; }
-.desk-panel { display: grid; gap: 18px; }
-.desk-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; min-height: 36px; }
-.desk-head .quiet { margin-left: -10px; }
+/* A window is a full-viewport scrim dialog holding one desk-coloured panel. */
+.window-layer { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 24px; overflow: hidden; border: 0; border-radius: 0; background: rgb(10 14 20 / 45%); box-shadow: none; color: var(--ink); place-items: center; }
+.window-layer[open] { display: grid; }
+.window-layer::backdrop { background: transparent; }
+.window { display: flex; flex-direction: column; width: min(100%, 560px); max-height: min(100%, 940px); overflow: hidden; border-radius: 18px; background: var(--desk); box-shadow: 0 32px 72px -24px rgb(0 0 0 / 40%); }
+.window.narrow { width: min(100%, 480px); }
+.window-head { display: flex; flex: none; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 14px 8px 22px; }
+.window-head h2 { font-size: 17px; }
+.window-body { display: grid; gap: 18px; padding: 4px 22px 22px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 /* The pulled card's back: everything the front cannot hold. */
 .reverse { --divider: var(--rule); display: grid; padding: 2px 18px 16px; border-radius: 14px; background: var(--card); box-shadow: var(--card-shadow); }
 .reverse > :first-child { border-top: 0; }
-.desk-section { display: grid; gap: 12px; padding: 16px 0; border-top: 1px solid var(--divider, var(--line)); }
-.desk-section > p { color: var(--ink); }
-.desk-danger { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--divider, var(--line)); }
+.window-section { display: grid; gap: 12px; padding: 16px 0; border-top: 1px solid var(--divider, var(--line)); }
+.window-section > p { color: var(--ink); }
+.window-danger { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--divider, var(--line)); }
 .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; border-radius: 11px; background: color-mix(in srgb, var(--desk) 70%, var(--ink) 8%); }
 .segmented button { min-height: 34px; border: 0; background: transparent; color: var(--ink-2); }
 .segmented button[aria-pressed='true'] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgb(10 16 28 / 12%); }
@@ -167,7 +174,7 @@ button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: tr
 .checks label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--tile); font-size: 14px; cursor: pointer; }
 .checks label span { display: grid; }
 .checks small { font-size: 12px; }
-.desk form, .desk fieldset { display: grid; gap: 14px; }
+.window form, .window fieldset { display: grid; gap: 14px; }
 
 .disclosure { border-top: 1px solid var(--divider, var(--line)); }
 .disclosure summary { display: flex; gap: 10px; align-items: center; min-height: 48px; font-weight: 650; list-style: none; cursor: pointer; }
@@ -178,6 +185,9 @@ button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: tr
 .summary-state { margin-left: auto; color: var(--ink-2); font-size: 13px; font-weight: 400; }
 .summary-state + .chevron { margin-left: 4px; }
 .disclosure-body { display: grid; gap: 14px; padding: 0 0 16px; }
+/* Folded sections open and close by height where the browser supports it. */
+.disclosure::details-content { block-size: 0; overflow: clip; transition: block-size 240ms cubic-bezier(.2, .8, .2, 1), content-visibility 240ms allow-discrete; }
+.disclosure[open]::details-content { block-size: auto; }
 .facts { display: grid; gap: 6px; margin: 0; }
 .facts div { display: grid; grid-template-columns: 3.5em minmax(0, 1fr); gap: 8px; }
 .facts dt { color: var(--ink-2); }
@@ -185,7 +195,7 @@ button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: tr
 .confirm-strip { display: grid; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--tile); }
 
 .inside { display: grid; gap: 18px; margin-top: 18px; padding: 24px 28px 28px; border-radius: 18px; background: var(--cover); }
-.inside > h2 { font-size: 16px; }
+.inside > h2 { font-size: 17px; }
 .inside-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .setting { display: grid; gap: 28px; align-content: start; min-width: 0; padding: 0 28px; border-left: 1px solid var(--line); }
 .setting:first-child { padding-left: 0; border-left: 0; }
@@ -195,18 +205,34 @@ button.sleeve:hover:not(:disabled) { border-color: var(--accent); background: tr
 .page-foot { color: var(--ink-2); font-size: 13px; }
 .closed .page-foot { justify-self: center; }
 
-dialog { width: min(480px, calc(100vw - 32px)); padding: 24px; border: 0; border-radius: 16px; background: var(--card); color: var(--ink); box-shadow: 0 28px 64px -20px rgb(0 0 0 / 40%); }
-dialog::backdrop { background: rgb(10 14 20 / 45%); }
-dialog h2 { font-size: 17px; }
-dialog p { margin: 12px 0 20px; }
-dialog .actions { justify-content: flex-end; }
+dialog:not(.window-layer) { width: min(480px, calc(100vw - 32px)); padding: 24px; border: 0; border-radius: 16px; background: var(--card); color: var(--ink); box-shadow: 0 28px 64px -20px rgb(0 0 0 / 40%); }
+dialog:not(.window-layer)::backdrop { background: rgb(10 14 20 / 45%); }
+dialog:not(.window-layer) h2 { font-size: 17px; }
+dialog:not(.window-layer) p { margin: 12px 0 20px; }
+dialog:not(.window-layer) .actions { justify-content: flex-end; }
 
-::view-transition-group(account-card) { animation-duration: 300ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; }
+/* Window motion: the page underneath swaps at once, the scrim fades, the panel
+   rises, and a pulled card flies between its sleeve and the window above both. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(window-scrim) { z-index: 1; }
+::view-transition-group(window-panel) { z-index: 2; }
+::view-transition-group(account-card) { z-index: 3; animation-duration: 340ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+/* The two card faces differ in size, so they swap early instead of overlapping for the whole flight. */
+::view-transition-old(account-card), ::view-transition-new(account-card) { mix-blend-mode: plus-lighter; }
+::view-transition-old(account-card) { animation: fade-out 130ms ease-out both; }
+::view-transition-new(account-card) { animation: fade-in 190ms ease-out both; }
+::view-transition-new(window-scrim) { animation: fade-in 220ms ease-out both; }
+::view-transition-old(window-scrim) { animation: fade-out 220ms ease-in both; }
+::view-transition-new(window-panel) { animation: window-in 300ms cubic-bezier(.2, .8, .2, 1) both; }
+::view-transition-old(window-panel) { animation: window-out 200ms cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes window-in { from { opacity: 0; transform: translateY(24px) scale(.97); } 40% { opacity: 1; } }
+@keyframes window-out { 40% { opacity: 1; } to { opacity: 0; transform: translateY(14px) scale(.98); } }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@keyframes sheet-out { to { transform: translateY(100%); } }
 
 @media (max-width: 1180px) {
-  .binder-body.open { grid-template-columns: minmax(0, 1fr); }
-  .desk { position: static; order: -1; max-height: none; overflow: visible; }
   .inside-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 0; }
   .setting:nth-child(3) { grid-column: 1 / -1; padding: 24px 0 0; border-top: 1px solid var(--line); border-left: 0; }
 }
@@ -221,7 +247,12 @@ dialog .actions { justify-content: flex-end; }
   .sheet { grid-template-columns: minmax(0, 1fr); }
   .cover-slot { margin-top: 8px; }
   .vault-panel { padding: 24px 20px; }
-  .desk { padding: 16px; }
+  .window-layer { padding: 16px 0 0; place-items: end stretch; }
+  .window, .window.narrow { width: 100%; max-height: 100%; border-radius: 18px 18px 0 0; }
+  .window-head { padding: 12px 10px 6px 16px; }
+  .window-body { padding: 4px 16px 20px; }
+  ::view-transition-new(window-panel) { animation-name: sheet-in; animation-duration: 320ms; }
+  ::view-transition-old(window-panel) { animation-name: sheet-out; animation-duration: 240ms; }
   .inside { padding: 20px 16px; }
   .inside-grid { grid-template-columns: minmax(0, 1fr); }
   .setting, .setting:first-child, .setting:nth-child(3) { padding: 24px 0 0; border-top: 1px solid var(--line); border-left: 0; }
@@ -240,6 +271,6 @@ dialog .actions { justify-content: flex-end; }
   :focus-visible { outline-color: Highlight; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after { transition: none !important; animation: none !important; }
+  *, ::before, ::after, ::details-content { transition: none !important; animation: none !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

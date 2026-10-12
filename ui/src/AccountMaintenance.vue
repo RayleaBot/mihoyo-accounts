@@ -57,40 +57,44 @@ onUnmounted(() => { disposed = true; if (controller) controller.abort(); else if
 </script>
 
 <template>
-  <section v-show="selected.length || batch" class="maintenance" aria-labelledby="maintenance-heading">
+  <section class="maintenance" aria-labelledby="maintenance-heading">
     <h2 id="maintenance-heading" class="sr-only">批量维护</h2>
-    <div v-if="batch" class="batch">
-      <div class="batch-head">
-        <p role="status"><strong>{{ modeNames[batch.mode] }}</strong> · {{ batch.state === 'completed' ? '已完成' : batch.state === 'canceled' ? '已停止' : busy ? '处理中' : '已暂停，可继续' }} · 已处理 <span class="num">{{ batch.processed }} / {{ batch.total }}</span> 个账号</p>
-        <div class="tool-actions">
-          <template v-if="active">
-            <button v-if="!busy" type="button" class="quiet" :disabled="disabled" @click="perform()">继续本批任务</button>
-            <button type="button" class="quiet" @click="cancel">停止剩余操作</button>
-          </template>
-          <button v-else type="button" class="quiet" :disabled="busy" @click="batch = null">关闭结果</button>
+    <Transition name="dock">
+      <div v-show="selected.length || batch" class="dock">
+        <div v-if="batch" class="batch">
+          <div class="batch-head">
+            <p role="status"><strong>{{ modeNames[batch.mode] }}</strong> · {{ batch.state === 'completed' ? '已完成' : batch.state === 'canceled' ? '已停止' : busy ? '处理中' : '已暂停，可继续' }} · 已处理 <span class="num">{{ batch.processed }} / {{ batch.total }}</span> 个账号</p>
+            <div class="tool-actions">
+              <template v-if="active">
+                <button v-if="!busy" type="button" class="quiet" :disabled="disabled" @click="perform()">继续本批任务</button>
+                <button type="button" class="quiet" @click="cancel">停止剩余操作</button>
+              </template>
+              <button v-else type="button" class="quiet" :disabled="busy" @click="batch = null">关闭结果</button>
+            </div>
+          </div>
+          <div class="meter" aria-hidden="true"><span :style="{ inlineSize: `${progress * 100}%` }" /></div>
+          <p v-if="batch.state !== 'running'" class="hint">{{ time(batch.started_at_ms) }} — {{ time(batch.finished_at_ms) }}（本地时间）</p>
+          <ul v-if="batch.results.length" class="batch-items">
+            <li v-for="(item, index) in batch.results" :key="index" :class="item.state">
+              <span>{{ labels[item.account_ref] || item.label }}</span>
+              <strong class="result">{{ resultNames[item.state] }}</strong>
+              <p v-if="item.message" class="hint">{{ item.message }}</p>
+            </li>
+          </ul>
+        </div>
+        <p v-if="error" role="alert" class="feedback danger">{{ error }}</p>
+        <div v-if="selected.length" class="tools">
+          <strong class="picked">已选 <span class="num">{{ selected.length }}</span> 个账号</strong>
+          <div class="tool-actions">
+            <button type="button" class="quiet" :disabled="locked" @click="perform('check')"><Icon name="shield" :size="16" />检查所选</button>
+            <button type="button" class="quiet" :disabled="locked" @click="perform('refresh')"><Icon name="refresh" :size="16" />刷新所选凭据</button>
+            <button type="button" class="quiet" :disabled="locked || !invalid.length" @click="askRemove"><Icon name="trash" :size="16" />清理所选失效（{{ invalid.length }}）</button>
+          </div>
+          <button type="button" class="quiet clear" :disabled="busy" @click="emit('clear')"><Icon name="close" :size="16" />取消选择</button>
+          <p class="hint">检查通过官方角色绑定接口验证已保存登录状态；刷新会换取新凭据。每批最多 128 个账号，开始后范围固定。关闭页面停止后续处理，已完成的操作保留。</p>
         </div>
       </div>
-      <div class="meter" aria-hidden="true"><span :style="{ inlineSize: `${progress * 100}%` }" /></div>
-      <p v-if="batch.state !== 'running'" class="hint">{{ time(batch.started_at_ms) }} — {{ time(batch.finished_at_ms) }}（本地时间）</p>
-      <ul v-if="batch.results.length" class="batch-items">
-        <li v-for="(item, index) in batch.results" :key="index" :class="item.state">
-          <span>{{ labels[item.account_ref] || item.label }}</span>
-          <strong class="result">{{ resultNames[item.state] }}</strong>
-          <p v-if="item.message" class="hint">{{ item.message }}</p>
-        </li>
-      </ul>
-    </div>
-    <p v-if="error" role="alert" class="feedback danger">{{ error }}</p>
-    <div v-if="selected.length" class="tools">
-      <strong class="picked">已选 <span class="num">{{ selected.length }}</span> 个账号</strong>
-      <div class="tool-actions">
-        <button type="button" class="quiet" :disabled="locked" @click="perform('check')"><Icon name="shield" :size="16" />检查所选</button>
-        <button type="button" class="quiet" :disabled="locked" @click="perform('refresh')"><Icon name="refresh" :size="16" />刷新所选凭据</button>
-        <button type="button" class="quiet" :disabled="locked || !invalid.length" @click="askRemove"><Icon name="trash" :size="16" />清理所选失效（{{ invalid.length }}）</button>
-      </div>
-      <button type="button" class="quiet clear" :disabled="busy" @click="emit('clear')"><Icon name="close" :size="16" />取消选择</button>
-      <p class="hint">检查通过官方角色绑定接口验证已保存登录状态；刷新会换取新凭据。每批最多 128 个账号，开始后范围固定。关闭页面停止后续处理，已完成的操作保留。</p>
-    </div>
+    </Transition>
 
     <dialog ref="confirmation" aria-labelledby="cleanup-title">
       <h2 id="cleanup-title">清理 {{ candidates.length }} 个失效账号</h2>
@@ -103,7 +107,11 @@ onUnmounted(() => { disposed = true; if (controller) controller.abort(); else if
 
 <style scoped>
 /* The batch dock floats at the bottom of the sheet while cards are ticked. */
-.maintenance { position: sticky; z-index: 5; bottom: 16px; display: grid; gap: 10px; margin-top: 28px; padding: 10px 12px 12px 16px; border-radius: 14px; background: var(--card); box-shadow: var(--card-shadow), 0 18px 36px -18px rgb(10 16 28 / 32%); }
+.maintenance { position: sticky; z-index: 5; bottom: 16px; }
+.dock { display: grid; gap: 10px; margin-top: 28px; padding: 10px 12px 12px 16px; border-radius: 14px; background: var(--card); box-shadow: var(--card-shadow), 0 18px 36px -18px rgb(10 16 28 / 32%); }
+.dock-enter-active { transition: opacity 200ms ease-out, transform 260ms cubic-bezier(.2, .8, .2, 1); }
+.dock-leave-active { transition: opacity 150ms ease-in, transform 150ms ease-in; }
+.dock-enter-from, .dock-leave-to { opacity: 0; transform: translateY(18px); }
 .tools { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
 .tools .hint { flex-basis: 100%; }
 .picked { font-weight: 650; }
@@ -121,7 +129,8 @@ onUnmounted(() => { disposed = true; if (controller) controller.abort(); else if
 .batch-items .skipped .result { color: var(--ink-2); }
 dialog ul { max-height: 240px; padding-left: 20px; overflow: auto; }
 @media (max-width: 720px) {
-  .maintenance { bottom: 8px; padding: 8px 10px 10px 12px; }
+  .maintenance { bottom: 8px; }
+  .dock { padding: 8px 10px 10px 12px; }
   .tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .clear { grid-row: 1; grid-column: 2; margin-left: 0; }
   .tool-actions { display: grid; grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }

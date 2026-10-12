@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { usePluginHost } from '@rayleabot/plugin-ui'
 import KeyProtection from './KeyProtection.vue'
 import ArkToken from './ArkToken.vue'
@@ -11,11 +11,13 @@ import AccountAssociations from './AccountAssociations.vue'
 import CookieAuthorization from './CookieAuthorization.vue'
 import AccountCard from './AccountCard.vue'
 import Avatar from './Avatar.vue'
+import Feedback from './Feedback.vue'
 import Icon from './Icon.vue'
 import { isQQ, personOf, resolveNicknames, type Person } from './identity'
 import { encryptPassword, errorText, finished, flagOf, gameNames, loginLabel, realmName, shortDate, vaultNames, type Account, type Login, type Status, type Subject } from './model'
 
 type Tab = 'all' | 'attention' | 'valid'
+type Layer = 'manage' | 'add'
 type TransitionDocument = { startViewTransition?: (update: () => Promise<void>) => { ready: Promise<void>; finished: Promise<void> } }
 
 const host = usePluginHost()
@@ -37,12 +39,12 @@ const login = ref<Login | null>(null)
 const password = ref('')
 const protection = ref('dpapi')
 const selected = ref<string | null>(null)
-const transitionRef = ref<string | null>(null)
 const callers = ref<string[]>([])
 const removal = ref<Account | null>(null)
 const removeDialog = ref<HTMLDialogElement | null>(null)
+const manageDialog = ref<HTMLDialogElement | null>(null)
+const addDialog = ref<HTMLDialogElement | null>(null)
 const maintenance = ref<InstanceType<typeof AccountMaintenance> | null>(null)
-const deskElement = ref<HTMLElement | null>(null)
 const nicknames = ref<ReadonlyMap<string, string>>(new Map())
 const identityState = ref<'idle' | 'loading' | 'ready' | 'offline' | 'failed'>('idle')
 const resolvedIDs = new Set<string>()
@@ -57,7 +59,12 @@ const bot = computed(() => host.bot.value ? { source_protocol: host.bot.value.so
 const loginActive = computed(() => login.value && !finished(login.value))
 const needsPassword = computed(() => status.value?.vault_state === 'uninitialized' ? protection.value === 'password' : status.value?.key_protection === 'password')
 const selectedAccount = computed(() => accounts.value.find(account => account.ref === selected.value))
-const deskOpen = computed(() => adding.value !== null || selectedAccount.value !== undefined)
+// The manage window keeps showing its account while it closes, even after a
+// removal has already taken the account out of the list.
+const lastSelected = ref<Account | null>(null)
+watch(selectedAccount, account => { if (account) lastSelected.value = account })
+const windowAccount = computed(() => selectedAccount.value ?? (selected.value ? lastSelected.value : null))
+const windowOpen = computed(() => selected.value !== null || adding.value !== null)
 const ownerLabel = computed(() => bot.value?.source_protocol === 'onebot11' ? '账号主人的 QQ 号' : '账号主人的聊天用户 ID')
 
 function person(owner: Subject): Person { return personOf(owner, nicknames.value) }
@@ -171,6 +178,7 @@ async function run(work: () => Promise<void>, success = '') {
   try { await work(); notice.value = success } catch (cause) { error.value = errorText(cause) }
   finally { busy.value = false }
 }
+function retry() { void (loginActive.value ? pollLogin() : run(load)) }
 void host.ready.then(() => run(load)).catch(cause => { error.value = errorText(cause) })
 
 async function openVault() {
@@ -189,26 +197,82 @@ async function openVault() {
 async function lockVault() {
   await run(async () => {
     await invoke('vault.lock')
-    clearTimeout(pollTimer); login.value = null; adding.value = null; selected.value = null
+    clearTimeout(pollTimer); login.value = null
+    manageDialog.value?.close(); addDialog.value?.close()
+    adding.value = null; selected.value = null
     await load()
   })
 }
-// Below the two-column width the desk sits above the sheet, so bring it into view.
-async function revealDesk() {
-  await nextTick()
-  if (typeof matchMedia === 'function' && matchMedia('(max-width: 1180px)').matches) deskElement.value?.scrollIntoView({ block: 'start' })
+
+// Both windows open and close inside one view transition: the scrim fades,
+// the window rises, and a pulled card flies between its sleeve and the window.
+const morph = ref<{ layer: Layer; card: string | null } | null>(null)
+let moving = false
+async function transition(layer: Layer, card: string | null, change: () => void | Promise<void>) {
+  if (moving) return
+  moving = true
+  try {
+    const doc = document as TransitionDocument
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!doc.startViewTransition || reduced) { await change(); return }
+    morph.value = { layer, card }
+    await nextTick()
+    const view = doc.startViewTransition(async () => { await change(); await nextTick() })
+    // A skipped transition (for example in a hidden tab) still applies the change.
+    view.ready.catch(() => {})
+    await view.finished.catch(() => {})
+  } finally { morph.value = null; moving = false }
 }
-function openAdd(mode: 'qr' | 'cookie') {
-  const opening = adding.value === null
-  selected.value = null
+function showWindow(dialog: HTMLDialogElement | null) { if (dialog && !dialog.open) dialog.showModal?.() }
+function layerName(layer: Layer, part: 'scrim' | 'panel') { return morph.value?.layer === layer ? { viewTransitionName: `window-${part}` } : undefined }
+// Only a press that starts and ends on the scrim closes a window, so dragging a
+// text selection out of the window never does.
+let scrimPressed = false
+function pressScrim(event: PointerEvent) { scrimPressed = event.target === event.currentTarget }
+function clickScrim(event: MouseEvent, layer: Layer) {
+  const outside = scrimPressed && event.target === event.currentTarget
+  scrimPressed = false
+  if (!outside) return
+  if (layer === 'manage') void closeManage()
+  else if (!loginActive.value && !busy.value) void closeAdd()
+}
+
+async function openManage(account: Account) {
+  if (windowOpen.value) return
+  await transition('manage', account.ref, async () => {
+    selected.value = account.ref
+    callers.value = [...account.allowed_callers]
+    await nextTick()
+    showWindow(manageDialog.value)
+  })
+}
+async function closeManage(card = true) {
+  const ref = selected.value
+  if (!ref) return
+  await transition('manage', card ? ref : null, () => { manageDialog.value?.close(); selected.value = null })
+  // The card's own button was replaced by its sleeve, so focus returns by hand.
+  await nextTick()
+  const element = Array.from(document.querySelectorAll<HTMLElement>('[data-account]')).find(item => item.dataset.account === ref)
+  element?.querySelector<HTMLElement>('.pull')?.focus()
+}
+async function openAdd(mode: 'qr' | 'cookie') {
+  if (windowOpen.value) return
+  await transition('add', null, async () => {
+    switchAdd(mode)
+    await nextTick()
+    showWindow(addDialog.value)
+  })
+}
+function switchAdd(mode: 'qr' | 'cookie') {
   adding.value = mode
   if (mode === 'qr' && !loginActive.value) login.value = null
-  if (opening) void revealDesk()
 }
 async function closeAdd() {
   if (loginActive.value) await cancelLogin()
-  if (!loginActive.value) adding.value = null
+  if (loginActive.value || adding.value === null) return
+  await transition('add', null, () => { addDialog.value?.close(); adding.value = null })
 }
+
 async function startLogin() {
   if (!bot.value || !actorID.value.trim()) return
   await run(async () => {
@@ -249,52 +313,31 @@ async function updateAccount(account: Account, action: string, extra: Record<str
   }, '账号已更新')
 }
 
-// Pulling a card moves it from its sleeve to the desk; the view transition
-// carries the same card between the two places.
-async function swap(change: () => void, ref: string | null) {
-  const doc = document as TransitionDocument
-  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (!ref || !doc.startViewTransition || reduced) { change(); return }
-  transitionRef.value = ref
-  await nextTick()
-  const transition = doc.startViewTransition(async () => { change(); await nextTick() })
-  // A skipped transition (for example in a hidden tab) still applies the change.
-  transition.ready.catch(() => {})
-  await transition.finished.catch(() => {})
-  transitionRef.value = null
-}
-async function pull(account: Account) {
-  await swap(() => { adding.value = null; selected.value = account.ref; callers.value = [...account.allowed_callers] }, account.ref)
-  await revealDesk()
-}
-function putBack() { void swap(() => { selected.value = null }, selected.value) }
-
 async function askRemove(account: Account) {
   removal.value = account
   await nextTick()
-  removeDialog.value?.showModal()
+  removeDialog.value?.showModal?.()
 }
 async function removeAccount() {
   if (!removal.value) return
+  let removed = false
   await run(async () => {
     await invoke('accounts.remove', { account_ref: removal.value!.ref })
-    await reloadAccounts()
     removeDialog.value?.close()
-    selected.value = null; removal.value = null
+    removal.value = null
+    removed = true
+    await reloadAccounts()
   }, '账号已移除')
+  // The card is gone, so the window leaves without flying back to a sleeve.
+  if (removed) await closeManage(false)
 }
-async function changePage(value: number) { await run(async () => { page.value = value; selected.value = null; await reloadAccounts() }) }
+async function changePage(value: number) { await run(async () => { page.value = value; await reloadAccounts() }) }
 onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '' })
 </script>
 
 <template>
   <main :class="{ closed: status && !unlocked }" :aria-busy="busy || host.loading.value">
-    <div v-if="error" class="feedback danger" role="alert">
-      <Icon name="alert" />
-      <span>{{ error }}</span>
-      <button type="button" class="quiet" :disabled="busy" @click="loginActive ? pollLogin() : run(load)">重试</button>
-    </div>
-    <p v-if="notice" class="feedback" role="status"><Icon name="check" />{{ notice }}</p>
+    <Feedback v-if="!windowOpen" :error="error" :notice="notice" :busy="busy" @retry="retry" />
 
     <div v-if="!status" class="loading" role="status">
       <span class="sr-only">正在读取账号状态…</span>
@@ -305,26 +348,26 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
       <div v-if="!unlocked" class="cover-slot">
         <span class="cover-tab">{{ status.vault_state === 'uninitialized' ? '未初始化' : status.vault_state === 'missing' || status.vault_error ? '缺少密钥' : '已锁定' }}</span>
         <section class="vault-panel" aria-labelledby="vault-heading">
-        <h2 id="vault-heading">{{ status.vault_state === 'missing' || status.vault_error ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
-        <p class="vault-state">一次登录，供已授权的游戏插件使用。</p>
-        <p v-if="status.vault_error" class="danger-text" role="alert">{{ status.vault_error.message }}</p>
-        <p v-if="status.vault_state === 'missing'">检测到已保存账号，但缺少对应密钥。请恢复本插件数据目录中的原密钥文件，再重新加载插件。</p>
-        <form v-else @submit.prevent="openVault">
-          <p v-if="status.vault_state === 'uninitialized'">账号将在保存前加密。请选择密钥保护方式，并将密钥文件与数据库一同备份。</p>
-          <label v-if="status.vault_state === 'uninitialized' && status.native_key_available">密钥保护方式
-            <select v-model="protection" :disabled="busy"><option value="dpapi">当前 Windows 用户</option><option value="password">恢复口令</option></select>
-          </label>
-          <p v-if="!needsPassword && !status.vault_error" class="hint">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要换机或更强的隔离时，可在解锁后改用恢复口令。</p>
-          <p v-if="status.vault_error" class="hint">复制原环境更新后的 master-key.json 后，刷新状态，再输入恢复口令解锁。现有账号数据会保留。</p>
-          <label v-if="needsPassword">恢复口令
-            <input v-model="password" type="password" :disabled="busy" :autocomplete="status.vault_state === 'uninitialized' ? 'new-password' : 'current-password'" required aria-describedby="password-help">
-            <span id="password-help" class="hint">至少 12 字节。请妥善保存；丢失口令后无法恢复账号。</span>
-          </label>
-          <div class="actions">
-            <button class="primary" :disabled="busy" type="submit">{{ busy ? '正在处理…' : status.vault_state === 'uninitialized' ? '初始化账号库' : '解锁账号库' }}</button>
-            <button v-if="status.vault_error" :disabled="busy" type="button" @click="run(load)">刷新状态</button>
-          </div>
-        </form>
+          <h2 id="vault-heading">{{ status.vault_state === 'missing' || status.vault_error ? '恢复原密钥后继续' : status.vault_state === 'uninitialized' ? '设置账号库' : '解锁后使用账号' }}</h2>
+          <p class="vault-state">一次登录，供已授权的游戏插件使用。</p>
+          <p v-if="status.vault_error" class="danger-text" role="alert">{{ status.vault_error.message }}</p>
+          <p v-if="status.vault_state === 'missing'">检测到已保存账号，但缺少对应密钥。请恢复本插件数据目录中的原密钥文件，再重新加载插件。</p>
+          <form v-else @submit.prevent="openVault">
+            <p v-if="status.vault_state === 'uninitialized'">账号将在保存前加密。请选择密钥保护方式，并将密钥文件与数据库一同备份。</p>
+            <label v-if="status.vault_state === 'uninitialized' && status.native_key_available">密钥保护方式
+              <select v-model="protection" :disabled="busy"><option value="dpapi">当前 Windows 用户</option><option value="password">恢复口令</option></select>
+            </label>
+            <p v-if="!needsPassword && !status.vault_error" class="hint">使用当前 Windows 用户解锁。此方式依赖原系统用户环境；需要换机或更强的隔离时，可在解锁后改用恢复口令。</p>
+            <p v-if="status.vault_error" class="hint">复制原环境更新后的 master-key.json 后，刷新状态，再输入恢复口令解锁。现有账号数据会保留。</p>
+            <label v-if="needsPassword">恢复口令
+              <input v-model="password" type="password" :disabled="busy" :autocomplete="status.vault_state === 'uninitialized' ? 'new-password' : 'current-password'" required aria-describedby="password-help">
+              <span id="password-help" class="hint">至少 12 字节。请妥善保存；丢失口令后无法恢复账号。</span>
+            </label>
+            <div class="actions">
+              <button class="primary" :disabled="busy" type="submit">{{ busy ? '正在处理…' : status.vault_state === 'uninitialized' ? '初始化账号库' : '解锁账号库' }}</button>
+              <button v-if="status.vault_error" :disabled="busy" type="button" @click="run(load)">刷新状态</button>
+            </div>
+          </form>
         </section>
       </div>
 
@@ -361,134 +404,33 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           </div>
           <p v-if="identityNote" class="identity-note">{{ identityNote }}</p>
 
-          <div class="binder-body" :class="{ open: deskOpen }">
-            <div class="sheet-area">
-              <div v-if="!accounts.length" class="empty">
-                <span class="empty-sleeves" aria-hidden="true"><span /><span /><span /></span>
-                <h3>还没有绑定账号</h3>
-                <p>扫码后自动发现原神、星穹铁道和绝区零角色。群友也可以在聊天中向机器人发送“扫码登录”自行绑定。</p>
-                <button class="primary" type="button" :disabled="busy" @click="openAdd('qr')"><Icon name="qr" />扫码添加账号</button>
-              </div>
-              <div v-else-if="!visible.length" class="empty">
-                <h3>没有符合条件的账号</h3>
-                <p>当前页没有匹配的名片，试试其他昵称、QQ 号或 UID。</p>
-                <button type="button" @click="search = ''; tab = 'all'">显示全部账号</button>
-              </div>
-              <ul v-else class="sheet">
-                <li v-for="account in visible" :key="account.ref" class="slot">
-                  <div v-if="selected === account.ref" class="sleeve">
-                    <span>{{ person(account.owner).name }} 的名片已取出</span>
-                    <button type="button" class="quiet" @click="putBack">放回</button>
-                  </div>
-                  <AccountCard v-else :account="account" :person="person(account.owner)" :owned="owned.get(account.owner.actor_id)" :busy="busy" :marked="marked.includes(account.ref)" :transition="transitionRef === account.ref" @mark="mark(account, $event)" @check="updateAccount(account, 'accounts.check')" @refresh="updateAccount(account, 'accounts.refresh')" @pull="pull(account)" />
-                </li>
-                <li v-if="tab === 'all' && !search && nextPage === null" class="slot">
-                  <button type="button" class="sleeve add" :disabled="busy" @click="openAdd('qr')"><Icon name="plus" :size="20" />扫码添加账号</button>
-                </li>
-              </ul>
-              <nav v-if="page > 0 || nextPage !== null" class="pagination" aria-label="账号分页">
-                <button type="button" :disabled="busy || page === 0" @click="changePage(page - 1)">上一页</button>
-                <span>第 {{ page + 1 }} 页 · 共 {{ total }} 个账号</span>
-                <button type="button" :disabled="busy || nextPage === null" @click="changePage(nextPage!)">下一页</button>
-              </nav>
-              <AccountMaintenance ref="maintenance" :selected="markedAccounts" :disabled="busy" :invoke="invoke" :describe="describe" @changed="maintenanceUpdated" @working="maintenanceWorking" @clear="marked = []" />
+          <div class="sheet-area">
+            <div v-if="!accounts.length" class="empty">
+              <span class="empty-sleeves" aria-hidden="true"><span /><span /><span /></span>
+              <h3>还没有绑定账号</h3>
+              <p>扫码后自动发现原神、星穹铁道和绝区零角色。群友也可以在聊天中向机器人发送“扫码登录”自行绑定。</p>
+              <button class="primary" type="button" :disabled="busy" @click="openAdd('qr')"><Icon name="qr" />扫码添加账号</button>
             </div>
-
-            <aside v-if="deskOpen" ref="deskElement" class="desk">
-              <section v-if="adding" class="desk-panel" aria-labelledby="add-heading">
-                <div class="desk-head">
-                  <h2 id="add-heading">添加账号</h2>
-                  <button type="button" class="icon-button" :disabled="busy" :aria-label="loginActive ? '取消登录并关闭' : '关闭添加账号'" @click="closeAdd"><Icon name="close" /></button>
-                </div>
-                <div v-if="bot" class="segmented" role="group" aria-label="添加方式">
-                  <button type="button" :aria-pressed="adding === 'qr'" :disabled="busy" @click="openAdd('qr')"><Icon name="qr" :size="16" />米游社扫码</button>
-                  <button type="button" :aria-pressed="adding === 'cookie'" :disabled="busy || !!loginActive" @click="openAdd('cookie')"><Icon name="import" :size="16" />导入 Cookie</button>
-                </div>
-                <template v-if="adding === 'qr'">
-                  <form v-if="!loginActive && login?.state !== 'bound'" class="login-form" @submit.prevent="startLogin">
-                    <label>{{ ownerLabel }}
-                      <span class="owner-input">
-                        <Avatar v-if="draftPerson" :person="draftPerson" :size="36" />
-                        <input v-model="actorID" :disabled="busy" required autocomplete="off" spellcheck="false" placeholder="输入要绑定账号的聊天用户 ID">
-                      </span>
-                    </label>
-                    <button class="primary" type="submit" :disabled="busy || !bot || !actorID.trim()">{{ busy ? '正在获取二维码…' : '获取米游社二维码' }}</button>
-                  </form>
-                  <p v-if="login && loginPerson" class="binding-target">
-                    <Avatar :person="loginPerson" :size="32" />
-                    <span>为 <strong>{{ loginPerson.name }}</strong><template v-if="!loginPerson.name.startsWith(`${loginPerson.idLabel} `)">（{{ loginPerson.idLabel }} {{ loginPerson.id }}）</template> 绑定米游社账号</span>
-                  </p>
-                  <div v-if="login" class="login-result">
-                    <img v-if="login.qr_code && loginActive" :src="login.qr_code" width="220" height="220" alt="使用米游社扫描此登录二维码">
-                    <div class="login-state" aria-live="polite">
-                      <strong>{{ loginLabel(login) }}</strong>
-                      <p v-if="loginActive" class="hint">二维码和登录结果仅用于当前绑定任务。</p>
-                      <p v-if="login.error_message" :class="login.state === 'failed' ? 'danger-text' : 'attention'">{{ login.error_message }}{{ loginActive ? ' 正在退避重试。' : '' }}</p>
-                      <p v-if="login.failure?.retcode || login.failure?.http_status" class="hint">{{ login.failure.operation }} · {{ login.failure.retcode ? `米游社错误码 ${login.failure.retcode}` : `HTTP ${login.failure.http_status}` }}</p>
-                      <ul v-if="Object.keys(login.role_states).length" class="discovery">
-                        <li v-for="(state, game) in login.role_states" :key="game"><span>{{ gameNames[game] || game }}</span>{{ state === 'ready' ? '已发现角色' : state === 'empty' ? '没有绑定角色' : '暂未读取，可稍后重试' }}</li>
-                      </ul>
-                      <div class="actions">
-                        <button v-if="loginActive" type="button" :disabled="busy" @click="cancelLogin">取消登录</button>
-                        <button v-else-if="login.state === 'bound'" type="button" :disabled="busy" @click="login = null">继续添加</button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-                <CookieAuthorization v-else-if="bot" :busy="busy" :owner-label="ownerLabel" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
-              </section>
-
-              <section v-else-if="selectedAccount" class="desk-panel" aria-labelledby="desk-heading">
-                <div class="desk-head">
-                  <button type="button" class="quiet" @click="putBack"><Icon name="back" :size="16" />放回名片册</button>
-                  <h2 id="desk-heading" class="sr-only">管理 {{ person(selectedAccount.owner).name }} 的账号</h2>
-                </div>
-                <div class="desk-card">
-                  <AccountCard large :account="selectedAccount" :person="person(selectedAccount.owner)" :owned="owned.get(selectedAccount.owner.actor_id)" :busy="busy" :transition="transitionRef === selectedAccount.ref" @check="updateAccount(selectedAccount, 'accounts.check')" @refresh="updateAccount(selectedAccount, 'accounts.refresh')" />
-                </div>
-
-                <div class="reverse">
-                <section class="desk-section" aria-labelledby="roles-heading">
-                  <h3 id="roles-heading">游戏角色</h3>
-                  <table v-if="selectedAccount.roles.length" class="roles">
-                    <thead><tr><th scope="col">游戏</th><th scope="col">角色</th><th scope="col">UID</th><th scope="col">区服</th><th scope="col">等级</th></tr></thead>
-                    <tbody><tr v-for="role in selectedAccount.roles" :key="role.ref"><td>{{ gameNames[role.game] || role.game }}</td><td>{{ role.nickname }}</td><td class="num">{{ role.uid }}</td><td class="code">{{ role.region }}</td><td class="num">{{ role.level }}</td></tr></tbody>
-                  </table>
-                  <p v-else class="hint">尚未发现角色，可按游戏重新读取。</p>
-                  <div class="actions">
-                    <button v-for="(label, game) in gameNames" :key="game" type="button" :disabled="busy" @click="updateAccount(selectedAccount, 'accounts.roles', { game })">重新读取{{ label }}</button>
-                  </div>
-                </section>
-
-                <section class="desk-section" aria-labelledby="public-heading">
-                  <h3 id="public-heading">公共查询池</h3>
-                  <template v-if="selectedAccount.public_query?.enabled">
-                    <p>本人已开启：{{ selectedAccount.public_query.games.map(game => gameNames[game] || game).join('、') }} · 每日 <span class="num">{{ selectedAccount.public_query.daily_limit }}</span> 次 · {{ selectedAccount.public_query.day || '尚未使用' }} 已用 <span class="num">{{ selectedAccount.public_query.used }}</span> 次。</p>
-                    <div class="actions"><button type="button" :disabled="busy" @click="updateAccount(selectedAccount, 'accounts.public.disable')">退出公共查询池</button></div>
-                  </template>
-                  <p v-else class="hint">未开启。需要共享时，由账号所属用户本人发送“共享查询账号 开启”设置游戏范围与额度。</p>
-                </section>
-
-                <DeviceSettings :key="`device-${selectedAccount.ref}`" :account="selectedAccount" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
-                <CloudAuthorizations v-if="selectedAccount.realm !== 'os'" :key="`cloud-${selectedAccount.ref}`" :account="selectedAccount" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
-
-                <form class="desk-section" @submit.prevent="updateAccount(selectedAccount, 'accounts.permissions', { callers, revision: selectedAccount.revision })">
-                  <fieldset :disabled="busy">
-                    <legend>允许使用此账号的插件</legend>
-                    <div class="checks">
-                      <label v-for="entry in status.allowed_plugins" :key="entry.plugin_id"><input v-model="callers" type="checkbox" :value="entry.plugin_id"><span>{{ entry.games.map(game => gameNames[game] || game).join('、') }}<small>{{ entry.plugin_id }}</small></span></label>
-                    </div>
-                  </fieldset>
-                  <div class="actions"><button type="submit" :disabled="busy" class="primary">保存授权</button></div>
-                </form>
-
-                <div class="desk-danger">
-                  <button type="button" :disabled="busy" @click="askRemove(selectedAccount)"><Icon name="trash" :size="16" />移除账号</button>
-                  <span class="hint">最近更新 {{ shortDate(selectedAccount.updated_at_ms) }}</span>
-                </div>
-                </div>
-              </section>
-            </aside>
+            <div v-else-if="!visible.length" class="empty">
+              <h3>没有符合条件的账号</h3>
+              <p>当前页没有匹配的名片，试试其他昵称、QQ 号或 UID。</p>
+              <button type="button" @click="search = ''; tab = 'all'">显示全部账号</button>
+            </div>
+            <ul v-else class="sheet">
+              <li v-for="account in visible" :key="account.ref" class="slot">
+                <div v-if="selected === account.ref" class="sleeve" aria-hidden="true" />
+                <AccountCard v-else :data-account="account.ref" :account="account" :person="person(account.owner)" :owned="owned.get(account.owner.actor_id)" :busy="busy" :marked="marked.includes(account.ref)" :transition="morph?.card === account.ref" @mark="mark(account, $event)" @check="updateAccount(account, 'accounts.check')" @refresh="updateAccount(account, 'accounts.refresh')" @pull="openManage(account)" />
+              </li>
+              <li v-if="tab === 'all' && !search && nextPage === null" class="slot">
+                <button type="button" class="sleeve add" :disabled="busy" @click="openAdd('qr')"><Icon name="plus" :size="20" />扫码添加账号</button>
+              </li>
+            </ul>
+            <nav v-if="page > 0 || nextPage !== null" class="pagination" aria-label="账号分页">
+              <button type="button" :disabled="busy || page === 0" @click="changePage(page - 1)">上一页</button>
+              <span>第 {{ page + 1 }} 页 · 共 {{ total }} 个账号</span>
+              <button type="button" :disabled="busy || nextPage === null" @click="changePage(nextPage!)">下一页</button>
+            </nav>
+            <AccountMaintenance ref="maintenance" :selected="markedAccounts" :disabled="busy" :invoke="invoke" :describe="describe" @changed="maintenanceUpdated" @working="maintenanceWorking" @clear="marked = []" />
           </div>
         </section>
 
@@ -511,6 +453,110 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
             <AccountAssociations class="setting" :bot="bot" :person="person" :invoke="invoke" :disabled="busy" />
           </div>
         </section>
+
+        <dialog ref="manageDialog" class="window-layer" :style="layerName('manage', 'scrim')" aria-labelledby="manage-heading" @cancel.prevent="closeManage()" @pointerdown="pressScrim" @click="clickScrim($event, 'manage')">
+          <section v-if="windowAccount" class="window" :style="layerName('manage', 'panel')">
+            <header class="window-head">
+              <h2 id="manage-heading">管理账号</h2>
+              <button type="button" class="icon-button" aria-label="关闭，放回名片册" @click="closeManage()"><Icon name="close" /></button>
+            </header>
+            <div class="window-body">
+              <Feedback :error="error" :notice="notice" :busy="busy" @retry="retry" />
+              <div class="window-card">
+                <AccountCard large :account="windowAccount" :person="person(windowAccount.owner)" :owned="owned.get(windowAccount.owner.actor_id)" :busy="busy" :transition="morph?.card === windowAccount.ref" @check="updateAccount(windowAccount, 'accounts.check')" @refresh="updateAccount(windowAccount, 'accounts.refresh')" />
+              </div>
+
+              <div class="reverse">
+                <section class="window-section" aria-labelledby="roles-heading">
+                  <h3 id="roles-heading">游戏角色</h3>
+                  <table v-if="windowAccount.roles.length" class="roles">
+                    <thead><tr><th scope="col">游戏</th><th scope="col">角色</th><th scope="col">UID</th><th scope="col">区服</th><th scope="col">等级</th></tr></thead>
+                    <tbody><tr v-for="role in windowAccount.roles" :key="role.ref"><td>{{ gameNames[role.game] || role.game }}</td><td>{{ role.nickname }}</td><td class="num">{{ role.uid }}</td><td class="code">{{ role.region }}</td><td class="num">{{ role.level }}</td></tr></tbody>
+                  </table>
+                  <p v-else class="hint">尚未发现角色，可按游戏重新读取。</p>
+                  <div class="actions">
+                    <button v-for="(label, game) in gameNames" :key="game" type="button" :disabled="busy" @click="updateAccount(windowAccount, 'accounts.roles', { game })">重新读取{{ label }}</button>
+                  </div>
+                </section>
+
+                <section class="window-section" aria-labelledby="public-heading">
+                  <h3 id="public-heading">公共查询池</h3>
+                  <template v-if="windowAccount.public_query?.enabled">
+                    <p>本人已开启：{{ windowAccount.public_query.games.map(game => gameNames[game] || game).join('、') }} · 每日 <span class="num">{{ windowAccount.public_query.daily_limit }}</span> 次 · {{ windowAccount.public_query.day || '尚未使用' }} 已用 <span class="num">{{ windowAccount.public_query.used }}</span> 次。</p>
+                    <div class="actions"><button type="button" :disabled="busy" @click="updateAccount(windowAccount, 'accounts.public.disable')">退出公共查询池</button></div>
+                  </template>
+                  <p v-else class="hint">未开启。需要共享时，由账号所属用户本人发送“共享查询账号 开启”设置游戏范围与额度。</p>
+                </section>
+
+                <DeviceSettings :key="`device-${windowAccount.ref}`" :account="windowAccount" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+                <CloudAuthorizations v-if="windowAccount.realm !== 'os'" :key="`cloud-${windowAccount.ref}`" :account="windowAccount" :busy="busy" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+
+                <form class="window-section" @submit.prevent="updateAccount(windowAccount, 'accounts.permissions', { callers, revision: windowAccount.revision })">
+                  <fieldset :disabled="busy">
+                    <legend>允许使用此账号的插件</legend>
+                    <div class="checks">
+                      <label v-for="entry in status.allowed_plugins" :key="entry.plugin_id"><input v-model="callers" type="checkbox" :value="entry.plugin_id"><span>{{ entry.games.map(game => gameNames[game] || game).join('、') }}<small>{{ entry.plugin_id }}</small></span></label>
+                    </div>
+                  </fieldset>
+                  <div class="actions"><button type="submit" :disabled="busy" class="primary">保存授权</button></div>
+                </form>
+
+                <div class="window-danger">
+                  <button type="button" :disabled="busy" @click="askRemove(windowAccount)"><Icon name="trash" :size="16" />移除账号</button>
+                  <span class="hint">最近更新 {{ shortDate(windowAccount.updated_at_ms) }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </dialog>
+
+        <dialog ref="addDialog" class="window-layer" :style="layerName('add', 'scrim')" aria-labelledby="add-heading" @cancel.prevent="closeAdd" @pointerdown="pressScrim" @click="clickScrim($event, 'add')">
+          <section v-if="adding" class="window narrow" :style="layerName('add', 'panel')">
+            <header class="window-head">
+              <h2 id="add-heading">添加账号</h2>
+              <button type="button" class="icon-button" :disabled="busy" :aria-label="loginActive ? '取消登录并关闭' : '关闭添加账号'" @click="closeAdd"><Icon name="close" /></button>
+            </header>
+            <div class="window-body">
+              <Feedback :error="error" :notice="notice" :busy="busy" @retry="retry" />
+              <div v-if="bot" class="segmented" role="group" aria-label="添加方式">
+                <button type="button" :aria-pressed="adding === 'qr'" :disabled="busy" @click="switchAdd('qr')"><Icon name="qr" :size="16" />米游社扫码</button>
+                <button type="button" :aria-pressed="adding === 'cookie'" :disabled="busy || !!loginActive" @click="switchAdd('cookie')"><Icon name="import" :size="16" />导入 Cookie</button>
+              </div>
+              <template v-if="adding === 'qr'">
+                <form v-if="!loginActive && login?.state !== 'bound'" class="login-form" @submit.prevent="startLogin">
+                  <label>{{ ownerLabel }}
+                    <span class="owner-input">
+                      <Avatar v-if="draftPerson" :person="draftPerson" :size="36" />
+                      <input v-model="actorID" :disabled="busy" required autocomplete="off" spellcheck="false" placeholder="输入要绑定账号的聊天用户 ID">
+                    </span>
+                  </label>
+                  <button class="primary" type="submit" :disabled="busy || !bot || !actorID.trim()">{{ busy ? '正在获取二维码…' : '获取米游社二维码' }}</button>
+                </form>
+                <p v-if="login && loginPerson" class="binding-target">
+                  <Avatar :person="loginPerson" :size="32" />
+                  <span>为 <strong>{{ loginPerson.name }}</strong><template v-if="!loginPerson.name.startsWith(`${loginPerson.idLabel} `)">（{{ loginPerson.idLabel }} {{ loginPerson.id }}）</template> 绑定米游社账号</span>
+                </p>
+                <div v-if="login" class="login-result">
+                  <img v-if="login.qr_code && loginActive" :src="login.qr_code" width="220" height="220" alt="使用米游社扫描此登录二维码">
+                  <div class="login-state" aria-live="polite">
+                    <strong>{{ loginLabel(login) }}</strong>
+                    <p v-if="loginActive" class="hint">二维码和登录结果仅用于当前绑定任务。</p>
+                    <p v-if="login.error_message" :class="login.state === 'failed' ? 'danger-text' : 'attention'">{{ login.error_message }}{{ loginActive ? ' 正在退避重试。' : '' }}</p>
+                    <p v-if="login.failure?.retcode || login.failure?.http_status" class="hint">{{ login.failure.operation }} · {{ login.failure.retcode ? `米游社错误码 ${login.failure.retcode}` : `HTTP ${login.failure.http_status}` }}</p>
+                    <ul v-if="Object.keys(login.role_states).length" class="discovery">
+                      <li v-for="(state, game) in login.role_states" :key="game"><span>{{ gameNames[game] || game }}</span>{{ state === 'ready' ? '已发现角色' : state === 'empty' ? '没有绑定角色' : '暂未读取，可稍后重试' }}</li>
+                    </ul>
+                    <div class="actions">
+                      <button v-if="loginActive" type="button" :disabled="busy" @click="cancelLogin">取消登录</button>
+                      <button v-else-if="login.state === 'bound'" type="button" :disabled="busy" @click="login = null">继续添加</button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <CookieAuthorization v-else-if="bot" :busy="busy" :owner-label="ownerLabel" :invoke="invoke" @changed="maintenanceUpdated" @working="maintenanceWorking" />
+            </div>
+          </section>
+        </dialog>
       </template>
     </template>
 
