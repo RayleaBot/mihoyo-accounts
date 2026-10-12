@@ -271,6 +271,8 @@ dialog:not(.window-layer) .actions { justify-content: flex-end; }
   :focus-visible { outline-color: Highlight; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after, ::details-content { transition: none !important; animation: none !important; }
+  *, ::before, ::after { transition: none !important; animation: none !important; }
+  /* Kept apart: a browser without ::details-content would drop the whole list. */
+  .disclosure::details-content { transition: none !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

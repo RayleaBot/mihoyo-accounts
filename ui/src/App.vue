@@ -232,9 +232,15 @@ function pressScrim(event: PointerEvent) { scrimPressed = event.target === event
 function clickScrim(event: MouseEvent, layer: Layer) {
   const outside = scrimPressed && event.target === event.currentTarget
   scrimPressed = false
-  if (!outside) return
+  if (!outside || busy.value) return
   if (layer === 'manage') void closeManage()
-  else if (!loginActive.value && !busy.value) void closeAdd()
+  else if (!loginActive.value) void closeAdd()
+}
+// A window stays open while a request runs: closing it would unmount the form
+// that has to report the request's end.
+function escapeWindow(layer: Layer) {
+  if (busy.value) return
+  void (layer === 'manage' ? closeManage() : closeAdd())
 }
 
 async function openManage(account: Account) {
@@ -454,11 +460,11 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           </div>
         </section>
 
-        <dialog ref="manageDialog" class="window-layer" :style="layerName('manage', 'scrim')" aria-labelledby="manage-heading" @cancel.prevent="closeManage()" @pointerdown="pressScrim" @click="clickScrim($event, 'manage')">
+        <dialog ref="manageDialog" class="window-layer" :style="layerName('manage', 'scrim')" aria-labelledby="manage-heading" @cancel.prevent="escapeWindow('manage')" @pointerdown="pressScrim" @click="clickScrim($event, 'manage')">
           <section v-if="windowAccount" class="window" :style="layerName('manage', 'panel')">
             <header class="window-head">
               <h2 id="manage-heading">管理账号</h2>
-              <button type="button" class="icon-button" aria-label="关闭，放回名片册" @click="closeManage()"><Icon name="close" /></button>
+              <button type="button" class="icon-button" :disabled="busy" aria-label="关闭，放回名片册" @click="closeManage()"><Icon name="close" /></button>
             </header>
             <div class="window-body">
               <Feedback :error="error" :notice="notice" :busy="busy" @retry="retry" />
@@ -510,7 +516,7 @@ onUnmounted(() => { disposed = true; clearTimeout(pollTimer); password.value = '
           </section>
         </dialog>
 
-        <dialog ref="addDialog" class="window-layer" :style="layerName('add', 'scrim')" aria-labelledby="add-heading" @cancel.prevent="closeAdd" @pointerdown="pressScrim" @click="clickScrim($event, 'add')">
+        <dialog ref="addDialog" class="window-layer" :style="layerName('add', 'scrim')" aria-labelledby="add-heading" @cancel.prevent="escapeWindow('add')" @pointerdown="pressScrim" @click="clickScrim($event, 'add')">
           <section v-if="adding" class="window narrow" :style="layerName('add', 'panel')">
             <header class="window-head">
               <h2 id="add-heading">添加账号</h2>
